@@ -1,0 +1,123 @@
+#######################################
+# OS / Editor
+#######################################
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.ipr
+*.iws
+
+#######################################
+# Node / Angular
+#######################################
+
+# Node modules
+node_modules/
+
+# Angular build output
+dist/
+.angular/
+.cache/
+
+# Angular environment overrides
+environment.local.ts
+environment.*.local.ts
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+#######################################
+# Java / Spring Boot / Maven
+#######################################
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Gradle (if ever used)
+.gradle/
+build/
+
+# Spring Boot
+logs/
+*.log
+
+# JVM
+hs_err_pid*
+
+#######################################
+# Docker
+#######################################
+
+# Docker runtime artifacts
+docker-compose.override.yml
+
+# Local Docker volumes (if mapped)
+docker-data/
+data/
+
+#######################################
+# AWS / Infrastructure
+#######################################
+
+# AWS credentials (NEVER commit)
+.aws/
+aws-credentials.env
+.env.aws
+
+# Terraform / IaC (future-proof)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+terraform.tfvars
+terraform.tfvars.json
+
+#######################################
+# Environment / Secrets
+#######################################
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Local-only config
+*.local.yml
+*.local.yaml
+application-local.yml
+application-local.yaml
+
+#######################################
+# Testing / Coverage
+#######################################
+
+coverage/
+*.lcov
+
+#######################################
+# Misc
+#######################################
+
+# Temporary files
+tmp/
+temp/
+
+# OS backups
+*~

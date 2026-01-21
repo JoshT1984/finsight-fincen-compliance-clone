@@ -1,0 +1,36 @@
+/* Landing page spacing only (keeps global styles in src/styles.css) */
+
+.hero {
+  padding: 28px 0 18px;
+}
+
+.hero h2 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.hero p {
+  margin: 0 0 18px;
+  max-width: 72ch;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px 0 28px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
