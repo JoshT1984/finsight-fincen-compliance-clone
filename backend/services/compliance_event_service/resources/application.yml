@@ -3,12 +3,13 @@ server:
 
 spring:
   application:
-    name: sar-detection-service
+    name: compliance-event-service
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight}
     username: ${DB_USER:postgres}
     password: ${DB_PASS:postgres}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -16,7 +17,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: ${DB_SCHEMA:compliance_event}
+        jdbc:
+          time_zone: UTC
 
+  # For MVP/local, SQL init is fine. In shared envs, prefer Flyway.
   sql:
     init:
       mode: always
@@ -26,13 +31,13 @@ spring:
 aws:
   region: ${AWS_REGION:us-east-1}
 
-  dynamodb:
-    endpoint: ${DDB_ENDPOINT:}
-
   sqs:
-    ctrQueueUrl: ${CTR_QUEUE_URL:}
-    sarQueueUrl: ${SAR_QUEUE_URL:}
-    caseQueueUrl: ${CASE_QUEUE_URL:}
+    # This service typically CONSUMES events published by ctr_sar_service
+    # and writes normalized rows into compliance_event + detail tables.
+    ctrEventsQueueUrl: ${CTR_EVENTS_QUEUE_URL:}
+    sarEventsQueueUrl: ${SAR_EVENTS_QUEUE_URL:}
+    linkEventsQueueUrl: ${LINK_EVENTS_QUEUE_URL:}
+    auditActionsQueueUrl: ${AUDIT_ACTIONS_QUEUE_URL:}
 
 management:
   endpoints:
