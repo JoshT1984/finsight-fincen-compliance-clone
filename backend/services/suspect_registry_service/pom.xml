@@ -12,9 +12,9 @@
   </parent>
 
   <groupId>com.finsight</groupId>
-  <artifactId>transactions-ctr-service</artifactId>
+  <artifactId>suspect_registry_service</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>transactions-ctr-service</name>
+  <name>suspect_registry_service</name>
   <description>FinSight Transactions + CTR microservice</description>
 
   <properties>
