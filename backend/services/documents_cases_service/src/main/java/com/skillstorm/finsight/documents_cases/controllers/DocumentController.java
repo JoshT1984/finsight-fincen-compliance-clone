@@ -71,8 +71,12 @@ public class DocumentController {
 	
 	@PatchMapping("/{id}")
 	public ResponseEntity<DocumentResponse> update(@PathVariable Long id, @RequestBody UpdateDocumentRequest request) {
-		DocumentResponse response = service.updateById(id, request);
-		return ResponseEntity.ok(response);
+		try {
+			DocumentResponse response = service.updateById(id, request);
+			return ResponseEntity.ok(response);
+		} catch (java.io.IOException e) {
+			throw new RuntimeException("Failed to update document: " + e.getMessage(), e);
+		}
 	}
 	
 	@DeleteMapping("/{id}")

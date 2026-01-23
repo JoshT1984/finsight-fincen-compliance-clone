@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.CopyObjectResponse;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -40,18 +42,10 @@ public class S3Service {
     public String generateDownloadUrl(String storagePath, int expirationMinutes) {
         log.debug("Generating presigned download URL for: {} (expires in {} minutes)", storagePath, expirationMinutes);
         
-        // Remove s3://bucket/ prefix if present
-        String key = storagePath;
-        if (storagePath.startsWith("s3://")) {
-            // Remove s3://bucket-name/ prefix
-            int thirdSlash = storagePath.indexOf("/", 5);
-            if (thirdSlash != -1) {
-                key = storagePath.substring(thirdSlash + 1);
-            } else {
-                key = storagePath.substring(5);
-            }
-        } else if (storagePath.startsWith(bucketName + "/")) {
-            key = storagePath.substring(bucketName.length() + 1);
+        String key = extractKey(storagePath);
+        
+        if (key == null || key.isEmpty()) {
+            throw new IllegalArgumentException("Invalid storage path - could not extract S3 key from: " + storagePath);
         }
         
         try (S3Presigner presigner = S3Presigner.builder()
@@ -124,18 +118,7 @@ public class S3Service {
     public void deleteFile(String storagePath) throws IOException {
         log.info("Attempting to delete file from S3. Original storagePath: {}", storagePath);
         
-        // Remove s3://bucket/ prefix if present 
-        String key = storagePath;
-        if (storagePath != null && storagePath.startsWith("s3://")) {
-            int thirdSlash = storagePath.indexOf("/", 5);
-            if (thirdSlash != -1) {
-                key = storagePath.substring(thirdSlash + 1);
-            } else {
-                key = storagePath.substring(5);
-            }
-        } else if (storagePath != null && storagePath.startsWith(bucketName + "/")) {
-            key = storagePath.substring(bucketName.length() + 1);
-        }
+        String key = extractKey(storagePath);
         
         log.info("Extracted S3 key: '{}' for bucket: '{}'", key, bucketName);
         
@@ -160,5 +143,77 @@ public class S3Service {
             log.error("Unexpected error deleting file from S3 - bucket: {}, key: {}", bucketName, key, e);
             throw new IOException("Failed to delete file from S3: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Copies/moves a file within S3 from one key to another.
+     * 
+     * @param sourceKey The source S3 key (e.g., "sar/123/document.pdf")
+     * @param destinationKey The destination S3 key (e.g., "case/456/document.pdf")
+     * @return The destination key
+     * @throws IOException If there's an error copying the file
+     */
+    public String copyFile(String sourceKey, String destinationKey) throws IOException {
+        log.info("Copying file in S3 from '{}' to '{}'", sourceKey, destinationKey);
+        
+        // Extract clean keys (remove s3://bucket/ prefix if present)
+        String cleanSourceKey = extractKey(sourceKey);
+        String cleanDestinationKey = extractKey(destinationKey);
+        
+        if (cleanSourceKey == null || cleanSourceKey.isEmpty()) {
+            throw new IOException("Invalid source storage path - could not extract S3 key from: " + sourceKey);
+        }
+        if (cleanDestinationKey == null || cleanDestinationKey.isEmpty()) {
+            throw new IOException("Invalid destination storage path - could not extract S3 key from: " + destinationKey);
+        }
+        
+        try {
+            CopyObjectRequest copyRequest = CopyObjectRequest.builder()
+                    .sourceBucket(bucketName)
+                    .sourceKey(cleanSourceKey)
+                    .destinationBucket(bucketName)
+                    .destinationKey(cleanDestinationKey)
+                    .build();
+            
+            CopyObjectResponse response = s3Client.copyObject(copyRequest);
+            log.info("Successfully copied file in S3 from '{}' to '{}' (ETag: {})", 
+                    cleanSourceKey, cleanDestinationKey, response.copyObjectResult().eTag());
+            
+            // Delete the source file after successful copy
+            deleteFile(cleanSourceKey);
+            log.info("Deleted source file after copy: {}", cleanSourceKey);
+            
+            return cleanDestinationKey;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            log.error("S3 error copying file - source: {}, destination: {}, error code: {}, error message: {}", 
+                    cleanSourceKey, cleanDestinationKey, e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage(), e);
+            throw new IOException("Failed to copy file in S3: " + e.awsErrorDetails().errorMessage(), e);
+        } catch (Exception e) {
+            log.error("Unexpected error copying file in S3 - source: {}, destination: {}", cleanSourceKey, cleanDestinationKey, e);
+            throw new IOException("Failed to copy file in S3: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Extracts the S3 key from a storage path, removing s3://bucket/ prefix if present.
+     */
+    private String extractKey(String storagePath) {
+        if (storagePath == null) {
+            return null;
+        }
+        
+        String key = storagePath;
+        if (storagePath.startsWith("s3://")) {
+            int thirdSlash = storagePath.indexOf("/", 5);
+            if (thirdSlash != -1) {
+                key = storagePath.substring(thirdSlash + 1);
+            } else {
+                key = storagePath.substring(5);
+            }
+        } else if (storagePath.startsWith(bucketName + "/")) {
+            key = storagePath.substring(bucketName.length() + 1);
+        }
+        
+        return key;
     }
 }

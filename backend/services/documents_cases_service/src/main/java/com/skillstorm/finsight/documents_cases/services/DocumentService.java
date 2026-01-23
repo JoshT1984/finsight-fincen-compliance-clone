@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -177,35 +176,123 @@ public class DocumentService {
     }
     
     @Transactional
-    public DocumentResponse updateById(Long documentId, UpdateDocumentRequest request) {
+    public DocumentResponse updateById(Long documentId, UpdateDocumentRequest request) throws IOException {
     	log.debug("Updating document with ID: {}", documentId);
-    	log.debug("Update request - documentType: {}, fileName: {}, storagePath: {}", 
-    			request.documentType(), request.fileName(), request.storagePath());
+    	log.debug("Update request - documentType: {}, fileName: {}, storagePath: {}, ctrId: {}, sarId: {}, caseId: {}", 
+    			request.documentType(), request.fileName(), request.storagePath(), 
+    			request.ctrId(), request.sarId(), request.caseId());
     	
     	Document document = repo.findById(documentId)
     			.orElseThrow(() -> new ResourceNotFoundException("Document with ID " + documentId + " not found"));
     	
-    	boolean updated = false;
+    	// Store original values to detect changes that require S3 file move
+    	DocumentType originalDocumentType = document.getDocumentType();
+    	Long originalCtrId = document.getCtrId();
+    	Long originalSarId = document.getSarId();
+    	Long originalCaseId = document.getCaseId();
+    	String originalStoragePath = document.getStoragePath();
     	
+    	boolean updated = false;
+    	boolean needsS3Move = false;
+    	
+    	// Determine new values for IDs
+    	Long newCtrId = request.ctrId() != null ? request.ctrId() : originalCtrId;
+    	Long newSarId = request.sarId() != null ? request.sarId() : originalSarId;
+    	Long newCaseId = request.caseId() != null ? request.caseId() : originalCaseId;
+    	DocumentType newDocumentType = request.documentType() != null ? request.documentType() : originalDocumentType;
+    	
+    	// Validate based on document type (same rules as create)
+    	if (newDocumentType == DocumentType.CTR) {
+    		if (newSarId != null || newCaseId != null) {
+    			throw new IllegalArgumentException("CTR documents can only have ctrId, not sarId or caseId");
+    		}
+    	} else if (newDocumentType == DocumentType.SAR) {
+    		if (newCtrId != null) {
+    			throw new IllegalArgumentException("SAR documents cannot have ctrId");
+    		}
+    		// For SAR documents, validate case exists if caseId is provided (same as create method)
+    		// Only validate if caseId is being changed (if unchanged, it was already validated at creation)
+    		if (newCaseId != null && !newCaseId.equals(originalCaseId)) {
+    			if (!caseFileRepo.existsById(newCaseId)) {
+    				throw new ResourceNotFoundException("Case with ID " + newCaseId + " not found");
+    			}
+    		}
+    	} else if (newDocumentType == DocumentType.CASE) {
+    		if (newCaseId == null) {
+    			throw new IllegalArgumentException("CASE documents must have a caseId");
+    		}
+    		if (newCtrId != null || newSarId != null) {
+    			throw new IllegalArgumentException("CASE documents can only have caseId, not ctrId or sarId");
+    		}
+    		// Validate that the case exists
+    		if (!caseFileRepo.existsById(newCaseId)) {
+    			throw new ResourceNotFoundException("Case with ID " + newCaseId + " not found");
+    		}
+    	}
+    	
+    	// Check if document type or associated IDs changed (requires S3 file move)
+    	if (!newDocumentType.equals(originalDocumentType) || 
+    			!java.util.Objects.equals(newCtrId, originalCtrId) ||
+    			!java.util.Objects.equals(newSarId, originalSarId) ||
+    			!java.util.Objects.equals(newCaseId, originalCaseId)) {
+    		needsS3Move = true;
+    	}
+    	
+    	// Update document type
     	if (request.documentType() != null) {
     		log.debug("Updating documentType from {} to {}", document.getDocumentType(), request.documentType());
     		document.setDocumentType(request.documentType());
     		updated = true;
     	}
     	
+    	// Update IDs
+    	if (request.ctrId() != null) {
+    		log.debug("Updating ctrId from {} to {}", document.getCtrId(), request.ctrId());
+    		document.setCtrId(request.ctrId());
+    		updated = true;
+    	}
+    	
+    	if (request.sarId() != null) {
+    		log.debug("Updating sarId from {} to {}", document.getSarId(), request.sarId());
+    		document.setSarId(request.sarId());
+    		updated = true;
+    	}
+    	
+    	if (request.caseId() != null) {
+    		log.debug("Updating caseId from {} to {}", document.getCaseId(), request.caseId());
+    		document.setCaseId(request.caseId());
+    		updated = true;
+    	}
+    	
+    	// Update file name
     	if (request.fileName() != null) {
     		log.debug("Updating fileName from {} to {}", document.getFileName(), request.fileName());
     		document.setFileName(request.fileName());
     		updated = true;
     	}
     	
-    	if (request.storagePath() != null) {
+    	// Handle S3 file move if document type or associated IDs changed
+    	if (needsS3Move && originalStoragePath != null && !originalStoragePath.isEmpty()) {
+    		// Generate new S3 key based on updated document type and IDs
+    		String newS3Key = generateS3Key(newDocumentType, document.getFileName(), newCtrId, newSarId, newCaseId);
+    		
+    		log.info("Moving S3 file from '{}' to '{}' due to document type/ID change", originalStoragePath, newS3Key);
+    		try {
+    			String movedKey = s3Service.copyFile(originalStoragePath, newS3Key);
+    			document.setStoragePath(movedKey);
+    			log.info("Successfully moved S3 file to: {}", movedKey);
+    		} catch (IOException e) {
+    			log.error("Failed to move S3 file during document update", e);
+    			throw new IOException("Failed to move document in S3: " + e.getMessage(), e);
+    		}
+    	} else if (request.storagePath() != null) {
+    		// Manual storage path update (not recommended, but allowed)
     		log.debug("Updating storagePath from {} to {}", document.getStoragePath(), request.storagePath());
     		document.setStoragePath(request.storagePath());
     		updated = true;
     	}
     	
-    	if (!updated) {
+    	if (!updated && !needsS3Move) {
     		log.warn("No fields to update for document with ID: {}", documentId);
     		return toResponse(document);
     	}
