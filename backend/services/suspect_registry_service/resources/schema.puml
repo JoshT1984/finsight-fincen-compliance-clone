@@ -1,0 +1,74 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Suspect Registry Service (System of Record)" {
+
+  entity "suspect" as sus {
+    *suspect_id : BIGSERIAL
+    --
+    primary_name : VARCHAR(256)
+    dob : DATE
+    ssn_last4 : CHAR(4)
+    risk_level : VARCHAR(16) <<UNKNOWN|LOW|MEDIUM|HIGH>>
+    created_at : TIMESTAMPTZ
+    updated_at : TIMESTAMPTZ
+  }
+
+  entity "suspect_alias" as sal {
+    *alias_id : BIGSERIAL
+    --
+    +suspect_id : BIGINT
+    alias_name : VARCHAR(256)
+    alias_type : VARCHAR(32) <<AKA|LEGAL|NICKNAME|BUSINESS>>
+    is_primary : BOOLEAN
+    created_at : TIMESTAMPTZ
+  }
+
+  entity "address" as addr {
+    *address_id : BIGSERIAL
+    --
+    line1 : VARCHAR(256)
+    line2 : VARCHAR(256)
+    city : VARCHAR(128)
+    state : VARCHAR(64)
+    postal_code : VARCHAR(32)
+    country : VARCHAR(64)
+    address_hash : CHAR(64)
+    created_at : TIMESTAMPTZ
+  }
+
+  entity "suspect_address" as sa {
+    *+suspect_id : BIGINT
+    *+address_id : BIGINT
+    --
+    address_type : VARCHAR(32) <<HOME|WORK|MAILING|UNKNOWN>>
+    is_current : BOOLEAN
+    linked_at : TIMESTAMPTZ
+  }
+
+  entity "criminal_organization" as co {
+    *org_id : BIGSERIAL
+    --
+    org_name : VARCHAR(256)
+    org_type : VARCHAR(64)
+    created_at : TIMESTAMPTZ
+  }
+
+  entity "suspect_criminal_organization" as sco {
+    *+suspect_id : BIGINT
+    *+org_id : BIGINT
+    --
+    role : VARCHAR(64)
+    linked_at : TIMESTAMPTZ
+  }
+
+  sal }o--|| sus : "suspect_id -> suspect_id\n(CASCADE)"
+  sa }o--|| sus : "suspect_id -> suspect_id\n(CASCADE)"
+  sa }o--|| addr : "address_id -> address_id\n(RESTRICT)"
+  sco }o--|| sus : "suspect_id -> suspect_id\n(CASCADE)"
+  sco }o--|| co : "org_id -> org_id\n(RESTRICT)"
+}
+@enduml

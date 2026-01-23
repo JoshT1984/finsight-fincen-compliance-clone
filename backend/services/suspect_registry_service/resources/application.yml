@@ -3,12 +3,13 @@ server:
 
 spring:
   application:
-    name: transactions-ctr-service
+    name: suspect-registry-service
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight}
     username: ${DB_USER:postgres}
     password: ${DB_PASS:postgres}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -16,6 +17,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: ${DB_SCHEMA:suspect_registry}
+        jdbc:
+          time_zone: UTC
+
+  # For MVP/local, SQL init is fine. In shared envs, prefer Flyway.
   sql:
     init:
       mode: always
@@ -26,9 +32,10 @@ aws:
   region: ${AWS_REGION:us-east-1}
 
   sqs:
-    # Transactions/CTR can publish events to these queues (or just one)
-    ctrQueueUrl: ${CTR_QUEUE_URL:}
-    caseQueueUrl: ${CASE_QUEUE_URL:}
+    # This service typically CONSUMES suspect upsert/enrichment requests
+    # and/or PUBLISHES suspect-changed events.
+    suspectRequestsQueueUrl: ${SUSPECT_REQUESTS_QUEUE_URL:}
+    suspectEventsQueueUrl: ${SUSPECT_EVENTS_QUEUE_URL:}
 
 management:
   endpoints:
