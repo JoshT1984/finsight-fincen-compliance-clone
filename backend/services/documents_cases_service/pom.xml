@@ -55,6 +55,12 @@
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
 
+    <!-- Spring Security Core -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-core</artifactId>
+    </dependency>
+
     <!-- Structured DB: Postgres (cases, assignments, SAR refs, etc.) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

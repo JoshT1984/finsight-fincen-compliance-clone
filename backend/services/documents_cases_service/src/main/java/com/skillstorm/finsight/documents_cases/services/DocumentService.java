@@ -32,12 +32,14 @@ public class DocumentService {
     private final S3Service s3Service;
     private final CaseFileRepository caseFileRepo;
     private final ComplianceEventServiceClient complianceEventClient;
+    private final AuditEventService auditEventService;
     
-    public DocumentService(DocumentRepository repo, S3Service s3Service, CaseFileRepository caseFileRepo, ComplianceEventServiceClient complianceEventClient) {
+    public DocumentService(DocumentRepository repo, S3Service s3Service, CaseFileRepository caseFileRepo, ComplianceEventServiceClient complianceEventClient, AuditEventService auditEventService) {
     	this.repo = repo;
     	this.s3Service = s3Service;
     	this.caseFileRepo = caseFileRepo;
     	this.complianceEventClient = complianceEventClient;
+    	this.auditEventService = auditEventService;
     }
     
     private DocumentResponse toResponse(Document document) {
@@ -135,6 +137,9 @@ public class DocumentService {
     	log.info("Created document with ID: {} (type: {}, file: {})", 
     			saved.getDocumentId(), saved.getDocumentType(), saved.getFileName());
     	
+    	// Create audit event
+    	auditEventService.auditCreate("DOCUMENT", String.valueOf(saved.getDocumentId()), saved);
+    	
     	return toResponse(saved);
     }
     
@@ -184,6 +189,17 @@ public class DocumentService {
     	
     	Document document = repo.findById(documentId)
     			.orElseThrow(() -> new ResourceNotFoundException("Document with ID " + documentId + " not found"));
+    	
+    	// Create a copy of the old document for audit comparison
+    	Document oldDocument = new Document();
+    	oldDocument.setDocumentId(document.getDocumentId());
+    	oldDocument.setDocumentType(document.getDocumentType());
+    	oldDocument.setFileName(document.getFileName());
+    	oldDocument.setStoragePath(document.getStoragePath());
+    	oldDocument.setUploadedAt(document.getUploadedAt());
+    	oldDocument.setCtrId(document.getCtrId());
+    	oldDocument.setSarId(document.getSarId());
+    	oldDocument.setCaseId(document.getCaseId());
     	
     	// Store original values to detect changes that require S3 file move
     	DocumentType originalDocumentType = document.getDocumentType();
@@ -301,6 +317,9 @@ public class DocumentService {
     	log.info("Updated document with ID: {} (type: {}, file: {})", 
     			saved.getDocumentId(), saved.getDocumentType(), saved.getFileName());
     	
+    	// Create audit event for update
+    	auditEventService.auditUpdate("DOCUMENT", String.valueOf(saved.getDocumentId()), oldDocument, saved);
+    	
     	return toResponse(saved);
     }
     
@@ -323,6 +342,9 @@ public class DocumentService {
     				documentId, storagePath, e.getMessage(), e);
 
     	}
+    	
+    	// Create audit event before deletion
+    	auditEventService.auditDelete("DOCUMENT", String.valueOf(documentId), document);
     	
     	// Delete from database
     	repo.deleteById(documentId);
@@ -453,6 +475,14 @@ public class DocumentService {
     		Document saved = repo.save(document);
     		log.info("Created document with ID: {} (type: {}, file: {}, S3 key: {})", 
     				saved.getDocumentId(), saved.getDocumentType(), saved.getFileName(), saved.getStoragePath());
+    		
+    		// Create audit event for upload
+    		java.util.Map<String, Object> uploadMetadata = new java.util.HashMap<>();
+    		uploadMetadata.put("fileName", file.getOriginalFilename());
+    		uploadMetadata.put("fileSize", file.getSize());
+    		uploadMetadata.put("contentType", contentType);
+    		uploadMetadata.put("s3Key", s3Key);
+    		auditEventService.auditAction("DOCUMENT", String.valueOf(saved.getDocumentId()), "UPLOAD", uploadMetadata);
     		
     		return toResponse(saved);
     	} catch (RuntimeException e) {

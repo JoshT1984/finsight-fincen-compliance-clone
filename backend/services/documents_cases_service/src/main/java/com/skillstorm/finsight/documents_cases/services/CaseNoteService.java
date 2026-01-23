@@ -22,9 +22,11 @@ public class CaseNoteService {
     private static final Logger log = LoggerFactory.getLogger(CaseNoteService.class);
     
     private final CaseNoteRepository repo;
+    private final AuditEventService auditEventService;
     
-    public CaseNoteService(CaseNoteRepository repo) {
+    public CaseNoteService(CaseNoteRepository repo, AuditEventService auditEventService) {
     	this.repo = repo;
+    	this.auditEventService = auditEventService;
     }
     
     private CaseNoteResponse toResponse(CaseNote caseNote) {
@@ -49,6 +51,9 @@ public class CaseNoteService {
     	
     	CaseNote saved = repo.save(caseNote);
     	log.info("Created case note with ID: {} for case ID: {}", saved.getNoteId(), saved.getCaseId());
+    	
+    	// Create audit event
+    	auditEventService.auditCreate("CASE_NOTE", String.valueOf(saved.getNoteId()), saved);
     	
     	return toResponse(saved);
     }
@@ -84,6 +89,14 @@ public class CaseNoteService {
     	CaseNote caseNote = repo.findById(noteId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case note with ID " + noteId + " not found"));
     	
+    	// Create a copy of the old case note for audit comparison
+    	CaseNote oldCaseNote = new CaseNote();
+    	oldCaseNote.setNoteId(caseNote.getNoteId());
+    	oldCaseNote.setCaseId(caseNote.getCaseId());
+    	oldCaseNote.setAuthorUserId(caseNote.getAuthorUserId());
+    	oldCaseNote.setNoteText(caseNote.getNoteText());
+    	oldCaseNote.setCreatedAt(caseNote.getCreatedAt());
+    	
     	boolean updated = false;
     	
     	if (request.noteText() != null) {
@@ -100,6 +113,9 @@ public class CaseNoteService {
     	CaseNote saved = repo.save(caseNote);
     	log.info("Updated case note with ID: {} for case ID: {}", saved.getNoteId(), saved.getCaseId());
     	
+    	// Create audit event for update
+    	auditEventService.auditUpdate("CASE_NOTE", String.valueOf(saved.getNoteId()), oldCaseNote, saved);
+    	
     	return toResponse(saved);
     }
     
@@ -107,9 +123,11 @@ public class CaseNoteService {
     public void deleteById(Long noteId) {
     	log.debug("Deleting case note with ID: {}", noteId);
     	
-    	if (!repo.existsById(noteId)) {
-    		throw new ResourceNotFoundException("Case note with ID " + noteId + " not found");
-    	}
+    	CaseNote caseNote = repo.findById(noteId)
+    			.orElseThrow(() -> new ResourceNotFoundException("Case note with ID " + noteId + " not found"));
+    	
+    	// Create audit event before deletion
+    	auditEventService.auditDelete("CASE_NOTE", String.valueOf(noteId), caseNote);
     	
     	repo.deleteById(noteId);
     	log.info("Deleted case note with ID: {}", noteId);

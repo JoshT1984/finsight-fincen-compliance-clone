@@ -25,9 +25,11 @@ public class CaseFileService {
     private static final Logger log = LoggerFactory.getLogger(CaseFileService.class);
     
     private final CaseFileRepository repo;
+    private final AuditEventService auditEventService;
     
-    public CaseFileService(CaseFileRepository repo) {
+    public CaseFileService(CaseFileRepository repo, AuditEventService auditEventService) {
     	this.repo = repo;
+    	this.auditEventService = auditEventService;
     }
     
     private CaseFileResponse toResponse(CaseFile caseFile) {
@@ -65,6 +67,9 @@ public class CaseFileService {
     	CaseFile saved = repo.save(caseFile);
     	log.info("Created case file with ID: {} for SAR ID: {}", saved.getCaseId(), saved.getSarId());
     	
+    	// Create audit event
+    	auditEventService.auditCreate("CASE", String.valueOf(saved.getCaseId()), saved);
+    	
     	return toResponse(saved);
     }
     
@@ -94,6 +99,12 @@ public class CaseFileService {
     	log.info("Referred case file with ID: {} (SAR ID: {}) to agency: {}", 
     			saved.getCaseId(), saved.getSarId(), saved.getReferredToAgency());
     	
+    	// Create audit event for refer action
+    	java.util.Map<String, Object> referMetadata = new java.util.HashMap<>();
+    	referMetadata.put("referredToAgency", saved.getReferredToAgency());
+    	referMetadata.put("referredAt", saved.getReferredAt().toString());
+    	auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "REFER", referMetadata);
+    	
     	return toResponse(saved);
     }
     
@@ -109,6 +120,11 @@ public class CaseFileService {
     	
     	CaseFile saved = repo.save(caseFile);
     	log.info("Closed case file with ID: {} (SAR ID: {})", saved.getCaseId(), saved.getSarId());
+    	
+    	// Create audit event for close action
+    	java.util.Map<String, Object> closeMetadata = new java.util.HashMap<>();
+    	closeMetadata.put("closedAt", saved.getClosedAt().toString());
+    	auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "CLOSE", closeMetadata);
     	
     	return toResponse(saved);
     }
@@ -130,6 +146,16 @@ public class CaseFileService {
     	
     	CaseFile caseFile = repo.findById(caseId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
+    	
+    	// Create a copy of the old case file for audit comparison
+    	CaseFile oldCaseFile = new CaseFile();
+    	oldCaseFile.setCaseId(caseFile.getCaseId());
+    	oldCaseFile.setSarId(caseFile.getSarId());
+    	oldCaseFile.setStatus(caseFile.getStatus());
+    	oldCaseFile.setCreatedAt(caseFile.getCreatedAt());
+    	oldCaseFile.setReferredAt(caseFile.getReferredAt());
+    	oldCaseFile.setClosedAt(caseFile.getClosedAt());
+    	oldCaseFile.setReferredToAgency(caseFile.getReferredToAgency());
     	
     	boolean updated = false;
     	
@@ -165,6 +191,9 @@ public class CaseFileService {
     	CaseFile saved = repo.save(caseFile);
     	log.info("Updated case file with ID: {} (SAR ID: {})", saved.getCaseId(), saved.getSarId());
     	
+    	// Create audit event for update
+    	auditEventService.auditUpdate("CASE", String.valueOf(saved.getCaseId()), oldCaseFile, saved);
+    	
     	return toResponse(saved);
     }
     
@@ -172,9 +201,11 @@ public class CaseFileService {
     public void deleteById(Long caseId) {
     	log.debug("Deleting case file with ID: {}", caseId);
     	
-    	if (!repo.existsById(caseId)) {
-    		throw new ResourceNotFoundException("Case file with ID " + caseId + " not found");
-    	}
+    	CaseFile caseFile = repo.findById(caseId)
+    			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
+    	
+    	// Create audit event before deletion
+    	auditEventService.auditDelete("CASE", String.valueOf(caseId), caseFile);
     	
     	repo.deleteById(caseId);
     	log.info("Deleted case file with ID: {}", caseId);
