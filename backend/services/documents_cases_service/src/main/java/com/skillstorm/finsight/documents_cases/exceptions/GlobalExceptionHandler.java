@@ -1,12 +1,14 @@
 package com.skillstorm.finsight.documents_cases.exceptions;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Global exception handler for the Documents Cases service.
@@ -92,5 +94,64 @@ public class GlobalExceptionHandler {
         pd.setProperty("path", request.getRequestURI());
         return pd;
     }
+	
+	/**
+	 * Handles DataIntegrityViolationException (e.g., foreign key violations) by returning an HTTP 400 response.
+	 * 
+	 * <p>This handler catches database constraint violations, particularly foreign key violations
+	 * when trying to reference a non-existent case, CTR, or SAR record.
+	 * 
+	 * @param ex The DataIntegrityViolationException that was thrown
+	 * @param request The HTTP request that triggered the exception
+	 * @return A ProblemDetail with HTTP 400 status and a user-friendly error message
+	 */
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex,
+	                                                   HttpServletRequest request) {
+		String errorMessage = ex.getMessage();
+		String detailMessage = "Data integrity violation";
+		
+		// Check for foreign key constraint violations
+		if (errorMessage != null) {
+			// Foreign key violations
+			if (errorMessage.contains("document_case_id_fkey") || errorMessage.contains("case_file")) {
+				// Extract case ID from error message if possible
+				if (errorMessage.contains("Key (case_id)=")) {
+					int startIdx = errorMessage.indexOf("Key (case_id)=") + 14;
+					int endIdx = errorMessage.indexOf(")", startIdx);
+					if (endIdx > startIdx) {
+						String caseId = errorMessage.substring(startIdx, endIdx);
+						detailMessage = "Case with ID " + caseId + " does not exist";
+					} else {
+						detailMessage = "The specified case does not exist";
+					}
+				} else {
+					detailMessage = "The specified case does not exist";
+				}
+			} else if (errorMessage.contains("case_note_case_id_fkey")) {
+				detailMessage = "The specified case does not exist";
+			} else if (errorMessage.contains("violates foreign key constraint")) {
+				detailMessage = "Referenced record does not exist";
+			}
+			// CHECK constraint violations (document type rules, status values, etc.)
+			else if (errorMessage.contains("violates check constraint") || errorMessage.contains("document_check")) {
+				if (errorMessage.contains("document_type") || errorMessage.contains("document_check")) {
+					detailMessage = "Invalid document type or document relationship. CTR documents can only have ctrId, SAR documents require sarId, and CASE documents require caseId";
+				} else if (errorMessage.contains("status")) {
+					detailMessage = "Invalid case status. Must be one of: OPEN, REFERRED, CLOSED";
+				} else {
+					detailMessage = "Data validation failed. Please check your input values";
+				}
+			}
+		}
+		
+		log.error("DataIntegrityViolationException: {}", detailMessage);
+		
+		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+		pd.setTitle("Bad Request");
+		pd.setDetail(detailMessage);
+		pd.setProperty("path", request.getRequestURI());
+		return pd;
+	}
 	
 }

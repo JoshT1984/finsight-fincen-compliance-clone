@@ -38,14 +38,28 @@ CREATE TABLE IF NOT EXISTS document (
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   -- Link target is external IDs (ctr_id, sar_id) or internal (case_id).
+  -- Validation rules:
+  -- - CTR documents: ctr_id only
+  -- - SAR documents: sar_id required, case_id optional (when case is auto-created)
+  -- - CASE documents: case_id only
   ctr_id BIGINT,
   sar_id BIGINT,
   case_id BIGINT REFERENCES case_file(case_id) ON DELETE CASCADE,
 
   CHECK (
+    -- At least one ID must be set
     (ctr_id IS NOT NULL)::int +
     (sar_id IS NOT NULL)::int +
-    (case_id IS NOT NULL)::int = 1
+    (case_id IS NOT NULL)::int >= 1
+    AND
+    -- CTR documents: only ctr_id can be set
+    (document_type != 'CTR' OR (ctr_id IS NOT NULL AND sar_id IS NULL AND case_id IS NULL))
+    AND
+    -- CASE documents: only case_id can be set
+    (document_type != 'CASE' OR (case_id IS NOT NULL AND ctr_id IS NULL AND sar_id IS NULL))
+    AND
+    -- SAR documents: sar_id required, ctr_id not allowed
+    (document_type != 'SAR' OR (sar_id IS NOT NULL AND ctr_id IS NULL))
   )
 );
 

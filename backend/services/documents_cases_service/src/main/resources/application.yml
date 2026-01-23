@@ -7,6 +7,11 @@ spring:
   cloud:
     compatibility-verifier:
       enabled: false
+  
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:25MB}
+      max-request-size: ${MAX_REQUEST_SIZE:25MB}
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight_documents}
@@ -48,7 +53,7 @@ aws:
     caseQueueUrl: ${CASE_QUEUE_URL:}
 
   s3:
-    bucket: ${DOCS_BUCKET:finsight-docs}
+    bucket: ${DOCS_BUCKET:finsight-documents-2026}
 
 management:
   endpoints:
