@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>documents-cases-service</name>
+	<name>documents_cases_service</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -27,7 +27,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1769027656330</id>
+			<id>1769175485601</id>
 			<name></name>
 			<type>30</type>
 			<matcher>

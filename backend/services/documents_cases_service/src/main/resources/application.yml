@@ -4,11 +4,15 @@ server:
 spring:
   application:
     name: documents-cases-service
+  cloud:
+    compatibility-verifier:
+      enabled: false
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight_documents}
     username: ${DB_USER:postgres}
     password: ${DB_PASS:password}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -23,6 +27,16 @@ spring:
       mode: always
       platform: postgres
       continue-on-error: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
 
 aws:
   region: ${AWS_REGION:us-east-1}
