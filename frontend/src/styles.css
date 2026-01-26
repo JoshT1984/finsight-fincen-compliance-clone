@@ -24,10 +24,26 @@
 * {
   box-sizing: border-box;
 }
-html,
-body {
-  height: 100%;
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  font-family: "Public Sans", helvetica, arial, sans-serif;
+  color: #1b1b1b;
 }
+
+h1, h2, h3, h4, h5, h6{
+  font-family: "Merriweather Web", georgia, serif;
+  font-weight: 400;
+}
+
+p{
+  font-size: 16px;
+  line-height: 24px;
+}
+
+
 body {
   margin: 0;
   font-family:
@@ -41,19 +57,18 @@ body {
     'Segoe UI Emoji';
   color: var(--text);
 
-  /* Base background like a .gov, with subtle world overlay */
-  background:
-    var(--world-svg) center 120px / min(1400px, 120vw) no-repeat,
-    linear-gradient(180deg, var(--sky-050), #fff 35%, var(--gray-050));
+  /* Plain white background */
+  background: #fff;
 }
 
 a {
   color: inherit;
 }
 .container {
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 0 var(--pad);
+  margin-left: 51px;
+  margin-right: 51px;
+  max-width: 1440px;
+  padding: 2rem 80px;
 }
 
 /* Make footer stick to bottom */
@@ -64,7 +79,6 @@ a {
 }
 .main {
   flex: 1;
-  padding: 28px 0 44px;
 }
 
 /* Official website bar */

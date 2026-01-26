@@ -1,7 +1,7 @@
 /* Landing page spacing only (keeps global styles in src/styles.css) */
 
 .hero {
-  padding: 28px 0 18px;
+  padding: 28px 22px 18px 22px;
 }
 
 .hero h2 {
@@ -27,6 +27,20 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   padding: 18px 0 28px;
+}
+
+/* Make cards clickable links */
+.grid .card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.grid .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 900px) {

@@ -1,0 +1,7 @@
+/* Match header/navbar container alignment */
+.footer .container {
+  margin-left: 51px;
+  margin-right: 51px;
+  max-width: 1440px;
+  padding: 1.5rem 80px;
+}

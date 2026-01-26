@@ -1,0 +1,47 @@
+.nav {
+    background-color: #083c6f;
+    width: 100%;
+    position: relative;
+    padding-bottom: 0;
+}
+
+.nav-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .5rem 80px .5rem 80px;
+    max-width: 1440px;
+    margin-left: 51px;
+    margin-right: 51px;
+    position: relative;
+}
+
+.nav-link {
+    color: #ffffff;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+    font-size: 16px;
+    font-family: "Source Sans Pro Web", "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif;
+    text-transform: uppercase;
+}
+
+.nav-link:hover {
+    opacity: 0.8;
+}
+
+.nav-link.active {
+    font-weight: bold;
+    color: #9bdaf1;
+    position: relative;
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 1rem;
+    right: 1rem;
+    height: 3px;
+    background-color: #9bdaf1;
+}
