@@ -4,11 +4,20 @@ server:
 spring:
   application:
     name: documents-cases-service
+  cloud:
+    compatibility-verifier:
+      enabled: false
+  
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:25MB}
+      max-request-size: ${MAX_REQUEST_SIZE:25MB}
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight_documents}
     username: ${DB_USER:postgres}
     password: ${DB_PASS:password}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -24,6 +33,16 @@ spring:
       platform: postgres
       continue-on-error: false
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
+
 aws:
   region: ${AWS_REGION:us-east-1}
 
@@ -34,7 +53,7 @@ aws:
     caseQueueUrl: ${CASE_QUEUE_URL:}
 
   s3:
-    bucket: ${DOCS_BUCKET:finsight-docs}
+    bucket: ${DOCS_BUCKET:finsight-documents-2026}
 
 management:
   endpoints:
