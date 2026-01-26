@@ -37,7 +37,7 @@ public class ComplianceEventCtrDetail {
     private OffsetDateTime transactionTime;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "ctr_form_data", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "ctr_form_data", columnDefinition = "json", nullable = false)
     private Map<String, Object> ctrFormData;
 
     // DB-managed DEFAULT now()
