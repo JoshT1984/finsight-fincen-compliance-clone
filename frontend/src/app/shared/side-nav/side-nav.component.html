@@ -1,0 +1,9 @@
+<nav class="side-nav">
+  <a 
+    *ngFor="let item of navItems"
+    (click)="selectItem(item.id)"
+    [class.active]="selectedItem === item.id"
+    class="side-nav-link">
+    {{ item.label }}
+  </a>
+</nav>
