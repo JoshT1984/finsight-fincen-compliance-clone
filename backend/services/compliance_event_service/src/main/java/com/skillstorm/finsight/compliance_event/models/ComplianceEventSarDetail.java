@@ -39,7 +39,7 @@ public class ComplianceEventSarDetail {
     private OffsetDateTime activityEnd;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "form_data", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "form_data", columnDefinition = "json", nullable = false)
     private Map<String, Object> formData;
 
     @Column(name = "submitted_at")
