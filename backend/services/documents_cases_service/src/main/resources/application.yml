@@ -14,10 +14,10 @@ spring:
       max-request-size: ${MAX_REQUEST_SIZE:25MB}
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight_documents}
-    username: ${DB_USER:postgres}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/finsight_documents}
+    username: ${DB_USER:root}
     password: ${DB_PASS:password}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
@@ -25,13 +25,15 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
 
   sql:
     init:
-      mode: always
-      platform: postgres
-      continue-on-error: false
+      mode: never
+      platform: mysql
+      continue-on-error: true
 
 eureka:
   client:
