@@ -30,11 +30,11 @@ public class SuspectSnapshotAtTimeOfEvent {
     private String lastKnownAlias;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "last_known_address", columnDefinition = "jsonb")
+    @Column(name = "last_known_address", columnDefinition = "json")
     private Map<String, Object> lastKnownAddress;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "suspect_minimal", columnDefinition = "jsonb")
+    @Column(name = "suspect_minimal", columnDefinition = "json")
     private Map<String, Object> suspectMinimal;
 
     // DB-managed DEFAULT now()
