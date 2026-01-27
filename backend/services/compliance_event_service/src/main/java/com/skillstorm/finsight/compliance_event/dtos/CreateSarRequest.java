@@ -13,22 +13,24 @@ import jakarta.validation.constraints.Size;
 
 public record CreateSarRequest(
 
-                @NotBlank @Size(max = 64) String sourceSystem,
+        @NotBlank @Size(max = 64) String sourceSystem,
 
-                @NotBlank @Size(max = 64) String sourceEntityId,
+        @NotBlank @Size(max = 64) String sourceEntityId,
 
-                @Size(max = 128) String externalSubjectKey,
+        @Size(max = 128) String externalSubjectKey,
 
-                @NotNull Instant eventTime,
+        @NotNull Instant eventTime,
 
-                @DecimalMin(value = "0.00", inclusive = true) BigDecimal totalAmount,
+        // allow NULL, but if provided must be >= 0
+        @DecimalMin(value = "0.00", inclusive = true) BigDecimal totalAmount,
 
-                @Size(max = 50000) String narrative,
+        @Size(max = 50000) String narrative,
 
-                Instant activityStart,
-                Instant activityEnd,
+        Instant activityStart,
+        Instant activityEnd,
 
-                Map<String, Object> formData,
+        // allow NULL and default to {} in service (or @PrePersist)
+        Map<String, Object> formData,
 
-                @Min(0) @Max(100) Integer severityScore) {
-}
+        @Min(0) @Max(100) Integer severityScore
+) {}

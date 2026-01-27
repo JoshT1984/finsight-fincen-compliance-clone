@@ -17,7 +17,6 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -82,7 +81,7 @@ public class ComplianceEvent {
     @Column(name = "event_time", nullable = false)
     private Instant eventTime;
 
-    @DecimalMin(value = "0", inclusive = true)
+    // Nullable; DB enforces non-negative when present
     @Column(name = "total_amount", precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
@@ -131,8 +130,9 @@ public class ComplianceEvent {
     }
 
     private void applyDefaultStatus() {
-        if (status != null || eventType == null)
+        if (status != null || eventType == null) {
             return;
+        }
 
         switch (eventType) {
             case CTR -> status = ComplianceEventStatus.CREATED;
@@ -141,32 +141,41 @@ public class ComplianceEvent {
     }
 
     private void validateStatusForType() {
-        if (eventType == null || status == null)
+        if (eventType == null || status == null) {
             return;
+        }
 
         switch (eventType) {
             case CTR -> {
-                if (status != ComplianceEventStatus.CREATED && status != ComplianceEventStatus.FILED) {
-                    throw new IllegalStateException("CTR status must be CREATED or FILED");
+                if (status != ComplianceEventStatus.CREATED &&
+                        status != ComplianceEventStatus.FILED) {
+                    throw new IllegalStateException(
+                            "CTR status must be CREATED or FILED");
                 }
             }
             case SAR -> {
-                if (status != ComplianceEventStatus.DRAFT && status != ComplianceEventStatus.SUBMITTED) {
-                    throw new IllegalStateException("SAR status must be DRAFT or SUBMITTED");
+                if (status != ComplianceEventStatus.DRAFT &&
+                        status != ComplianceEventStatus.SUBMITTED) {
+                    throw new IllegalStateException(
+                            "SAR status must be DRAFT or SUBMITTED");
                 }
             }
         }
     }
 
     private void validateSeverityForType() {
-        if (severityScore == null || eventType == null)
+        if (severityScore == null || eventType == null) {
             return;
+        }
 
         if (eventType == EventType.CTR) {
-            throw new IllegalStateException("CTR events cannot have severityScore");
+            throw new IllegalStateException(
+                    "CTR events cannot have severityScore");
         }
+
         if (severityScore < 0 || severityScore > 100) {
-            throw new IllegalStateException("SAR severityScore must be between 0 and 100");
+            throw new IllegalStateException(
+                    "SAR severityScore must be between 0 and 100");
         }
     }
 
@@ -232,7 +241,8 @@ public class ComplianceEvent {
         return suspectSnapshot;
     }
 
-    public void setSuspectSnapshot(SuspectSnapshotAtTimeOfEvent suspectSnapshot) {
+    public void setSuspectSnapshot(
+            SuspectSnapshotAtTimeOfEvent suspectSnapshot) {
         this.suspectSnapshot = suspectSnapshot;
     }
 

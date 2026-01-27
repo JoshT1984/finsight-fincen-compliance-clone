@@ -1,6 +1,7 @@
 package com.skillstorm.finsight.compliance_event.models;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -54,11 +55,8 @@ public class ComplianceEventCtrDetail {
 
     @PrePersist
     void prePersist() {
-        if (transactionTime == null) {
-            transactionTime = Instant.now();
-        }
         if (ctrFormData == null) {
-            ctrFormData = Map.of();
+            ctrFormData = new HashMap<>();
         }
     }
 

@@ -1,6 +1,7 @@
 package com.skillstorm.finsight.compliance_event.models;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -60,7 +61,7 @@ public class AuditAction {
     @PrePersist
     void prePersist() {
         if (metadata == null) {
-            metadata = Map.of();
+            metadata = new HashMap<>();
         }
     }
 
