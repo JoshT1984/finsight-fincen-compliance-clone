@@ -1,6 +1,6 @@
 package com.skillstorm.finsight.compliance_event.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -15,6 +15,7 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "compliance_event_sar_detail", schema = "compliance_event")
@@ -24,6 +25,7 @@ public class ComplianceEventSarDetail {
     @Column(name = "event_id", nullable = false)
     private Long eventId;
 
+    @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
     @JoinColumn(name = "event_id", nullable = false, updatable = false)
@@ -33,21 +35,21 @@ public class ComplianceEventSarDetail {
     private String narrative;
 
     @Column(name = "activity_start")
-    private OffsetDateTime activityStart;
+    private Instant activityStart;
 
     @Column(name = "activity_end")
-    private OffsetDateTime activityEnd;
+    private Instant activityEnd;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "form_data", columnDefinition = "json", nullable = false)
     private Map<String, Object> formData;
 
     @Column(name = "submitted_at")
-    private OffsetDateTime submittedAt;
+    private Instant submittedAt;
 
-    // DB-managed DEFAULT now()
+    // DB-managed DEFAULT CURRENT_TIMESTAMP(3)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     protected ComplianceEventSarDetail() {
     }
@@ -79,19 +81,19 @@ public class ComplianceEventSarDetail {
         this.narrative = narrative;
     }
 
-    public OffsetDateTime getActivityStart() {
+    public Instant getActivityStart() {
         return activityStart;
     }
 
-    public void setActivityStart(OffsetDateTime activityStart) {
+    public void setActivityStart(Instant activityStart) {
         this.activityStart = activityStart;
     }
 
-    public OffsetDateTime getActivityEnd() {
+    public Instant getActivityEnd() {
         return activityEnd;
     }
 
-    public void setActivityEnd(OffsetDateTime activityEnd) {
+    public void setActivityEnd(Instant activityEnd) {
         this.activityEnd = activityEnd;
     }
 
@@ -103,15 +105,15 @@ public class ComplianceEventSarDetail {
         this.formData = formData;
     }
 
-    public OffsetDateTime getSubmittedAt() {
+    public Instant getSubmittedAt() {
         return submittedAt;
     }
 
-    public void setSubmittedAt(OffsetDateTime submittedAt) {
+    public void setSubmittedAt(Instant submittedAt) {
         this.submittedAt = submittedAt;
     }
 
-    public OffsetDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
