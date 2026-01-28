@@ -1,5 +1,4 @@
 server:
-  # Use SUSPECT_REGISTRY_PORT so suspect_registry and documents_cases can run together (default 8080).
   port: ${SUSPECT_REGISTRY_PORT:${PORT:8080}}
 
 spring:
@@ -28,7 +27,7 @@ spring:
   # For MVP/local, SQL init is fine. In shared envs, prefer Flyway.
   sql:
     init:
-      mode: always
+      mode: never
       platform: mysql
       continue-on-error: false
 
