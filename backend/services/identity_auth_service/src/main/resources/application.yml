@@ -11,7 +11,7 @@ spring:
     datasource:
         url: ${DB_URL:jdbc:mysql://localhost:3306/finsight?useSSL=false&serverTimezone=UTC}
         username: ${DB_USER:root}
-        password: ${DB_PASS:password}
+        password: ${DB_PASS:Laura_W3ll3r}
         driver-class-name: com.mysql.cj.jdbc.Driver
 
     lifecycle:
