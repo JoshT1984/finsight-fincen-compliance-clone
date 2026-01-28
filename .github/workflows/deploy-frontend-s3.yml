@@ -1,0 +1,57 @@
+name: Deploy Frontend to S3
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend-s3.yml'
+
+permissions:
+  id-token: write   
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Build Angular
+        run: npm run build -- --configuration production
+        working-directory: ./frontend
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.FRONTEND_AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync "./frontend/dist/finsight/browser" "s3://${{ secrets.FRONTEND_S3_BUCKET }}/" \
+            --delete
+
+      - name: Invalidate CloudFront
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.FRONTEND_CLOUDFRONT_DISTRIBUTION_ID }}" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "${{ secrets.FRONTEND_CLOUDFRONT_DISTRIBUTION_ID }}" \
+              --paths "/*"
+          else
+            echo "FRONTEND_CLOUDFRONT_DISTRIBUTION_ID not set, skipping CloudFront invalidation"
+          fi
