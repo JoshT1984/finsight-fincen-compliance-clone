@@ -26,17 +26,17 @@ public class Alias {
   @JoinColumn(name = "suspect_id")
   private Suspect suspect;
 
-  @Column(name = "alias_name")
+  @Column(name = "alias_name", nullable = false, length = 256)
   private String aliasName;
 
-  @Column(name = "alias_type")
+  @Column(name = "alias_type", nullable = false, length = 32)
   private String aliasType;
 
-  @Column(name = "is_primary")
+  @Column(name = "is_primary", nullable = false)
   private boolean isPrimary;
 
   @CreationTimestamp
-  @Column(name = "created_at")
+  @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
   // all-args, no-args, all-but-id constructors, getters, setters, hashCode, equals, toString
