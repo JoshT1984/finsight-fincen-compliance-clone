@@ -40,7 +40,7 @@ public class ComplianceEventLink {
     private ComplianceEvent toEvent;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "evidence_snapshot", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "evidence_snapshot", columnDefinition = "json", nullable = false)
     private Map<String, Object> evidenceSnapshot;
 
     // DB-managed DEFAULT now()

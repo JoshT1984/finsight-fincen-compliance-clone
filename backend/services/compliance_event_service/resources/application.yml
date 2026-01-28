@@ -6,18 +6,17 @@ spring:
     name: compliance-event-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/finsight}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:postgres}
-    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:mysql://localhost:3306/finsight}
+    username: ${DB_USER:mysql}
+    password: ${DB_PASS:mysql}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: none
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: ${DB_SCHEMA:compliance_event}
+        dialect: org.hibernate.dialect.MySQLDialect
         jdbc:
           time_zone: UTC
 
@@ -25,7 +24,7 @@ spring:
   sql:
     init:
       mode: always
-      platform: postgres
+      platform: mysql
       continue-on-error: false
 
 aws:

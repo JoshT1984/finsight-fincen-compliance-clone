@@ -41,7 +41,7 @@ public class AuditAction {
     private String action;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "metadata", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "metadata", columnDefinition = "json", nullable = false)
     private Map<String, Object> metadata;
 
     @Column(name = "correlation_id", length = 128)
