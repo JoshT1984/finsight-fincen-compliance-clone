@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS role (
 );
 
 CREATE TABLE IF NOT EXISTS app_user (
-  user_id CHAR(36) PRIMARY KEY,
+  user_id VARCHAR(36) PRIMARY KEY,
   email VARCHAR(320) NOT NULL UNIQUE,
   password_hash VARCHAR(255), -- nullable for OAuth-only
   first_name VARCHAR(64),
@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS app_user (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
   role_id INT NOT NULL,
   FOREIGN KEY (role_id) REFERENCES role(role_id) ON DELETE RESTRICT
 );
@@ -31,7 +33,9 @@ CREATE TABLE IF NOT EXISTS oauth_identity (
   revoked TINYINT(1) NOT NULL DEFAULT 0,
   revoked_at TIMESTAMP NULL DEFAULT NULL,
   UNIQUE (provider, provider_user_id),
-  FOREIGN KEY (user_id) REFERENCES app_user(user_id) ON DELETE CASCADE
+  revoked TINYINT(1) NOT NULL DEFAULT 0,
+  revoked_at TIMESTAMP NULL DEFAULT NULL,
+  FOREIGN KEY (user_id) REFERENCES app_user(user_id)
 );
 
 -- Seed roles per MVP Section 4: Analyst, Compliance User, Law Enforcement User
