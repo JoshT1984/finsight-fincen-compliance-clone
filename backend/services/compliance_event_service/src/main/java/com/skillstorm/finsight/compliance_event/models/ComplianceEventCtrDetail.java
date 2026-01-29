@@ -27,6 +27,15 @@ public class ComplianceEventCtrDetail {
     @Column(name = "event_id", nullable = false)
     private Long eventId;
 
+    /**
+     * Discriminator used by the schema to enforce CTR-only attachment via
+     * composite FK (event_id, event_type). DB default is 'CTR'.
+     * Marked insertable=false so the database default is used.
+     */
+    @NotNull
+    @Column(name = "event_type", nullable = false, length = 16, insertable = false, updatable = false)
+    private String eventType;
+
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
@@ -37,7 +46,6 @@ public class ComplianceEventCtrDetail {
     @Column(name = "customer_name", nullable = false, length = 128)
     private String customerName;
 
-    // MySQL TIMESTAMP(3) -> Java Instant
     @NotNull
     @Column(name = "transaction_time", nullable = false)
     private Instant transactionTime;
@@ -46,11 +54,10 @@ public class ComplianceEventCtrDetail {
     @Column(name = "ctr_form_data", columnDefinition = "json", nullable = false)
     private Map<String, Object> ctrFormData;
 
-    // DB-managed DEFAULT CURRENT_TIMESTAMP(3)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
-    protected ComplianceEventCtrDetail() {
+    public ComplianceEventCtrDetail() {
     }
 
     @PrePersist
@@ -62,6 +69,10 @@ public class ComplianceEventCtrDetail {
 
     public Long getEventId() {
         return eventId;
+    }
+
+    public String getEventType() {
+        return eventType;
     }
 
     public ComplianceEvent getEvent() {
@@ -119,6 +130,7 @@ public class ComplianceEventCtrDetail {
     public String toString() {
         return "ComplianceEventCtrDetail{" +
                 "eventId=" + eventId +
+                ", eventType=" + eventType +
                 ", transactionTime=" + transactionTime +
                 ", createdAt=" + createdAt +
                 '}';

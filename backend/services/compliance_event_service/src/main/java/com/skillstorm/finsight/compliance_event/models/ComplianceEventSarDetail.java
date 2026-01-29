@@ -25,6 +25,15 @@ public class ComplianceEventSarDetail {
     @Column(name = "event_id", nullable = false)
     private Long eventId;
 
+    /**
+     * Discriminator used by the schema to enforce SAR-only attachment via
+     * composite FK (event_id, event_type). DB default is 'SAR'.
+     * Marked insertable=false so the database default is used.
+     */
+    @NotNull
+    @Column(name = "event_type", nullable = false, length = 16, insertable = false, updatable = false)
+    private String eventType;
+
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
@@ -47,11 +56,10 @@ public class ComplianceEventSarDetail {
     @Column(name = "submitted_at")
     private Instant submittedAt;
 
-    // DB-managed DEFAULT CURRENT_TIMESTAMP(3)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
-    protected ComplianceEventSarDetail() {
+    public ComplianceEventSarDetail() {
     }
 
     @PrePersist
@@ -63,6 +71,10 @@ public class ComplianceEventSarDetail {
 
     public Long getEventId() {
         return eventId;
+    }
+
+    public String getEventType() {
+        return eventType;
     }
 
     public ComplianceEvent getEvent() {
@@ -136,6 +148,7 @@ public class ComplianceEventSarDetail {
     public String toString() {
         return "ComplianceEventSarDetail{" +
                 "eventId=" + eventId +
+                ", eventType=" + eventType +
                 ", submittedAt=" + submittedAt +
                 ", createdAt=" + createdAt +
                 '}';

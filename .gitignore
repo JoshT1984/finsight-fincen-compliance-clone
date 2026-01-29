@@ -122,4 +122,5 @@ temp/
 # OS backups
 *~
 
-application-dev.yml
+# Pem Files
+*.pem

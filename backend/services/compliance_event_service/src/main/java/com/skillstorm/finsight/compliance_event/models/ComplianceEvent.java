@@ -27,24 +27,6 @@ import jakarta.validation.constraints.NotNull;
         "source_system", "source_entity_id" }))
 public class ComplianceEvent {
 
-    public enum ComplianceEventStatus {
-        CREATED,
-        FILED,
-        DRAFT,
-        SUBMITTED
-    }
-
-    public enum EventType {
-        CTR,
-        SAR
-    }
-
-    public enum SubjectType {
-        ACCOUNT,
-        CUSTOMER,
-        SUSPECT
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "event_id", nullable = false, updatable = false)
@@ -81,13 +63,12 @@ public class ComplianceEvent {
     @Column(name = "event_time", nullable = false)
     private Instant eventTime;
 
-    // Nullable; DB enforces non-negative when present
     @Column(name = "total_amount", precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 32)
-    private ComplianceEventStatus status;
+    private EventStatus status;
 
     @Min(0)
     @Max(100)
@@ -100,11 +81,10 @@ public class ComplianceEvent {
     @Column(name = "idempotency_key", length = 128)
     private String idempotencyKey;
 
-    // DB-managed CURRENT_TIMESTAMP(3)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
-    protected ComplianceEvent() {
+    public ComplianceEvent() {
     }
 
     /*
@@ -135,8 +115,8 @@ public class ComplianceEvent {
         }
 
         switch (eventType) {
-            case CTR -> status = ComplianceEventStatus.CREATED;
-            case SAR -> status = ComplianceEventStatus.DRAFT;
+            case CTR -> status = EventStatus.CREATED;
+            case SAR -> status = EventStatus.DRAFT;
         }
     }
 
@@ -147,15 +127,15 @@ public class ComplianceEvent {
 
         switch (eventType) {
             case CTR -> {
-                if (status != ComplianceEventStatus.CREATED &&
-                        status != ComplianceEventStatus.FILED) {
+                if (status != EventStatus.CREATED &&
+                        status != EventStatus.FILED) {
                     throw new IllegalStateException(
                             "CTR status must be CREATED or FILED");
                 }
             }
             case SAR -> {
-                if (status != ComplianceEventStatus.DRAFT &&
-                        status != ComplianceEventStatus.SUBMITTED) {
+                if (status != EventStatus.DRAFT &&
+                        status != EventStatus.SUBMITTED) {
                     throw new IllegalStateException(
                             "SAR status must be DRAFT or SUBMITTED");
                 }
@@ -262,11 +242,11 @@ public class ComplianceEvent {
         this.totalAmount = totalAmount;
     }
 
-    public ComplianceEventStatus getStatus() {
+    public EventStatus getStatus() {
         return status;
     }
 
-    public void setStatus(ComplianceEventStatus status) {
+    public void setStatus(EventStatus status) {
         this.status = status;
     }
 
