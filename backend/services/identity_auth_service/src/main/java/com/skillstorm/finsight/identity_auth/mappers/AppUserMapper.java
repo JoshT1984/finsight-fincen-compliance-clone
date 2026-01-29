@@ -31,7 +31,7 @@ public class AppUserMapper {
         user.setLastName(dto.lastName());
         user.setPhone(dto.phone());
 
-        Role role = roleRepository.findByName(dto.roleName());
+        Role role = roleRepository.findByRoleName(dto.roleName());
         if (role == null) {
             throw new IllegalArgumentException("Role not found: " + dto.roleName());
         }

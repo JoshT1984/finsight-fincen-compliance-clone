@@ -16,12 +16,12 @@ public interface AppUserRepository extends JpaRepository<AppUser, String> {
 
     public boolean existsByEmail(String email);
 
-    @Query("update AppUser u set u.deleted = false where id = :user_id")
+    @Query("update AppUser u set u.isActive = false where id = :user_id")
     @Modifying
     @Transactional
     public String deleteAppUser(@Param("user_id") String id);
 
-    @Query("update AppUser u set u.deleted = false where id = :user_id")
+    @Query("update AppUser u set u.isActive = true where id = :user_id")
     @Modifying
     @Transactional
     public String reactivateAppUser(@Param("user_id") String id);

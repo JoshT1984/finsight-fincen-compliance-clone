@@ -6,5 +6,5 @@ import com.skillstorm.finsight.identity_auth.models.Role;
 
 public interface RoleRepository extends JpaRepository<Role, Integer> {
 
-    public Role findByName(String name);
+    public Role findByRoleName(String name);
 }

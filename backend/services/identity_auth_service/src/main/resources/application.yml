@@ -30,6 +30,9 @@ spring:
             mode: always
             platform: mysql
             continue-on-error: false
+
+    profiles:
+        active: dev
 management:
     endpoints:
         web:
