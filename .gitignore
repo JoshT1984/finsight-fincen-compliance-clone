@@ -121,3 +121,5 @@ temp/
 
 # OS backups
 *~
+
+application-dev.yml
