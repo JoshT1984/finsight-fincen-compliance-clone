@@ -1,6 +1,6 @@
 package com.skillstorm.finsight.compliance_event.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -39,7 +39,7 @@ public class SuspectSnapshotAtTimeOfEvent {
 
     // DB-managed DEFAULT now()
     @Column(name = "captured_at", nullable = false, updatable = false, insertable = false)
-    private OffsetDateTime capturedAt;
+    private Instant capturedAt;
 
     protected SuspectSnapshotAtTimeOfEvent() {
     }
@@ -90,7 +90,7 @@ public class SuspectSnapshotAtTimeOfEvent {
         this.suspectMinimal = suspectMinimal;
     }
 
-    public OffsetDateTime getCapturedAt() {
+    public Instant getCapturedAt() {
         return capturedAt;
     }
 

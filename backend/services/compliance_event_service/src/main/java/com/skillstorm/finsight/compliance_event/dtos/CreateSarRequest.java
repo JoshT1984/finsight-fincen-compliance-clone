@@ -1,7 +1,7 @@
 package com.skillstorm.finsight.compliance_event.dtos;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 import jakarta.validation.constraints.DecimalMin;
@@ -13,25 +13,24 @@ import jakarta.validation.constraints.Size;
 
 public record CreateSarRequest(
 
-        @NotBlank String sourceSystem,
+        @NotBlank @Size(max = 64) String sourceSystem,
 
-        @NotBlank String sourceEntityId,
+        @NotBlank @Size(max = 64) String sourceEntityId,
 
         @Size(max = 128) String externalSubjectKey,
 
-        @NotNull OffsetDateTime eventTime,
+        @NotNull Instant eventTime,
 
-        @NotNull @DecimalMin(value = "0.00") BigDecimal totalAmount,
+        // allow NULL, but if provided must be >= 0
+        @DecimalMin(value = "0.00", inclusive = true) BigDecimal totalAmount,
 
         @Size(max = 50000) String narrative,
 
-        OffsetDateTime activityStart,
-        OffsetDateTime activityEnd,
+        Instant activityStart,
+        Instant activityEnd,
 
-        // You can keep @NotNull if you truly require it.
-        // If you want to allow omitted formData, remove @NotNull and default it in
-        // service.
-        @NotNull Map<String, Object> formData,
+        // allow NULL and default to {} in service (or @PrePersist)
+        Map<String, Object> formData,
 
-        @Min(0) @Max(100) Integer severityScore) {
-}
+        @Min(0) @Max(100) Integer severityScore
+) {}

@@ -1,6 +1,7 @@
 package com.skillstorm.finsight.compliance_event.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -52,7 +53,7 @@ public class AuditAction {
 
     // DB-managed DEFAULT now()
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     protected AuditAction() {
     }
@@ -60,7 +61,7 @@ public class AuditAction {
     @PrePersist
     void prePersist() {
         if (metadata == null) {
-            metadata = Map.of();
+            metadata = new HashMap<>();
         }
     }
 
@@ -124,7 +125,7 @@ public class AuditAction {
         this.idempotencyKey = idempotencyKey;
     }
 
-    public OffsetDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 

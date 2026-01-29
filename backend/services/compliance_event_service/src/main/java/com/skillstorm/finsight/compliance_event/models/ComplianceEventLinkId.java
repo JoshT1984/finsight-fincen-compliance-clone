@@ -7,18 +7,22 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.NotNull;
 
 @Embeddable
 public class ComplianceEventLinkId implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @NotNull
     @Column(name = "from_event_id", nullable = false)
     private Long fromEventId;
 
+    @NotNull
     @Column(name = "to_event_id", nullable = false)
     private Long toEventId;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "link_type", nullable = false, length = 32)
     private ComplianceEventLink.LinkType linkType;
@@ -26,7 +30,11 @@ public class ComplianceEventLinkId implements Serializable {
     protected ComplianceEventLinkId() {
     }
 
-    public ComplianceEventLinkId(Long fromEventId, Long toEventId, ComplianceEventLink.LinkType linkType) {
+    public ComplianceEventLinkId(
+            Long fromEventId,
+            Long toEventId,
+            ComplianceEventLink.LinkType linkType) {
+
         this.fromEventId = fromEventId;
         this.toEventId = toEventId;
         this.linkType = linkType;
