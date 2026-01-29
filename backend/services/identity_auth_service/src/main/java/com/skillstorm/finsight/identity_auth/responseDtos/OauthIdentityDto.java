@@ -1,4 +1,4 @@
-package com.skillstorm.finsight.identity_auth.dtos;
+package com.skillstorm.finsight.identity_auth.responseDtos;
 
 import java.sql.Timestamp;
 

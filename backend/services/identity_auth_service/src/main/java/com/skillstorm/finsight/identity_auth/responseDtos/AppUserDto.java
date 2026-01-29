@@ -1,55 +1,11 @@
-package com.skillstorm.finsight.identity_auth.dtos;
+package com.skillstorm.finsight.identity_auth.responseDtos;
 
-public class AppUserDto {
-    private String userId;
-    private String email;
-    private String firstName;
-    private String lastName;
-    private String phone;
-    private String role;
+public record AppUserDto(
+        String userId,
+        String email,
+        String firstName,
+        String lastName,
+        String phone,
+        String roleName) {
 
-    public AppUserDto() {
-    }
-
-    // Getters and setters
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getRole() {
-        return role;
-    }
 }

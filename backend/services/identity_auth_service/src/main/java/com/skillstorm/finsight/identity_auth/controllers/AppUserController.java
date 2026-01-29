@@ -5,6 +5,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.services.AppUserService;
+import com.skillstorm.finsight.identity_auth.requestDtos.UpdateUserDto;
+import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
+import com.skillstorm.finsight.identity_auth.requestDtos.ChangeEmailDto;
+import com.skillstorm.finsight.identity_auth.requestDtos.AdminUpdateDto;
+import com.skillstorm.finsight.identity_auth.responseDtos.AppUserDto;
+import com.skillstorm.finsight.identity_auth.mappers.AppUserMapper;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,37 +26,48 @@ public class AppUserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AppUser>> getAllUsers() {
+    public ResponseEntity<List<AppUserDto>> getAllUsers() {
         List<AppUser> users = appUserService.findAll();
-        return ResponseEntity.ok(users);
+        List<AppUserDto> dtos = users.stream().map(AppUserMapper::toDto).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AppUser> getUserById(@PathVariable String id) {
+    public ResponseEntity<AppUserDto> getUserById(@PathVariable String id) {
         Optional<AppUser> user = appUserService.findById(id);
-        return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return user.map(u -> ResponseEntity.ok(AppUserMapper.toDto(u)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<AppUser> createUser(@RequestBody AppUser user) {
+    public ResponseEntity<AppUserDto> createUser(@RequestBody AppUser user) {
         AppUser created = appUserService.createUser(user);
-        return ResponseEntity.ok(created);
+        return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AppUser> updateUser(@PathVariable String id, @RequestBody AppUser userDetails) {
-        Optional<AppUser> userOpt = appUserService.findById(id);
-        if (userOpt.isEmpty())
-            return ResponseEntity.notFound().build();
-        AppUser user = userOpt.get();
-        user.setEmail(userDetails.getEmail());
-        user.setPasswordHash(userDetails.getPasswordHash());
-        user.setFirstName(userDetails.getFirstName());
-        user.setLastName(userDetails.getLastName());
-        user.setPhone(userDetails.getPhone());
-        user.setActive(userDetails.isActive());
-        user.setRole(userDetails.getRole());
-        return ResponseEntity.ok(appUserService.save(user));
+    public ResponseEntity<AppUserDto> updateUser(@PathVariable String id, @RequestBody UpdateUserDto userDto) {
+        AppUser updated = appUserService.updateUser(id, userDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
+    @PutMapping("/{id}/password")
+    public ResponseEntity<AppUserDto> updateUserPassword(@PathVariable String id,
+            @RequestBody ChangePasswordDto passwordDto) {
+        AppUser updated = appUserService.updateUserPassword(id, passwordDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
+    @PutMapping("/{id}/email")
+    public ResponseEntity<AppUserDto> updateUserEmail(@PathVariable String id, @RequestBody ChangeEmailDto emailDto) {
+        AppUser updated = appUserService.updateUserEmail(id, emailDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
+    @PutMapping("/{id}/admin")
+    public ResponseEntity<AppUserDto> adminUpdate(@PathVariable String id, @RequestBody AdminUpdateDto adminUpdateDto) {
+        AppUser updated = appUserService.adminUpdate(id, adminUpdateDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
     }
 
     @DeleteMapping("/{id}")
