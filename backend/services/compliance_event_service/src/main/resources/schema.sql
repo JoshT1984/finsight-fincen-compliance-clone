@@ -1,14 +1,12 @@
 -- ============================================================
 -- MySQL 8.0+ (InnoDB) - Instant-friendly
--- Use TIMESTAMP(3) for millisecond precision.
+-- TIMESTAMP(3) for millisecond precision
+-- Trigger-free (JDBC-safe): uses composite FK guardrails instead
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS compliance_event;
 USE compliance_event;
 
--- ============================================================
--- Suspect snapshot (point-in-time)
--- ============================================================
 CREATE TABLE IF NOT EXISTS suspect_snapshot_at_time_of_event (
   snapshot_id BIGINT NOT NULL AUTO_INCREMENT,
   suspect_id BIGINT NOT NULL,
@@ -20,9 +18,6 @@ CREATE TABLE IF NOT EXISTS suspect_snapshot_at_time_of_event (
   KEY idx_suspect_snapshot_suspect (suspect_id, captured_at)
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Unified compliance event (fact table)
--- ============================================================
 CREATE TABLE IF NOT EXISTS compliance_event (
   event_id BIGINT NOT NULL AUTO_INCREMENT,
 
@@ -49,15 +44,11 @@ CREATE TABLE IF NOT EXISTS compliance_event (
 
   created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
-  -- Generated column to emulate partial unique index:
-  -- UNIQUE (source_system, idempotency_key) WHERE idempotency_key IS NOT NULL
-  idempotency_key_nn VARCHAR(128)
-    GENERATED ALWAYS AS (IFNULL(idempotency_key, CONCAT('~NULL~', event_id))) STORED,
-
   PRIMARY KEY (event_id),
 
+  UNIQUE KEY uk_event_id_type (event_id, event_type),
   UNIQUE KEY uk_event_source_entity (source_system, source_entity_id),
-  UNIQUE KEY uk_event_idempotency (source_system, idempotency_key_nn),
+  UNIQUE KEY uk_event_idempotency (source_system, idempotency_key),
 
   KEY idx_event_type_time (event_type, event_time),
   KEY idx_event_source (source_system, source_entity_id),
@@ -74,12 +65,14 @@ CREATE TABLE IF NOT EXISTS compliance_event (
     CHECK (event_type IN ('CTR','SAR')),
 
   CONSTRAINT chk_source_subject_type
-    CHECK (source_subject_type IN ('SUSPECT','CUSTOMER','ACCOUNT') OR source_subject_type IS NULL),
+    CHECK (
+      source_subject_type IN ('SUSPECT','CUSTOMER','ACCOUNT')
+      OR source_subject_type IS NULL
+    ),
 
   CONSTRAINT chk_total_amount_nullable_nonneg
     CHECK (total_amount IS NULL OR total_amount >= 0),
 
-  -- Status allowed by event_type (allows NULL)
   CONSTRAINT chk_status_by_event_type
     CHECK (
       status IS NULL
@@ -87,7 +80,6 @@ CREATE TABLE IF NOT EXISTS compliance_event (
       OR (event_type = 'SAR' AND status IN ('DRAFT','SUBMITTED'))
     ),
 
-  -- severity_score only allowed for SAR, range 0..100
   CONSTRAINT chk_severity_score_sar_only
     CHECK (
       severity_score IS NULL
@@ -95,17 +87,13 @@ CREATE TABLE IF NOT EXISTS compliance_event (
     )
 ) ENGINE=InnoDB;
 
--- ============================================================
--- CTR Detail (1:1 with compliance_event)
--- ============================================================
 CREATE TABLE IF NOT EXISTS compliance_event_ctr_detail (
   event_id BIGINT NOT NULL,
+  event_type VARCHAR(16) NOT NULL DEFAULT 'CTR',
 
   customer_name VARCHAR(128) NOT NULL,
-
   transaction_time TIMESTAMP(3) NOT NULL,
 
-  -- MySQL JSON defaults are tricky; enforce {} in app (@PrePersist) or service layer
   ctr_form_data JSON NOT NULL,
 
   created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -115,24 +103,24 @@ CREATE TABLE IF NOT EXISTS compliance_event_ctr_detail (
   KEY idx_ctr_detail_created (created_at),
   KEY idx_ctr_detail_tx_time (transaction_time),
 
+  CONSTRAINT chk_ctr_detail_event_type
+    CHECK (event_type = 'CTR'),
+
   CONSTRAINT fk_ctr_detail_event
-    FOREIGN KEY (event_id)
-    REFERENCES compliance_event(event_id)
+    FOREIGN KEY (event_id, event_type)
+    REFERENCES compliance_event(event_id, event_type)
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ============================================================
--- SAR Detail (1:1 with compliance_event)
--- ============================================================
 CREATE TABLE IF NOT EXISTS compliance_event_sar_detail (
   event_id BIGINT NOT NULL,
+  event_type VARCHAR(16) NOT NULL DEFAULT 'SAR',
 
   narrative TEXT,
 
   activity_start TIMESTAMP(3) NULL,
   activity_end TIMESTAMP(3) NULL,
 
-  -- enforce {} in app/service layer
   form_data JSON NOT NULL,
 
   submitted_at TIMESTAMP(3) NULL,
@@ -145,15 +133,15 @@ CREATE TABLE IF NOT EXISTS compliance_event_sar_detail (
   KEY idx_sar_detail_submitted (submitted_at),
   KEY idx_sar_detail_activity (activity_start),
 
+  CONSTRAINT chk_sar_detail_event_type
+    CHECK (event_type = 'SAR'),
+
   CONSTRAINT fk_sar_detail_event
-    FOREIGN KEY (event_id)
-    REFERENCES compliance_event(event_id)
+    FOREIGN KEY (event_id, event_type)
+    REFERENCES compliance_event(event_id, event_type)
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Audit trail (append-only)
--- ============================================================
 CREATE TABLE IF NOT EXISTS audit_action (
   audit_id BIGINT NOT NULL AUTO_INCREMENT,
 
@@ -164,7 +152,6 @@ CREATE TABLE IF NOT EXISTS audit_action (
 
   action VARCHAR(64) NOT NULL,
 
-  -- enforce {} in app/service layer
   metadata JSON NOT NULL,
 
   correlation_id VARCHAR(128) NULL,
@@ -172,17 +159,12 @@ CREATE TABLE IF NOT EXISTS audit_action (
 
   created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
-  -- Generated column to emulate partial unique:
-  -- UNIQUE (idempotency_key) WHERE idempotency_key IS NOT NULL
-  idempotency_key_nn VARCHAR(128)
-    GENERATED ALWAYS AS (IFNULL(idempotency_key, CONCAT('~NULL~', audit_id))) STORED,
-
   PRIMARY KEY (audit_id),
 
   KEY idx_audit_created (created_at),
   KEY idx_audit_event (event_id, created_at),
 
-  UNIQUE KEY uk_audit_idempotency (idempotency_key_nn),
+  UNIQUE KEY uk_audit_idempotency (idempotency_key),
 
   CONSTRAINT fk_audit_event
     FOREIGN KEY (event_id)
@@ -190,16 +172,12 @@ CREATE TABLE IF NOT EXISTS audit_action (
     ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Event links (CTR ↔ SAR relationships)
--- ============================================================
 CREATE TABLE IF NOT EXISTS compliance_event_link (
   from_event_id BIGINT NOT NULL,
   to_event_id BIGINT NOT NULL,
 
   link_type VARCHAR(32) NOT NULL,
 
-  -- enforce {} in app/service layer
   evidence_snapshot JSON NOT NULL,
 
   linked_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -225,100 +203,3 @@ CREATE TABLE IF NOT EXISTS compliance_event_link (
     REFERENCES compliance_event(event_id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
-
--- ============================================================
--- Guardrails: detail rows must match event_type (MySQL triggers)
--- ============================================================
-
-DROP TRIGGER IF EXISTS enforce_ctr_detail_event_type_bi;
-DROP TRIGGER IF EXISTS enforce_ctr_detail_event_type_bu;
-DROP TRIGGER IF EXISTS enforce_sar_detail_event_type_bi;
-DROP TRIGGER IF EXISTS enforce_sar_detail_event_type_bu;
-
-DELIMITER $$
-
-CREATE TRIGGER enforce_ctr_detail_event_type_bi
-BEFORE INSERT ON compliance_event_ctr_detail
-FOR EACH ROW
-BEGIN
-  DECLARE v_event_type VARCHAR(16);
-
-  SELECT event_type INTO v_event_type
-  FROM compliance_event
-  WHERE event_id = NEW.event_id;
-
-  IF v_event_type IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('CTR detail cannot be inserted: compliance_event ', NEW.event_id, ' does not exist');
-  END IF;
-
-  IF v_event_type <> 'CTR' THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('CTR detail can only be attached to CTR events. event_id=', NEW.event_id, ', event_type=', v_event_type);
-  END IF;
-END$$
-
-CREATE TRIGGER enforce_ctr_detail_event_type_bu
-BEFORE UPDATE ON compliance_event_ctr_detail
-FOR EACH ROW
-BEGIN
-  DECLARE v_event_type VARCHAR(16);
-
-  SELECT event_type INTO v_event_type
-  FROM compliance_event
-  WHERE event_id = NEW.event_id;
-
-  IF v_event_type IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('CTR detail cannot be updated: compliance_event ', NEW.event_id, ' does not exist');
-  END IF;
-
-  IF v_event_type <> 'CTR' THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('CTR detail can only be attached to CTR events. event_id=', NEW.event_id, ', event_type=', v_event_type);
-  END IF;
-END$$
-
-CREATE TRIGGER enforce_sar_detail_event_type_bi
-BEFORE INSERT ON compliance_event_sar_detail
-FOR EACH ROW
-BEGIN
-  DECLARE v_event_type VARCHAR(16);
-
-  SELECT event_type INTO v_event_type
-  FROM compliance_event
-  WHERE event_id = NEW.event_id;
-
-  IF v_event_type IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('SAR detail cannot be inserted: compliance_event ', NEW.event_id, ' does not exist');
-  END IF;
-
-  IF v_event_type <> 'SAR' THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('SAR detail can only be attached to SAR events. event_id=', NEW.event_id, ', event_type=', v_event_type);
-  END IF;
-END$$
-
-CREATE TRIGGER enforce_sar_detail_event_type_bu
-BEFORE UPDATE ON compliance_event_sar_detail
-FOR EACH ROW
-BEGIN
-  DECLARE v_event_type VARCHAR(16);
-
-  SELECT event_type INTO v_event_type
-  FROM compliance_event
-  WHERE event_id = NEW.event_id;
-
-  IF v_event_type IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('SAR detail cannot be updated: compliance_event ', NEW.event_id, ' does not exist');
-  END IF;
-
-  IF v_event_type <> 'SAR' THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = CONCAT('SAR detail can only be attached to SAR events. event_id=', NEW.event_id, ', event_type=', v_event_type);
-  END IF;
-END$$
-
-DELIMITER ;
