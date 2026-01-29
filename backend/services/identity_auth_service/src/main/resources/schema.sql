@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS oauth_identity (
   FOREIGN KEY (user_id) REFERENCES app_user(user_id)
 );
 
--- Seed roles (safe upsert-style for MySQL)
+-- Seed roles per MVP Section 4: Analyst, Compliance User, Law Enforcement User
 INSERT INTO role(role_name) VALUES ('ANALYST') ON DUPLICATE KEY UPDATE role_name=role_name;
-INSERT INTO role(role_name) VALUES ('COMPLIANCE USER') ON DUPLICATE KEY UPDATE role_name=role_name;
-INSERT INTO role(role_name) VALUES ('LAW ENFORCEMENT') ON DUPLICATE KEY UPDATE role_name=role_name;
+INSERT INTO role(role_name) VALUES ('COMPLIANCE_USER') ON DUPLICATE KEY UPDATE role_name=role_name;
+INSERT INTO role(role_name) VALUES ('LAW_ENFORCEMENT_USER') ON DUPLICATE KEY UPDATE role_name=role_name;
