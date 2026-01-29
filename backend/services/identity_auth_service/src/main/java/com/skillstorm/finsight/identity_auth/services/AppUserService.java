@@ -3,7 +3,6 @@ package com.skillstorm.finsight.identity_auth.services;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.skillstorm.finsight.identity_auth.exceptions.EmailAlreadyExistsException;
 import com.skillstorm.finsight.identity_auth.exceptions.UserNotFoundException;
@@ -89,14 +88,15 @@ public class AppUserService {
         return foundUser;
     }
 
-    @Transactional
-    public AppUser adminUpdate(String userId, AdminUpdateDto adminUpdateDto) {
-        AppUser foundUser = findById(userId).orElseThrow(() -> new UserNotFoundException("User does not exist"));
-        foundUser.setRole(roleService.findById(adminUpdateDto.getRoleId())
-                .orElseThrow(() -> new RuntimeException("Role not found")));
-        foundUser.setActive(adminUpdateDto.isActive());
-        return foundUser;
-    }
+    // @Transactional
+    // public AppUser adminUpdate(String userId, AdminUpdateDto adminUpdateDto) {
+    // AppUser foundUser = findById(userId).orElseThrow(() -> new
+    // UserNotFoundException("User does not exist"));
+    // foundUser.setRole(roleService.findById(adminUpdateDto.getRoleId())
+    // .orElseThrow(() -> new RuntimeException("Role not found")));
+    // foundUser.setActive(adminUpdateDto.isActive());
+    // return foundUser;
+    // }
 
     public void deactivateUserById(String id) {
         appUserRepository.deactivateUserById(id);

@@ -40,21 +40,21 @@ public class AppUserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/investigator")
-    public ResponseEntity<AppUserDto> createInvestigator(@RequestBody UserCreationDto user) {
-        AppUser created = appUserService.createUser(user, "INVESTIGATOR");
+    @PostMapping("/analyst")
+    public ResponseEntity<AppUserDto> createAnalyst(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "ANALYST");
         return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 
-    @PostMapping("/supervisor")
-    public ResponseEntity<AppUserDto> createSupervisor(@RequestBody UserCreationDto user) {
-        AppUser created = appUserService.createUser(user, "SUPERVISOR");
+    @PostMapping("/compliance-user")
+    public ResponseEntity<AppUserDto> createComplianceUser(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "COMPLIANCE USER");
         return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 
-    @PostMapping("/admin")
-    public ResponseEntity<AppUserDto> createAdmin(@RequestBody UserCreationDto user) {
-        AppUser created = appUserService.createUser(user, "ADMIN");
+    @PostMapping("/law-enforcement")
+    public ResponseEntity<AppUserDto> createLawEnforcement(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "LAW ENFORCEMENT");
         return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 
@@ -77,11 +77,12 @@ public class AppUserController {
         return ResponseEntity.ok(AppUserMapper.toDto(updated));
     }
 
-    @PutMapping("/{id}/admin")
-    public ResponseEntity<AppUserDto> adminUpdate(@PathVariable String id, @RequestBody AdminUpdateDto adminUpdateDto) {
-        AppUser updated = appUserService.adminUpdate(id, adminUpdateDto);
-        return ResponseEntity.ok(AppUserMapper.toDto(updated));
-    }
+    // @PutMapping("/{id}/admin")
+    // public ResponseEntity<AppUserDto> adminUpdate(@PathVariable String id,
+    // @RequestBody AdminUpdateDto adminUpdateDto) {
+    // AppUser updated = appUserService.adminUpdate(id, adminUpdateDto);
+    // return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    // }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateUser(@PathVariable String id) {

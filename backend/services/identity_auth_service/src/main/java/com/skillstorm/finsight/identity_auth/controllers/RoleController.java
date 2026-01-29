@@ -20,8 +20,8 @@ public class RoleController {
     }
 
     @GetMapping
-    public List<Role> getAllRoles() {
-        return roleService.findAll();
+    public ResponseEntity<List<Role>> getAllRoles() {
+        return ResponseEntity.ok(roleService.findAll());
     }
 
     @GetMapping("/{id}")
@@ -31,8 +31,8 @@ public class RoleController {
     }
 
     @PostMapping
-    public Role createRole(@RequestBody Role role) {
-        return roleService.save(role);
+    public ResponseEntity<Role> createRole(@RequestBody Role role) {
+        return ResponseEntity.ok(roleService.save(role));
     }
 
     @PutMapping("/{id}")
@@ -43,13 +43,5 @@ public class RoleController {
         Role role = roleOpt.get();
         role.setRoleName(roleDetails.getRoleName());
         return ResponseEntity.ok(roleService.save(role));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRole(@PathVariable Integer id) {
-        if (roleService.findById(id).isEmpty())
-            return ResponseEntity.notFound().build();
-        roleService.deleteById(id);
-        return ResponseEntity.noContent().build();
     }
 }

@@ -39,6 +39,6 @@ CREATE TABLE IF NOT EXISTS oauth_identity (
 );
 
 -- Seed roles (safe upsert-style for MySQL)
-INSERT INTO role(role_name) VALUES ('INVESTIGATOR') ON DUPLICATE KEY UPDATE role_name=role_name;
-INSERT INTO role(role_name) VALUES ('SUPERVISOR') ON DUPLICATE KEY UPDATE role_name=role_name;
-INSERT INTO role(role_name) VALUES ('ADMIN') ON DUPLICATE KEY UPDATE role_name=role_name;
+INSERT INTO role(role_name) VALUES ('ANALYST') ON DUPLICATE KEY UPDATE role_name=role_name;
+INSERT INTO role(role_name) VALUES ('COMPLIANCE USER') ON DUPLICATE KEY UPDATE role_name=role_name;
+INSERT INTO role(role_name) VALUES ('LAW ENFORCEMENT') ON DUPLICATE KEY UPDATE role_name=role_name;
