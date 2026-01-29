@@ -1,4 +1,4 @@
-package com.skillstorm.finsight.identity_auth.dtos;
+package com.skillstorm.finsight.identity_auth.requestDtos;
 
 public class UpdateUserDto {
     private String firstName;

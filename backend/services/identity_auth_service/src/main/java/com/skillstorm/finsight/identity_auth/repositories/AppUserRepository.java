@@ -14,6 +14,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, String> {
 
     public AppUser findByEmail(String email);
 
+    public boolean existsByEmail(String email);
+
     @Query("update AppUser u set u.deleted = false where id = :user_id")
     @Modifying
     @Transactional

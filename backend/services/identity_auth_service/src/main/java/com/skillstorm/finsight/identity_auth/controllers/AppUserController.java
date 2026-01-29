@@ -33,7 +33,7 @@ public class AppUserController {
 
     @PostMapping
     public ResponseEntity<AppUser> createUser(@RequestBody AppUser user) {
-        AppUser created = appUserService.save(user);
+        AppUser created = appUserService.createUser(user);
         return ResponseEntity.ok(created);
     }
 
@@ -49,8 +49,6 @@ public class AppUserController {
         user.setLastName(userDetails.getLastName());
         user.setPhone(userDetails.getPhone());
         user.setActive(userDetails.isActive());
-        user.setDeleted(userDetails.isDeleted());
-        user.setDeletedAt(userDetails.getDeletedAt());
         user.setRole(userDetails.getRole());
         return ResponseEntity.ok(appUserService.save(user));
     }
