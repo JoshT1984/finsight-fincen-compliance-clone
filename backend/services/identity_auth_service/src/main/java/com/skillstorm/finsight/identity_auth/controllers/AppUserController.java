@@ -48,13 +48,13 @@ public class AppUserController {
 
     @PostMapping("/compliance-user")
     public ResponseEntity<AppUserDto> createComplianceUser(@RequestBody UserCreationDto user) {
-        AppUser created = appUserService.createUser(user, "COMPLIANCE USER");
+        AppUser created = appUserService.createUser(user, "COMPLIANCE_USER");
         return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 
-    @PostMapping("/law-enforcement")
-    public ResponseEntity<AppUserDto> createLawEnforcement(@RequestBody UserCreationDto user) {
-        AppUser created = appUserService.createUser(user, "LAW ENFORCEMENT");
+    @PostMapping("/law-enforcement-user")
+    public ResponseEntity<AppUserDto> createLawEnforcementUser(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "LAW_ENFORCEMENT_USER");
         return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 
