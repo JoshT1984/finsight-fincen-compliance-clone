@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS oauth_identity (
   provider_user_id VARCHAR(256) NOT NULL,
   email_at_provider VARCHAR(320),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  revoked TINYINT(1) NOT NULL DEFAULT 0,
+  revoked_at TIMESTAMP NULL DEFAULT NULL,
   UNIQUE (provider, provider_user_id),
   FOREIGN KEY (user_id) REFERENCES app_user(user_id) ON DELETE CASCADE
 );
