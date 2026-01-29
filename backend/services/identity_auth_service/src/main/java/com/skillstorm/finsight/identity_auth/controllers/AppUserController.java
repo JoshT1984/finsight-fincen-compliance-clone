@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.services.AppUserService;
 import com.skillstorm.finsight.identity_auth.requestDtos.UpdateUserDto;
+import com.skillstorm.finsight.identity_auth.requestDtos.UserCreationDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangeEmailDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.AdminUpdateDto;
@@ -39,9 +40,21 @@ public class AppUserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<AppUserDto> createUser(@RequestBody AppUser user) {
-        AppUser created = appUserService.createUser(user);
+    @PostMapping("/investigator")
+    public ResponseEntity<AppUserDto> createInvestigator(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "INVESTIGATOR");
+        return ResponseEntity.ok(AppUserMapper.toDto(created));
+    }
+
+    @PostMapping("/supervisor")
+    public ResponseEntity<AppUserDto> createSupervisor(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "SUPERVISOR");
+        return ResponseEntity.ok(AppUserMapper.toDto(created));
+    }
+
+    @PostMapping("/admin")
+    public ResponseEntity<AppUserDto> createAdmin(@RequestBody UserCreationDto user) {
+        AppUser created = appUserService.createUser(user, "ADMIN");
         return ResponseEntity.ok(AppUserMapper.toDto(created));
     }
 

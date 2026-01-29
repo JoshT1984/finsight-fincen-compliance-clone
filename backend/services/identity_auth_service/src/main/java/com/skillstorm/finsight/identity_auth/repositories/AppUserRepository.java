@@ -19,10 +19,10 @@ public interface AppUserRepository extends JpaRepository<AppUser, String> {
     @Query("update AppUser u set u.isActive = false where id = :user_id")
     @Modifying
     @Transactional
-    public String deleteAppUser(@Param("user_id") String id);
+    public int deactivateUserById(@Param("user_id") String id);
 
     @Query("update AppUser u set u.isActive = true where id = :user_id")
     @Modifying
     @Transactional
-    public String reactivateAppUser(@Param("user_id") String id);
+    public int reactivateUserById(@Param("user_id") String id);
 }

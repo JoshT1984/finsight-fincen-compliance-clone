@@ -1,16 +1,21 @@
 package com.skillstorm.finsight.identity_auth.services;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.skillstorm.finsight.identity_auth.exceptions.EmailAlreadyExistsException;
 import com.skillstorm.finsight.identity_auth.exceptions.UserNotFoundException;
 import com.skillstorm.finsight.identity_auth.models.AppUser;
+import com.skillstorm.finsight.identity_auth.models.Role;
 import com.skillstorm.finsight.identity_auth.repositories.AppUserRepository;
 import com.skillstorm.finsight.identity_auth.requestDtos.AdminUpdateDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangeEmailDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.UpdateUserDto;
+import com.skillstorm.finsight.identity_auth.requestDtos.UserCreationDto;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,11 +24,13 @@ import java.util.UUID;
 public class AppUserService {
 
     private AppUserRepository appUserRepository;
+    private PasswordEncoder passwordEncoder;
     private RoleService roleService;
 
-    public AppUserService(AppUserRepository appUserRepository, RoleService roleService) {
+    AppUserService(AppUserRepository appUserRepository, RoleService roleService, PasswordEncoder passwordEncoder) {
         this.appUserRepository = appUserRepository;
         this.roleService = roleService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<AppUser> findAll() {
@@ -38,12 +45,21 @@ public class AppUserService {
         return Optional.ofNullable(appUserRepository.findByEmail(email));
     }
 
-    public AppUser createUser(AppUser user) {
-        if (appUserRepository.existsByEmail(user.getEmail())) {
+    public AppUser createUser(UserCreationDto request, String roleName) {
+        if (appUserRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Email already in use");
         }
 
+        AppUser user = new AppUser();
         user.setUserId(UUID.randomUUID().toString());
+        user.setEmail(request.getEmail());
+
+        // **Hash the password before saving**
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+
+        Role role = roleService.findByRoleName(roleName);
+        user.setRole(role);
+
         return appUserRepository.save(user);
     }
 
@@ -59,7 +75,7 @@ public class AppUserService {
     @Transactional
     public AppUser updateUserPassword(String userId, ChangePasswordDto passwordDto) {
         AppUser foundUser = findById(userId).orElseThrow(() -> new UserNotFoundException("User does not exist"));
-        foundUser.setPasswordHash(passwordDto.getNewPassword());
+        foundUser.setPasswordHash(passwordEncoder.encode(passwordDto.getNewPassword()));
         return foundUser;
     }
 
@@ -83,6 +99,6 @@ public class AppUserService {
     }
 
     public void deleteById(String id) {
-        appUserRepository.deleteAppUser(id);
+        appUserRepository.deactivateUserById(id);
     }
 }
