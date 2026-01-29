@@ -1,6 +1,7 @@
 package com.skillstorm.finsight.compliance_event.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -15,6 +16,8 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "compliance_event_ctr_detail", schema = "compliance_event")
@@ -24,36 +27,36 @@ public class ComplianceEventCtrDetail {
     @Column(name = "event_id", nullable = false)
     private Long eventId;
 
+    @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
     @JoinColumn(name = "event_id", nullable = false, updatable = false)
     private ComplianceEvent event;
 
+    @NotBlank
     @Column(name = "customer_name", nullable = false, length = 128)
     private String customerName;
 
-    // Updated to real timestamptz column
+    // MySQL TIMESTAMP(3) -> Java Instant
+    @NotNull
     @Column(name = "transaction_time", nullable = false)
-    private OffsetDateTime transactionTime;
+    private Instant transactionTime;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "ctr_form_data", columnDefinition = "json", nullable = false)
     private Map<String, Object> ctrFormData;
 
-    // DB-managed DEFAULT now()
+    // DB-managed DEFAULT CURRENT_TIMESTAMP(3)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     protected ComplianceEventCtrDetail() {
     }
 
     @PrePersist
     void prePersist() {
-        if (transactionTime == null) {
-            transactionTime = OffsetDateTime.now();
-        }
         if (ctrFormData == null) {
-            ctrFormData = Map.of();
+            ctrFormData = new HashMap<>();
         }
     }
 
@@ -77,11 +80,11 @@ public class ComplianceEventCtrDetail {
         this.customerName = customerName;
     }
 
-    public OffsetDateTime getTransactionTime() {
+    public Instant getTransactionTime() {
         return transactionTime;
     }
 
-    public void setTransactionTime(OffsetDateTime transactionTime) {
+    public void setTransactionTime(Instant transactionTime) {
         this.transactionTime = transactionTime;
     }
 
@@ -93,7 +96,7 @@ public class ComplianceEventCtrDetail {
         this.ctrFormData = ctrFormData;
     }
 
-    public OffsetDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 

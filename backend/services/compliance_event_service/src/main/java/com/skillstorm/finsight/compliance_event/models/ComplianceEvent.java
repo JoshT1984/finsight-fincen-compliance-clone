@@ -1,7 +1,7 @@
 package com.skillstorm.finsight.compliance_event.models;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,12 +17,13 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "compliance_event", schema = "compliance_event", uniqueConstraints = @UniqueConstraint(name = "uk_source_system_entity", columnNames = {
+@Table(name = "compliance_event", schema = "compliance_event", uniqueConstraints = @UniqueConstraint(name = "uk_event_source_entity", columnNames = {
         "source_system", "source_entity_id" }))
 public class ComplianceEvent {
 
@@ -46,16 +47,19 @@ public class ComplianceEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "event_id", updatable = false, nullable = false)
+    @Column(name = "event_id", nullable = false, updatable = false)
     private Long eventId;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false, length = 16)
     private EventType eventType;
 
+    @NotBlank
     @Column(name = "source_system", nullable = false, length = 64)
     private String sourceSystem;
 
+    @NotBlank
     @Column(name = "source_entity_id", nullable = false, length = 64)
     private String sourceEntityId;
 
@@ -73,19 +77,18 @@ public class ComplianceEvent {
     @JoinColumn(name = "suspect_snapshot_id")
     private SuspectSnapshotAtTimeOfEvent suspectSnapshot;
 
+    @NotNull
     @Column(name = "event_time", nullable = false)
-    private OffsetDateTime eventTime;
+    private Instant eventTime;
 
-    @DecimalMin("0.00")
+    // Nullable; DB enforces non-negative when present
     @Column(name = "total_amount", precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
-    // Schema allows NULL; DB CHECK validates when present.
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 32)
     private ComplianceEventStatus status;
 
-    // Schema allows NULL; DB CHECK enforces 0..100 when present.
     @Min(0)
     @Max(100)
     @Column(name = "severity_score")
@@ -97,9 +100,9 @@ public class ComplianceEvent {
     @Column(name = "idempotency_key", length = 128)
     private String idempotencyKey;
 
-    // DB-managed default now(); keep as read-only from JPA.
+    // DB-managed CURRENT_TIMESTAMP(3)
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     protected ComplianceEvent() {
     }
@@ -112,22 +115,24 @@ public class ComplianceEvent {
 
     @PrePersist
     void prePersist() {
-        // event_time is NOT NULL in DB; provide a sensible default.
         if (eventTime == null) {
-            eventTime = OffsetDateTime.now();
+            eventTime = Instant.now();
         }
         applyDefaultStatus();
         validateStatusForType();
+        validateSeverityForType();
     }
 
     @PreUpdate
     void preUpdate() {
         validateStatusForType();
+        validateSeverityForType();
     }
 
     private void applyDefaultStatus() {
-        if (status != null || eventType == null)
+        if (status != null || eventType == null) {
             return;
+        }
 
         switch (eventType) {
             case CTR -> status = ComplianceEventStatus.CREATED;
@@ -136,20 +141,41 @@ public class ComplianceEvent {
     }
 
     private void validateStatusForType() {
-        if (eventType == null || status == null)
+        if (eventType == null || status == null) {
             return;
+        }
 
         switch (eventType) {
             case CTR -> {
-                if (status != ComplianceEventStatus.CREATED && status != ComplianceEventStatus.FILED) {
-                    throw new IllegalStateException("CTR status must be CREATED or FILED");
+                if (status != ComplianceEventStatus.CREATED &&
+                        status != ComplianceEventStatus.FILED) {
+                    throw new IllegalStateException(
+                            "CTR status must be CREATED or FILED");
                 }
             }
             case SAR -> {
-                if (status != ComplianceEventStatus.DRAFT && status != ComplianceEventStatus.SUBMITTED) {
-                    throw new IllegalStateException("SAR status must be DRAFT or SUBMITTED");
+                if (status != ComplianceEventStatus.DRAFT &&
+                        status != ComplianceEventStatus.SUBMITTED) {
+                    throw new IllegalStateException(
+                            "SAR status must be DRAFT or SUBMITTED");
                 }
             }
+        }
+    }
+
+    private void validateSeverityForType() {
+        if (severityScore == null || eventType == null) {
+            return;
+        }
+
+        if (eventType == EventType.CTR) {
+            throw new IllegalStateException(
+                    "CTR events cannot have severityScore");
+        }
+
+        if (severityScore < 0 || severityScore > 100) {
+            throw new IllegalStateException(
+                    "SAR severityScore must be between 0 and 100");
         }
     }
 
@@ -215,15 +241,16 @@ public class ComplianceEvent {
         return suspectSnapshot;
     }
 
-    public void setSuspectSnapshot(SuspectSnapshotAtTimeOfEvent suspectSnapshot) {
+    public void setSuspectSnapshot(
+            SuspectSnapshotAtTimeOfEvent suspectSnapshot) {
         this.suspectSnapshot = suspectSnapshot;
     }
 
-    public OffsetDateTime getEventTime() {
+    public Instant getEventTime() {
         return eventTime;
     }
 
-    public void setEventTime(OffsetDateTime eventTime) {
+    public void setEventTime(Instant eventTime) {
         this.eventTime = eventTime;
     }
 
@@ -267,7 +294,7 @@ public class ComplianceEvent {
         this.idempotencyKey = idempotencyKey;
     }
 
-    public OffsetDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 

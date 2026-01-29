@@ -1,6 +1,6 @@
 package com.skillstorm.finsight.compliance_event.models;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -43,9 +43,9 @@ public class ComplianceEventLink {
     @Column(name = "evidence_snapshot", columnDefinition = "json", nullable = false)
     private Map<String, Object> evidenceSnapshot;
 
-    // DB-managed DEFAULT now()
+    // DB-managed DEFAULT CURRENT_TIMESTAMP(3)
     @Column(name = "linked_at", nullable = false, updatable = false, insertable = false)
-    private OffsetDateTime linkedAt;
+    private Instant linkedAt;
 
     protected ComplianceEventLink() {
     }
@@ -58,7 +58,6 @@ public class ComplianceEventLink {
 
     @PrePersist
     void prePersist() {
-        // Keep JSON non-null to satisfy NOT NULL + DEFAULT {} semantics consistently
         if (evidenceSnapshot == null) {
             evidenceSnapshot = Map.of();
         }
@@ -106,7 +105,7 @@ public class ComplianceEventLink {
         this.evidenceSnapshot = evidenceSnapshot;
     }
 
-    public OffsetDateTime getLinkedAt() {
+    public Instant getLinkedAt() {
         return linkedAt;
     }
 
