@@ -98,7 +98,7 @@ public class AppUserService {
         return foundUser;
     }
 
-    public void deleteById(String id) {
+    public void deactivateUserById(String id) {
         appUserRepository.deactivateUserById(id);
     }
 }

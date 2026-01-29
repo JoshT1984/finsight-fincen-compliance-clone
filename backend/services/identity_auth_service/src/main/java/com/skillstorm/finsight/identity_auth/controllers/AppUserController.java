@@ -84,10 +84,10 @@ public class AppUserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+    public ResponseEntity<Void> deactivateUser(@PathVariable String id) {
         if (appUserService.findById(id).isEmpty())
             return ResponseEntity.notFound().build();
-        appUserService.deleteById(id);
+        appUserService.deactivateUserById(id);
         return ResponseEntity.noContent().build();
     }
 }
