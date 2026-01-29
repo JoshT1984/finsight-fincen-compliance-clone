@@ -8,9 +8,15 @@ import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.skillstorm.finsight.suspect_registry.config.SsnEncryptor;
+import com.skillstorm.finsight.suspect_registry.util.SsnHashUtil;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,11 +38,16 @@ public class Suspect {
   @Column()
   private LocalDate dob;
 
-  @Column(name = "ssn_last4", length = 4)
-  private String ssnLast4;
+  @Convert(converter = SsnEncryptor.class)
+  @Column(name = "ssn", length = 255)
+  private String ssn;
 
+  @Column(name = "ssn_hash", length = 64)
+  private String ssnHash;
+
+  @Enumerated(EnumType.STRING)
   @Column(name = "risk_level", nullable = false, length = 16)
-  private String riskLevel;
+  private RiskLevel riskLevel;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false)
@@ -58,20 +69,20 @@ public class Suspect {
   public Suspect() {
   }
 
-  public Suspect(String primaryName, LocalDate dob, String ssnLast4, String riskLevel, Instant createdAt, Instant updatedAt) {
+  public Suspect(String primaryName, LocalDate dob, String ssn, RiskLevel riskLevel, Instant createdAt, Instant updatedAt) {
     this.primaryName = primaryName;
     this.dob = dob;
-    this.ssnLast4 = ssnLast4;
+    this.ssn = ssn;
     this.riskLevel = riskLevel;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
 
-  public Suspect(long id, String primaryName, LocalDate dob, String ssnLast4, String riskLevel, Instant createdAt, Instant updatedAt) {
+  public Suspect(long id, String primaryName, LocalDate dob, String ssn, RiskLevel riskLevel, Instant createdAt, Instant updatedAt) {
     this.id = id;
     this.primaryName = primaryName;
     this.dob = dob;
-    this.ssnLast4 = ssnLast4;
+    this.ssn = ssn;
     this.riskLevel = riskLevel;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -101,19 +112,28 @@ public class Suspect {
     this.dob = dob;
   }
 
-  public String getSsnLast4() {
-    return ssnLast4;
+  public String getSsn() {
+    return ssn;
   }
 
-  public void setSsnLast4(String ssnLast4) {
-    this.ssnLast4 = ssnLast4;
+  public void setSsn(String ssn) {
+    this.ssn = ssn;
+    this.ssnHash = ssn != null && !ssn.isBlank() ? SsnHashUtil.hash(ssn) : null;
   }
 
-  public String getRiskLevel() {
+  public String getSsnHash() {
+    return ssnHash;
+  }
+
+  public void setSsnHash(String ssnHash) {
+    this.ssnHash = ssnHash;
+  }
+
+  public RiskLevel getRiskLevel() {
     return riskLevel;
   }
 
-  public void setRiskLevel(String riskLevel) {
+  public void setRiskLevel(RiskLevel riskLevel) {
     this.riskLevel = riskLevel;
   }
 
@@ -164,7 +184,7 @@ public class Suspect {
     result = prime * result + (int) (id ^ (id >>> 32));
     result = prime * result + ((primaryName == null) ? 0 : primaryName.hashCode());
     result = prime * result + ((dob == null) ? 0 : dob.hashCode());
-    result = prime * result + ((ssnLast4 == null) ? 0 : ssnLast4.hashCode());
+    result = prime * result + ((ssn == null) ? 0 : ssn.hashCode());
     result = prime * result + ((riskLevel == null) ? 0 : riskLevel.hashCode());
     result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
     result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
@@ -192,10 +212,10 @@ public class Suspect {
         return false;
     } else if (!dob.equals(other.dob))
       return false;
-    if (ssnLast4 == null) {
-      if (other.ssnLast4 != null)
+    if (ssn == null) {
+      if (other.ssn != null)
         return false;
-    } else if (!ssnLast4.equals(other.ssnLast4))
+    } else if (!ssn.equals(other.ssn))
       return false;
     if (riskLevel == null) {
       if (other.riskLevel != null)
@@ -217,7 +237,7 @@ public class Suspect {
 
   @Override
   public String toString() {
-    return "Suspect [id=" + id + ", primaryName=" + primaryName + ", dob=" + dob + ", ssnLast4=" + ssnLast4
+    return "Suspect [id=" + id + ", primaryName=" + primaryName + ", dob=" + dob + ", ssn=" + (ssn != null ? "***" : null)
         + ", riskLevel=" + riskLevel + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + "]";
   }
 

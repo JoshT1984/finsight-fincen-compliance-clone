@@ -10,7 +10,6 @@ public record AddressResponse(
         String state,
         String postalCode,
         String country,
-        String addressHash,
         Instant createdAt
 ) {
 }

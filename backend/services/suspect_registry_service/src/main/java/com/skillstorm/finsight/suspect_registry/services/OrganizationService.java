@@ -11,14 +11,17 @@ import org.springframework.transaction.annotation.Transactional;
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateOrganizationRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchOrganizationRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.OrganizationResponse;
+import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.suspect_registry.models.Organization;
+import com.skillstorm.finsight.suspect_registry.models.OrganizationType;
 import com.skillstorm.finsight.suspect_registry.repositories.OrganizationRepository;
 
 @Service
 public class OrganizationService {
   
   private static final Logger log = LoggerFactory.getLogger(OrganizationService.class);
+  private static final OrganizationType DEFAULT_ORG_TYPE = OrganizationType.OTHER;
   
   private final OrganizationRepository repo;
 
@@ -38,9 +41,14 @@ public class OrganizationService {
   @Transactional
   public OrganizationResponse create(CreateOrganizationRequest request) {
     log.debug("Creating organization: {}", request.name());
+    
+    if (repo.findByName(request.name()).isPresent()) {
+      throw new ResourceConflictException("Organization with name " + request.name() + " already exists");
+    }
+    
     Organization org = new Organization();
     org.setName(request.name());
-    org.setType(request.type());
+    org.setType(request.type() != null ? request.type() : DEFAULT_ORG_TYPE);
     Organization saved = repo.save(org);
     log.info("Created organization with ID: {}", saved.getId());
     return toResponse(saved);
@@ -74,6 +82,16 @@ public class OrganizationService {
       log.warn("No fields to update for organization with ID: {}", orgId);
       return toResponse(org);
     }
+    
+    // Check for uniqueness if name is being updated
+    if (request.name() != null) {
+      repo.findByName(request.name()).ifPresent(existing -> {
+        if (existing.getId() != orgId) {
+          throw new ResourceConflictException("Organization with name " + request.name() + " already exists");
+        }
+      });
+    }
+    
     Organization saved = repo.save(org);
     log.info("Updated organization with ID: {}", saved.getId());
     return toResponse(saved);

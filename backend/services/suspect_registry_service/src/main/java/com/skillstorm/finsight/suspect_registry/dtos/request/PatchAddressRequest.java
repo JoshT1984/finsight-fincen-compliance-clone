@@ -19,9 +19,6 @@ public record PatchAddressRequest(
         String postalCode,
 
         @Size(max = 64)
-        String country,
-
-        @Size(max = 64)
-        String addressHash
+        String country
 ) {
 }

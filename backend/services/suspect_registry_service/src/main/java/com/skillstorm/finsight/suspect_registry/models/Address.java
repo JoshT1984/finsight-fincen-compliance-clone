@@ -42,9 +42,6 @@ public class Address {
   @Column(nullable = false, length = 64)
   private String country;
 
-  @Column(name = "address_hash", length = 64)
-  private String addressHash;
-
   @CreationTimestamp
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
@@ -55,18 +52,17 @@ public class Address {
   public Address() {
   }
 
-  public Address(String line1, String line2, String city, String state, String postalCode, String country, String addressHash, Instant createdAt) {
+  public Address(String line1, String line2, String city, String state, String postalCode, String country, Instant createdAt) {
     this.line1 = line1;
     this.line2 = line2;
     this.city = city;
     this.state = state;
     this.postalCode = postalCode;
     this.country = country;
-    this.addressHash = addressHash;
     this.createdAt = createdAt;
   }
 
-  public Address(long id, String line1, String line2, String city, String state, String postalCode, String country, String addressHash, Instant createdAt) {
+  public Address(long id, String line1, String line2, String city, String state, String postalCode, String country, Instant createdAt) {
     this.id = id;
     this.line1 = line1;
     this.line2 = line2;
@@ -74,7 +70,6 @@ public class Address {
     this.state = state;
     this.postalCode = postalCode;
     this.country = country;
-    this.addressHash = addressHash;
     this.createdAt = createdAt;
   }
 
@@ -134,14 +129,6 @@ public class Address {
     this.country = country;
   }
 
-  public String getAddressHash() {
-    return addressHash;
-  }
-
-  public void setAddressHash(String addressHash) {
-    this.addressHash = addressHash;
-  }
-
   public Instant getCreatedAt() {
     return createdAt;
   }
@@ -169,7 +156,6 @@ public class Address {
     result = prime * result + ((state == null) ? 0 : state.hashCode());
     result = prime * result + ((postalCode == null) ? 0 : postalCode.hashCode());
     result = prime * result + ((country == null) ? 0 : country.hashCode());
-    result = prime * result + ((addressHash == null) ? 0 : addressHash.hashCode());
     result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
     return result;
   }
@@ -215,11 +201,6 @@ public class Address {
         return false;
     } else if (!country.equals(other.country))
       return false;
-    if (addressHash == null) {
-      if (other.addressHash != null)
-        return false;
-    } else if (!addressHash.equals(other.addressHash))
-      return false;
     if (createdAt == null) {
       if (other.createdAt != null)
         return false;
@@ -231,7 +212,6 @@ public class Address {
   @Override
   public String toString() {
     return "Address [id=" + id + ", line1=" + line1 + ", line2=" + line2 + ", city=" + city + ", state=" + state
-        + ", postalCode=" + postalCode + ", country=" + country + ", addressHash=" + addressHash + ", createdAt="
-        + createdAt + "]";
+        + ", postalCode=" + postalCode + ", country=" + country + ", createdAt=" + createdAt + "]";
   }
 }

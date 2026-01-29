@@ -11,9 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.AddressResponse;
+import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.suspect_registry.models.Address;
 import com.skillstorm.finsight.suspect_registry.repositories.AddressRepository;
+import com.skillstorm.finsight.suspect_registry.repositories.SuspectAddressRepository;
+import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
 
 @Service
 public class AddressService {
@@ -21,9 +24,14 @@ public class AddressService {
   private static final Logger log = LoggerFactory.getLogger(AddressService.class);
   
   private final AddressRepository repo;
+  private final SuspectAddressRepository suspectAddressRepo;
+  private final SuspectRepository suspectRepo;
 
-  public AddressService(AddressRepository repo) {
+  public AddressService(AddressRepository repo, SuspectAddressRepository suspectAddressRepo,
+      SuspectRepository suspectRepo) {
     this.repo = repo;
+    this.suspectAddressRepo = suspectAddressRepo;
+    this.suspectRepo = suspectRepo;
   }
 
   private AddressResponse toResponse(Address address) {
@@ -35,7 +43,6 @@ public class AddressService {
         address.getState(),
         address.getPostalCode(),
         address.getCountry(),
-        address.getAddressHash(),
         address.getCreatedAt()
     );
   }
@@ -43,6 +50,17 @@ public class AddressService {
   @Transactional
   public AddressResponse create(CreateAddressRequest request) {
     log.debug("Creating address");
+    
+    if (repo.findByAddressComponents(
+        request.line1(),
+        request.line2(),
+        request.city(),
+        request.state(),
+        request.postalCode(),
+        request.country()).isPresent()) {
+      throw new ResourceConflictException("Addresses must be unique (line1, line2, city, state, postalCode, country).");
+    }
+    
     Address address = new Address();
     address.setLine1(request.line1());
     address.setLine2(request.line2());
@@ -50,7 +68,6 @@ public class AddressService {
     address.setState(request.state());
     address.setPostalCode(request.postalCode());
     address.setCountry(request.country());
-    address.setAddressHash(request.addressHash());
     Address saved = repo.save(address);
     log.info("Created address with ID: {}", saved.getId());
     return toResponse(saved);
@@ -72,6 +89,17 @@ public class AddressService {
     return toResponse(address);
   }
 
+  public List<AddressResponse> findBySuspectId(Long suspectId) {
+    log.debug("Retrieving addresses for suspect ID: {}", suspectId);
+    suspectRepo.findById(suspectId)
+        .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
+    return suspectAddressRepo.findBySuspectIdOrderByLinkedAtDesc(suspectId).stream()
+        .map(sa -> sa.getAddress())
+        .filter(a -> a != null)
+        .map(this::toResponse)
+        .collect(Collectors.toList());
+  }
+
   @Transactional
   public AddressResponse updateById(Long addressId, PatchAddressRequest request) {
     log.debug("Patching address with ID: {}", addressId);
@@ -84,11 +112,25 @@ public class AddressService {
     if (request.state() != null) { address.setState(request.state()); updated = true; }
     if (request.postalCode() != null) { address.setPostalCode(request.postalCode()); updated = true; }
     if (request.country() != null) { address.setCountry(request.country()); updated = true; }
-    if (request.addressHash() != null) { address.setAddressHash(request.addressHash()); updated = true; }
     if (!updated) {
       log.warn("No fields to update for address with ID: {}", addressId);
       return toResponse(address);
     }
+    
+    String checkLine1 = address.getLine1();
+    String checkLine2 = address.getLine2();
+    String checkCity = address.getCity();
+    String checkState = address.getState();
+    String checkPostalCode = address.getPostalCode();
+    String checkCountry = address.getCountry();
+    
+    repo.findByAddressComponents(checkLine1, checkLine2, checkCity, checkState, checkPostalCode, checkCountry)
+        .ifPresent(existing -> {
+          if (existing.getId() != addressId) {
+            throw new ResourceConflictException("Addresses must be unique (line1, line2, city, state, postalCode, country).");
+          }
+        });
+    
     Address saved = repo.save(address);
     log.info("Updated address with ID: {}", saved.getId());
     return toResponse(saved);

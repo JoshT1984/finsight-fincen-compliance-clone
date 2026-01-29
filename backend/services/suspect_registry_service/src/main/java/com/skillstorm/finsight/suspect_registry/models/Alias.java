@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -29,8 +31,9 @@ public class Alias {
   @Column(name = "alias_name", nullable = false, length = 256)
   private String aliasName;
 
+  @Enumerated(EnumType.STRING)
   @Column(name = "alias_type", nullable = false, length = 32)
-  private String aliasType;
+  private AliasType aliasType;
 
   @Column(name = "is_primary", nullable = false)
   private boolean isPrimary;
@@ -44,7 +47,7 @@ public class Alias {
   public Alias() {
   }
 
-  public Alias(Suspect suspect, String aliasName, String aliasType, boolean isPrimary, Instant createdAt) {
+  public Alias(Suspect suspect, String aliasName, AliasType aliasType, boolean isPrimary, Instant createdAt) {
     this.suspect = suspect;
     this.aliasName = aliasName;
     this.aliasType = aliasType;
@@ -52,7 +55,7 @@ public class Alias {
     this.createdAt = createdAt;
   }
 
-  public Alias(long id, Suspect suspect, String aliasName, String aliasType, boolean isPrimary, Instant createdAt) {
+  public Alias(long id, Suspect suspect, String aliasName, AliasType aliasType, boolean isPrimary, Instant createdAt) {
     this.id = id;
     this.suspect = suspect;
     this.aliasName = aliasName;
@@ -85,11 +88,11 @@ public class Alias {
     this.aliasName = aliasName;
   }
 
-  public String getAliasType() {
+  public AliasType getAliasType() {
     return aliasType;
   }
 
-  public void setAliasType(String aliasType) {
+  public void setAliasType(AliasType aliasType) {
     this.aliasType = aliasType;
   }
 

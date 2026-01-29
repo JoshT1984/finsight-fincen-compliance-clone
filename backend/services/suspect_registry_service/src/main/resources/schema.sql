@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS suspect (
 
   -- optional, depends on scope
   dob DATE,
-  ssn_last4 CHAR(4),
+  ssn VARCHAR(255), -- Encrypted full SSN (stored as base64-encoded encrypted string)
+  ssn_hash CHAR(64), -- SHA-256 hash of normalized SSN (digits only) for uniqueness lookup
 
   risk_level VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
   CHECK (risk_level IN ('UNKNOWN','LOW','MEDIUM','HIGH')),
@@ -20,7 +21,8 @@ CREATE TABLE IF NOT EXISTS suspect (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (suspect_id),
-  KEY idx_suspect_name (primary_name)
+  KEY idx_suspect_name (primary_name),
+  UNIQUE KEY uk_suspect_ssn_hash (ssn_hash)
 ) ENGINE=InnoDB;
 
 
@@ -56,8 +58,6 @@ CREATE TABLE IF NOT EXISTS address (
   state VARCHAR(64),
   postal_code VARCHAR(32),
   country VARCHAR(64) NOT NULL DEFAULT 'US',
-
-  address_hash CHAR(64),
 
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -97,7 +97,8 @@ CREATE TABLE IF NOT EXISTS suspect_address (
 CREATE TABLE IF NOT EXISTS criminal_organization (
   org_id BIGINT NOT NULL AUTO_INCREMENT,
   org_name VARCHAR(256) NOT NULL,
-  org_type VARCHAR(64),
+  org_type VARCHAR(32) DEFAULT 'OTHER',
+  CHECK (org_type IN ('CARTEL','GANG','TERRORIST','FRAUD_RING','MONEY_LAUNDERING','OTHER')),
 
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

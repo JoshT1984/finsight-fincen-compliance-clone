@@ -1,9 +1,11 @@
 package com.skillstorm.finsight.suspect_registry.dtos.request;
 
+import java.time.LocalDate;
+
+import com.skillstorm.finsight.suspect_registry.models.RiskLevel;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
-import java.time.LocalDate;
 
 public record CreateSuspectRequest(
         @NotBlank(message = "Primary name is required")
@@ -12,10 +14,9 @@ public record CreateSuspectRequest(
 
         LocalDate dob,
 
-        @Size(max = 4)
-        String ssnLast4,
+        @Size(max = 11, message = "SSN must contain exactly 9 digits (e.g., 123-45-6789 or 123456789)")
+        String ssn,
 
-        @Size(max = 16)
-        String riskLevel
+        RiskLevel riskLevel
 ) {
 }

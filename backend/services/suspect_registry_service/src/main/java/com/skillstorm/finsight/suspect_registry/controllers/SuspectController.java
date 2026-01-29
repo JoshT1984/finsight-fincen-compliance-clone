@@ -14,8 +14,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateSuspectRequest;
+import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectAddressRequest;
+import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectOrganizationRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchSuspectRequest;
+import com.skillstorm.finsight.suspect_registry.dtos.response.AddressResponse;
+import com.skillstorm.finsight.suspect_registry.dtos.response.AliasResponse;
 import com.skillstorm.finsight.suspect_registry.dtos.response.SuspectResponse;
+import com.skillstorm.finsight.suspect_registry.services.AddressService;
+import com.skillstorm.finsight.suspect_registry.services.AliasService;
 import com.skillstorm.finsight.suspect_registry.services.SuspectService;
 
 import jakarta.validation.Valid;
@@ -25,9 +31,13 @@ import jakarta.validation.Valid;
 public class SuspectController {
   
   private final SuspectService service;
+  private final AliasService aliasService;
+  private final AddressService addressService;
   
-  public SuspectController(SuspectService service) {
+  public SuspectController(SuspectService service, AliasService aliasService, AddressService addressService) {
     this.service = service;
+    this.aliasService = aliasService;
+    this.addressService = addressService;
   }
 
   @PostMapping
@@ -39,6 +49,12 @@ public class SuspectController {
   @GetMapping
   public ResponseEntity<List<SuspectResponse>> getAll() {
     List<SuspectResponse> suspects = service.findAll();
+    return ResponseEntity.ok(suspects);
+  }
+
+  @GetMapping("/by-organization/{orgId}")
+  public ResponseEntity<List<SuspectResponse>> getByOrganization(@PathVariable Long orgId) {
+    List<SuspectResponse> suspects = service.findByOrganizationId(orgId);
     return ResponseEntity.ok(suspects);
   }
 
@@ -58,5 +74,31 @@ public class SuspectController {
   public ResponseEntity<Void> delete(@PathVariable Long id) {
     service.deleteById(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/{id}/organizations")
+  public ResponseEntity<SuspectResponse> linkSuspectToOrganization(@PathVariable Long id,
+      @Valid @RequestBody LinkSuspectOrganizationRequest request) {
+    SuspectResponse response = service.linkSuspectToOrganization(id, request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  @PostMapping("/{id}/addresses")
+  public ResponseEntity<SuspectResponse> linkAddressToSuspect(@PathVariable Long id,
+      @Valid @RequestBody LinkSuspectAddressRequest request) {
+    SuspectResponse response = service.linkAddressToSuspect(id, request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  @GetMapping("/{id}/aliases")
+  public ResponseEntity<List<AliasResponse>> getAliasesBySuspect(@PathVariable Long id) {
+    List<AliasResponse> aliases = aliasService.findBySuspectId(id);
+    return ResponseEntity.ok(aliases);
+  }
+
+  @GetMapping("/{id}/addresses")
+  public ResponseEntity<List<AddressResponse>> getAddressesBySuspect(@PathVariable Long id) {
+    List<AddressResponse> addresses = addressService.findBySuspectId(id);
+    return ResponseEntity.ok(addresses);
   }
 }

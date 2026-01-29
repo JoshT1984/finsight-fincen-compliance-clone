@@ -23,9 +23,6 @@ public record CreateAddressRequest(
 
         @NotBlank(message = "Country is required")
         @Size(max = 64)
-        String country,
-
-        @Size(max = 64)
-        String addressHash
+        String country
 ) {
 }

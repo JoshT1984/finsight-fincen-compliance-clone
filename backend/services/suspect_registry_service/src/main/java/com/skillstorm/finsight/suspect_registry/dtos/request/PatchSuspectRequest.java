@@ -1,8 +1,10 @@
 package com.skillstorm.finsight.suspect_registry.dtos.request;
 
-import jakarta.validation.constraints.Size;
-
 import java.time.LocalDate;
+
+import com.skillstorm.finsight.suspect_registry.models.RiskLevel;
+
+import jakarta.validation.constraints.Size;
 
 public record PatchSuspectRequest(
         @Size(max = 256)
@@ -10,10 +12,9 @@ public record PatchSuspectRequest(
 
         LocalDate dob,
 
-        @Size(max = 4)
-        String ssnLast4,
+        @Size(max = 11, message = "SSN must contain exactly 9 digits (e.g., 123-45-6789 or 123456789)")
+        String ssn,
 
-        @Size(max = 16)
-        String riskLevel
+        RiskLevel riskLevel
 ) {
 }

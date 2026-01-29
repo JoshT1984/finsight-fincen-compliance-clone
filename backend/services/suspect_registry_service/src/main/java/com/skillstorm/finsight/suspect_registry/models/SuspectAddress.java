@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
@@ -33,8 +35,9 @@ public class SuspectAddress {
   @JoinColumn(name = "address_id", insertable = false, updatable = false)
   private Address address;
 
+  @Enumerated(EnumType.STRING)
   @Column(name = "address_type", nullable = false, length = 32)
-  private String addressType;
+  private AddressType addressType;
 
   @Column(name = "is_current", nullable = false)
   private boolean isCurrent;
@@ -46,7 +49,7 @@ public class SuspectAddress {
   public SuspectAddress() {
   }
 
-  public SuspectAddress(long suspectId, long addressId, String addressType, boolean isCurrent, Instant linkedAt) {
+  public SuspectAddress(long suspectId, long addressId, AddressType addressType, boolean isCurrent, Instant linkedAt) {
     this.suspectId = suspectId;
     this.addressId = addressId;
     this.addressType = addressType;
@@ -54,7 +57,7 @@ public class SuspectAddress {
     this.linkedAt = linkedAt;
   }
 
-  public SuspectAddress(Suspect suspect, Address address, String addressType, boolean isCurrent, Instant linkedAt) {
+  public SuspectAddress(Suspect suspect, Address address, AddressType addressType, boolean isCurrent, Instant linkedAt) {
     this.suspectId = suspect != null ? suspect.getId() : 0;
     this.addressId = address != null ? address.getId() : 0;
     this.suspect = suspect;
@@ -102,11 +105,11 @@ public class SuspectAddress {
     }
   }
 
-  public String getAddressType() {
+  public AddressType getAddressType() {
     return addressType;
   }
 
-  public void setAddressType(String addressType) {
+  public void setAddressType(AddressType addressType) {
     this.addressType = addressType;
   }
 

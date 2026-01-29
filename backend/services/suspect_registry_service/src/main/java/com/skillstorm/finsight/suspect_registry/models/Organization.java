@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,8 +29,9 @@ public class Organization {
   @Column(name = "org_name", nullable = false, unique = true, length = 256)
   private String name;
 
-  @Column(name = "org_type", length = 64)
-  private String type;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "org_type", length = 32)
+  private OrganizationType type;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false)
@@ -40,13 +43,13 @@ public class Organization {
   public Organization() {
   }
 
-  public Organization(String name, String type, Instant createdAt) {
+  public Organization(String name, OrganizationType type, Instant createdAt) {
     this.name = name;
     this.type = type;
     this.createdAt = createdAt;
   }
 
-  public Organization(long id, String name, String type, Instant createdAt) {
+  public Organization(long id, String name, OrganizationType type, Instant createdAt) {
     this.id = id;
     this.name = name;
     this.type = type;
@@ -69,11 +72,11 @@ public class Organization {
     this.name = name;
   }
 
-  public String getType() {
+  public OrganizationType getType() {
     return type;
   }
 
-  public void setType(String type) {
+  public void setType(OrganizationType type) {
     this.type = type;
   }
 

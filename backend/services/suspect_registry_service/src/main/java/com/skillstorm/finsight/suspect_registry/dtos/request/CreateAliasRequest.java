@@ -1,5 +1,7 @@
 package com.skillstorm.finsight.suspect_registry.dtos.request;
 
+import com.skillstorm.finsight.suspect_registry.models.AliasType;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,8 +14,7 @@ public record CreateAliasRequest(
         @Size(max = 256)
         String aliasName,
 
-        @Size(max = 32)
-        String aliasType,
+        AliasType aliasType,
 
         Boolean isPrimary
 ) {

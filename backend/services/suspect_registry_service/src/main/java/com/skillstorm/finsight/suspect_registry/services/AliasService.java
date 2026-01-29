@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateAliasRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchAliasRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.AliasResponse;
+import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.suspect_registry.models.Alias;
+import com.skillstorm.finsight.suspect_registry.models.AliasType;
 import com.skillstorm.finsight.suspect_registry.models.Suspect;
 import com.skillstorm.finsight.suspect_registry.repositories.AliasRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
@@ -21,7 +23,7 @@ import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
 public class AliasService {
   
   private static final Logger log = LoggerFactory.getLogger(AliasService.class);
-  private static final String DEFAULT_ALIAS_TYPE = "AKA";
+  private static final AliasType DEFAULT_ALIAS_TYPE = AliasType.AKA;
   
   private final AliasRepository repo;
   private final SuspectRepository suspectRepo;
@@ -47,11 +49,15 @@ public class AliasService {
     log.debug("Creating alias for suspect ID: {}", request.suspectId());
     Suspect suspect = suspectRepo.findById(request.suspectId())
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + request.suspectId() + " not found"));
+    
+    if (repo.findBySuspectIdAndAliasName(request.suspectId(), request.aliasName()).isPresent()) {
+      throw new ResourceConflictException("Alias with name " + request.aliasName() + " already exists for this suspect");
+    }
+    
     Alias alias = new Alias();
     alias.setSuspect(suspect);
     alias.setAliasName(request.aliasName());
-    alias.setAliasType(request.aliasType() != null && !request.aliasType().isBlank()
-        ? request.aliasType() : DEFAULT_ALIAS_TYPE);
+    alias.setAliasType(request.aliasType() != null ? request.aliasType() : DEFAULT_ALIAS_TYPE);
     alias.setPrimary(request.isPrimary() != null && request.isPrimary());
     Alias saved = repo.save(alias);
     log.info("Created alias with ID: {} for suspect ID: {}", saved.getId(), request.suspectId());
@@ -74,6 +80,15 @@ public class AliasService {
     return toResponse(alias);
   }
 
+  public List<AliasResponse> findBySuspectId(Long suspectId) {
+    log.debug("Retrieving aliases for suspect ID: {}", suspectId);
+    suspectRepo.findById(suspectId)
+        .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
+    return repo.findBySuspect_Id(suspectId).stream()
+        .map(this::toResponse)
+        .collect(Collectors.toList());
+  }
+
   @Transactional
   public AliasResponse updateById(Long aliasId, PatchAliasRequest request) {
     log.debug("Patching alias with ID: {}", aliasId);
@@ -93,6 +108,19 @@ public class AliasService {
       log.warn("No fields to update for alias with ID: {}", aliasId);
       return toResponse(alias);
     }
+    
+    // Check for uniqueness if suspectId or aliasName is being updated
+    Long checkSuspectId = alias.getSuspect() != null ? alias.getSuspect().getId() : null;
+    String checkAliasName = alias.getAliasName();
+    
+    if (checkSuspectId != null && checkAliasName != null) {
+      repo.findBySuspectIdAndAliasName(checkSuspectId, checkAliasName).ifPresent(existing -> {
+        if (existing.getId() != aliasId) {
+          throw new ResourceConflictException("Alias with name " + checkAliasName + " already exists for this suspect");
+        }
+      });
+    }
+    
     Alias saved = repo.save(alias);
     log.info("Updated alias with ID: {}", saved.getId());
     return toResponse(saved);

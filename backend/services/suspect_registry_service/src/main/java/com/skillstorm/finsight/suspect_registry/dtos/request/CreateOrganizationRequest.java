@@ -1,5 +1,7 @@
 package com.skillstorm.finsight.suspect_registry.dtos.request;
 
+import com.skillstorm.finsight.suspect_registry.models.OrganizationType;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -8,7 +10,6 @@ public record CreateOrganizationRequest(
         @Size(max = 256)
         String name,
 
-        @Size(max = 64)
-        String type
+        OrganizationType type
 ) {
 }
