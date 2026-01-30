@@ -1,4 +1,7 @@
 <div class="container documents-container">
+  <div id="documents-header">
+    <h1>Documents</h1>
+  </div>
   <div class="documents-page">
     <app-side-nav
       [navItems]="documentNavItems"
@@ -7,12 +10,10 @@
     </app-side-nav>
 
     <div class="documents-content">
-      <h1>Documents</h1>
-
       <div class="search-bar">
         <label for="search-type">Search by</label>
         <select id="search-type" name="searchType" [(ngModel)]="searchType">
-          @for (opt of getSearchTypeOptions(); track opt.value) {
+          @for (opt of searchTypeOptions; track opt.value) {
             <option [value]="opt.value">{{ opt.label }}</option>
           }
         </select>

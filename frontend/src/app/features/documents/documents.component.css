@@ -9,6 +9,10 @@
   display: flex;
 }
 
+#documents-header {
+  margin-bottom: 1.5rem;
+}
+
 .documents-content {
   flex: 1;
   padding: 0rem 2rem 0rem 2rem;
@@ -23,32 +27,35 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 1rem;
+  gap: 0.6rem 1.25rem;
   margin-bottom: 1rem;
 }
 
 .search-bar label {
   font-weight: 500;
   color: #333;
+  font-size: 1rem;
 }
 
 .search-bar select,
 .search-bar input[type='number'] {
-  padding: 0.4rem 0.6rem;
+  padding: 0.55rem 0.8rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  min-height: 2.25rem;
 }
 
 .search-bar input[type='number'] {
-  width: 100px;
+  width: 120px;
 }
 
 .btn-search,
 .btn-clear {
-  padding: 0.4rem 1rem;
+  padding: 0.55rem 1.25rem;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  min-height: 2.25rem;
   cursor: pointer;
 }
 

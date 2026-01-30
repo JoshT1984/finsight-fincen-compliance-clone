@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SideNavComponent, NavItem } from '../../shared/side-nav/side-nav.component';
@@ -24,16 +24,19 @@ export class DocumentsComponent implements OnInit {
   filteredDocuments: DocumentResponse[] = [];
   loading = false;
   error: string | null = null;
-
-  /** Search by ID: type and parsed ID when searching */
   searchType: 'ctr' | 'sar' | 'case' = 'ctr';
   searchIdInput = '';
   searchLabel: string | null = null;
 
+  searchTypeOptions: { value: 'ctr' | 'sar' | 'case'; label: string }[] = [
+    { value: 'ctr', label: 'CTR ID' },
+    { value: 'sar', label: 'SAR ID' },
+    { value: 'case', label: 'Case ID' },
+  ];
+
   constructor(
     private documentsService: DocumentsService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone,
   ) {}
 
   ngOnInit(): void {
@@ -42,9 +45,10 @@ export class DocumentsComponent implements OnInit {
 
   onCategorySelected(categoryId: string): void {
     this.selectedDocumentCategory = categoryId;
-    this.searchLabel = null;
     this.searchIdInput = '';
+    this.searchLabel = null;
     this.error = null;
+    this.updateSearchTypeOptions();
     this.syncSearchTypeToCategory();
     this.loadDocuments();
   }
@@ -70,21 +74,17 @@ export class DocumentsComponent implements OnInit {
 
     request.subscribe({
       next: (docs) => {
-        this.ngZone.run(() => {
-          this.documents = docs;
-          this.applyFilter();
-          this.loading = false;
-          this.cdr.detectChanges();
-        });
+        this.documents = docs;
+        this.filteredDocuments = this.applyFilter(docs);
+        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        this.ngZone.run(() => {
-          this.error = err?.message || `No documents found for ${this.searchLabel}.`;
-          this.documents = [];
-          this.filteredDocuments = [];
-          this.loading = false;
-          this.cdr.detectChanges();
-        });
+        this.error = err?.message || `No documents found for ${this.searchLabel}.`;
+        this.documents = [];
+        this.filteredDocuments = [];
+        this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -102,38 +102,31 @@ export class DocumentsComponent implements OnInit {
     this.error = null;
     this.documentsService.getAll().subscribe({
       next: (docs) => {
-        this.ngZone.run(() => {
-          this.documents = docs;
-          this.applyFilter();
-          this.loading = false;
-          this.cdr.detectChanges();
-        });
+        this.documents = docs;
+        this.filteredDocuments = this.applyFilter(docs);
+        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        this.ngZone.run(() => {
-          this.error = err?.message || 'Failed to load documents. Please try again.';
-          this.documents = [];
-          this.filteredDocuments = [];
-          this.loading = false;
-          this.cdr.detectChanges();
-        });
+        this.error = err?.message || 'Failed to load documents. Please try again.';
+        this.documents = [];
+        this.filteredDocuments = [];
+        this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
 
-  private applyFilter(): void {
+  private applyFilter(docs: DocumentResponse[]): DocumentResponse[] {
     switch (this.selectedDocumentCategory) {
       case 'ctr':
-        this.filteredDocuments = this.documents.filter((d) => d.documentType === 'CTR');
-        break;
+        return docs.filter((d) => d.documentType === 'CTR');
       case 'sar':
-        this.filteredDocuments = this.documents.filter((d) => d.documentType === 'SAR');
-        break;
+        return docs.filter((d) => d.documentType === 'SAR');
       case 'case':
-        this.filteredDocuments = this.documents.filter((d) => d.documentType === 'CASE');
-        break;
+        return docs.filter((d) => d.documentType === 'CASE');
       default:
-        this.filteredDocuments = [...this.documents];
+        return [...docs];
     }
   }
 
@@ -143,28 +136,29 @@ export class DocumentsComponent implements OnInit {
     return isNaN(d.getTime()) ? isoString : d.toLocaleDateString();
   }
 
-  /** Search type options based on selected menu - only show relevant options */
-  getSearchTypeOptions(): { value: 'ctr' | 'sar' | 'case'; label: string }[] {
-    if (this.selectedDocumentCategory === 'ctr') return [{ value: 'ctr', label: 'CTR ID' }];
-    if (this.selectedDocumentCategory === 'sar') return [{ value: 'sar', label: 'SAR ID' }];
-    if (this.selectedDocumentCategory === 'case') return [{ value: 'case', label: 'Case ID' }];
-    return [
-      { value: 'ctr', label: 'CTR ID' },
-      { value: 'sar', label: 'SAR ID' },
-      { value: 'case', label: 'Case ID' },
-    ];
-  }
-
-  /** Keep searchType in sync when category changes (e.g. CTR menu → only CTR search) */
-  private syncSearchTypeToCategory(): void {
-    const options = this.getSearchTypeOptions();
-    const valid = options.some((o) => o.value === this.searchType);
-    if (!valid && options.length > 0) {
-      this.searchType = options[0].value;
+  private updateSearchTypeOptions(): void {
+    if (this.selectedDocumentCategory === 'ctr') {
+      this.searchTypeOptions = [{ value: 'ctr', label: 'CTR ID' }];
+    } else if (this.selectedDocumentCategory === 'sar') {
+      this.searchTypeOptions = [{ value: 'sar', label: 'SAR ID' }];
+    } else if (this.selectedDocumentCategory === 'case') {
+      this.searchTypeOptions = [{ value: 'case', label: 'Case ID' }];
+    } else {
+      this.searchTypeOptions = [
+        { value: 'ctr', label: 'CTR ID' },
+        { value: 'sar', label: 'SAR ID' },
+        { value: 'case', label: 'Case ID' },
+      ];
     }
   }
 
-  /** Effective category for column visibility (category or inferred from search) */
+  private syncSearchTypeToCategory(): void {
+    const valid = this.searchTypeOptions.some((o) => o.value === this.searchType);
+    if (!valid && this.searchTypeOptions.length > 0) {
+      this.searchType = this.searchTypeOptions[0].value;
+    }
+  }
+
   getEffectiveCategory(): string {
     if (this.searchLabel) {
       if (this.searchLabel.startsWith('CTR')) return 'ctr';
@@ -186,13 +180,11 @@ export class DocumentsComponent implements OnInit {
 
   showCaseIdColumn(): boolean {
     const cat = this.getEffectiveCategory();
-    return cat === 'all' || cat === 'case' || cat === 'sar'; // SAR docs can link to cases
+    return cat === 'all' || cat === 'case' || cat === 'sar';
   }
 
   getCategoryLabel(): string {
-    if (this.searchLabel) {
-      return this.searchLabel;
-    }
+    if (this.searchLabel) return this.searchLabel;
     const item = this.documentNavItems.find((i) => i.id === this.selectedDocumentCategory);
     return item ? item.label : 'Documents';
   }
