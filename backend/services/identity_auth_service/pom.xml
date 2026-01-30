@@ -64,6 +64,12 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- RabbitMQ (document upload events for compliance service) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-amqp</artifactId>
+    </dependency>
+
     <!-- Actuator + tracing hooks -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
