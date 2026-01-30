@@ -1,51 +1,33 @@
 server:
-    port: ${IDENTITY_AUTH_PORT:8080}
-    shutdown: graceful
+  port: 8083
 
 spring:
-    application:
-        name: identity-auth-service
-    config:
-        import: "optional:file:.env.dev"
+  application:
+    name: identity-auth-service
 
-    datasource:
-        url: ${DB_URL:jdbc:mysql://localhost:3306/finsight?useSSL=false&serverTimezone=UTC}
-        username: ${DB_USER:root}
-        password: ${DB_PASS:password}
-        driver-class-name: com.mysql.cj.jdbc.Driver
+  datasource:
+    url: jdbc:mysql://localhost:3306/finsight
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
-    lifecycle:
-        timeout-per-shutdown-phase: 20s
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc:
+          time_zone: UTC
 
-    jpa:
-        hibernate:
-            ddl-auto: none
-        open-in-view: false
-        properties:
-            hibernate:
-                dialect: org.hibernate.dialect.MySQL8Dialect
-            jdbc:
-                time_zone: UTC
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
 
-    sql:
-        init:
-            mode: always
-            platform: mysql
-            continue-on-error: false
-
-    profiles:
-        active: dev
 management:
-    endpoints:
-        web:
-            exposure:
-                include: health,info
-    endpoint:
-        health:
-            probes:
-                enabled: true
-
-logging:
-    level:
-        root: INFO
-        com.finsight: INFO
+  endpoints:
+    web:
+      exposure:
+        include: health,info
