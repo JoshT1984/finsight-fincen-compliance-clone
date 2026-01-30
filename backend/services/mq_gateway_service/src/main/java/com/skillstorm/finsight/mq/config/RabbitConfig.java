@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.ExchangeBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
@@ -23,8 +24,10 @@ public class RabbitConfig {
   }
 
   @Bean
-  public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
-                                       Jackson2JsonMessageConverter converter) {
+  public RabbitTemplate rabbitTemplate(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter converter
+  ) {
     RabbitTemplate template = new RabbitTemplate(connectionFactory);
     template.setMessageConverter(converter);
     return template;
@@ -38,27 +41,44 @@ public class RabbitConfig {
   }
 
   @Bean
-  public Queue eventsDlq() {
-    return QueueBuilder.durable(MessagingTopology.QUEUE_EVENTS_DLQ).build();
+  public DirectExchange eventsDlx() {
+    return ExchangeBuilder.directExchange(MessagingTopology.EXCHANGE_EVENTS_DLX)
+        .durable(true)
+        .build();
   }
 
   @Bean
   public Queue eventsQueue() {
     return QueueBuilder.durable(MessagingTopology.QUEUE_EVENTS)
         .withArguments(Map.of(
-            "x-dead-letter-exchange", MessagingTopology.EXCHANGE_EVENTS,
-            "x-dead-letter-routing-key", MessagingTopology.RK_EVENTS_DLQ
+            "x-dead-letter-exchange", MessagingTopology.EXCHANGE_EVENTS_DLX,
+            "x-dead-letter-routing-key", MessagingTopology.DLQ_ROUTING_KEY
         ))
         .build();
   }
 
   @Bean
-  public Binding eventsBinding(Queue eventsQueue, TopicExchange eventsExchange) {
-    return BindingBuilder.bind(eventsQueue).to(eventsExchange).with(MessagingTopology.RK_EVENTS);
+  public Queue eventsDlq() {
+    return QueueBuilder.durable(MessagingTopology.QUEUE_EVENTS_DLQ).build();
   }
 
   @Bean
-  public Binding dlqBinding(Queue eventsDlq, TopicExchange eventsExchange) {
-    return BindingBuilder.bind(eventsDlq).to(eventsExchange).with(MessagingTopology.RK_EVENTS_DLQ);
+  public Binding eventsBinding(
+      Queue eventsQueue,
+      TopicExchange eventsExchange
+  ) {
+    return BindingBuilder.bind(eventsQueue)
+        .to(eventsExchange)
+        .with(MessagingTopology.BINDING_EVENTS);
+  }
+
+  @Bean
+  public Binding dlqBinding(
+      Queue eventsDlq,
+      DirectExchange eventsDlx
+  ) {
+    return BindingBuilder.bind(eventsDlq)
+        .to(eventsDlx)
+        .with(MessagingTopology.DLQ_ROUTING_KEY);
   }
 }
