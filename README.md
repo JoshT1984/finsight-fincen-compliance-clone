@@ -101,6 +101,16 @@ Each service is configured with:
 
 ## Local Development (High Level)
 
+### Message Queues (RabbitMQ)
+
+Start RabbitMQ for document upload events:
+
+```bash
+docker compose up -d
+```
+
+See [docker/README.md](docker/README.md) for details.
+
 ### Frontend (Angular)
 From `frontend/`:
 - Install: `npm install`
@@ -116,7 +126,7 @@ Each service uses environment variables for DB/AWS:
 - `DB_URL`, `DB_USER`, `DB_PASS`
 - `AWS_REGION`
 - `DDB_ENDPOINT` (local DynamoDB optional)
-- SQS queue URLs (optional)
+- `RABBITMQ_HOST`, `RABBITMQ_PORT` (default localhost:5672)
 
 ---
 

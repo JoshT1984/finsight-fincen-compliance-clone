@@ -33,13 +33,15 @@ public class DocumentService {
     private final CaseFileRepository caseFileRepo;
     private final ComplianceEventServiceClient complianceEventClient;
     private final AuditEventService auditEventService;
+    private final DocumentEventPublisher documentEventPublisher;
     
-    public DocumentService(DocumentRepository repo, S3Service s3Service, CaseFileRepository caseFileRepo, ComplianceEventServiceClient complianceEventClient, AuditEventService auditEventService) {
+    public DocumentService(DocumentRepository repo, S3Service s3Service, CaseFileRepository caseFileRepo, ComplianceEventServiceClient complianceEventClient, AuditEventService auditEventService, DocumentEventPublisher documentEventPublisher) {
     	this.repo = repo;
     	this.s3Service = s3Service;
     	this.caseFileRepo = caseFileRepo;
     	this.complianceEventClient = complianceEventClient;
     	this.auditEventService = auditEventService;
+    	this.documentEventPublisher = documentEventPublisher;
     }
     
     private DocumentResponse toResponse(Document document) {
@@ -139,6 +141,9 @@ public class DocumentService {
     	
     	// Create audit event
     	auditEventService.auditCreate("DOCUMENT", String.valueOf(saved.getDocumentId()), saved);
+    	
+    	// Publish to RabbitMQ for compliance service (CTR/SAR only)
+    	documentEventPublisher.publishDocumentUploadEvent(saved);
     	
     	return toResponse(saved);
     }
@@ -483,6 +488,9 @@ public class DocumentService {
     		uploadMetadata.put("contentType", contentType);
     		uploadMetadata.put("s3Key", s3Key);
     		auditEventService.auditAction("DOCUMENT", String.valueOf(saved.getDocumentId()), "UPLOAD", uploadMetadata);
+    		
+    		// Publish to RabbitMQ for compliance service (CTR/SAR only)
+    		documentEventPublisher.publishDocumentUploadEvent(saved);
     		
     		return toResponse(saved);
     	} catch (RuntimeException e) {
