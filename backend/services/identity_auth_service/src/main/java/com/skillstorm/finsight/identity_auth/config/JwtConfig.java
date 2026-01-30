@@ -1,11 +1,6 @@
 package com.skillstorm.finsight.identity_auth.config;
 
 import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -47,18 +42,6 @@ public class JwtConfig {
         JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
 
         return new NimbusJwtEncoder(jwkSource);
-    }
-
-    @Bean
-    JwtDecoder jwtDecoder(RSAPublicKey publicKey) {
-        System.out.println("Configuring JwtDecoder with public key: " + publicKey);
-        return NimbusJwtDecoder.withPublicKey(publicKey).build();
-    }
-
-    @Bean
-    public RSAPublicKey jwtPublicKey() {
-        System.out.println("Configuring JwtDecoder with public key: " + publicKey);
-        return parsePublicKey(publicKey);
     }
 
     @Bean
@@ -105,5 +88,15 @@ public class JwtConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
         return converter;
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(RSAPublicKey publicKey) {
+        return NimbusJwtDecoder.withPublicKey(publicKey).build();
+    }
+
+    @Bean
+    public RSAPublicKey jwtPublicKey() {
+        return parsePublicKey(publicKey);
     }
 }

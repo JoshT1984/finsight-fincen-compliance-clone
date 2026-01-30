@@ -1,10 +1,14 @@
 package com.skillstorm.finsight.identity_auth.controllers;
 
+import java.util.Base64;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
+import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
@@ -29,6 +33,7 @@ public class OauthIdentityController {
             @PathVariable String provider,
             OAuth2AuthenticationToken auth,
             Authentication internalAuth) {
+        System.out.println("Linking OAuth identity for provider: " + provider);
         String appUserId = internalAuth.getName();
 
         String providerUserId = auth.getPrincipal().getAttribute("sub");

@@ -4,14 +4,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Service;
 
-import com.skillstorm.finsight.identity_auth.config.JwtConfig;
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
 import com.skillstorm.finsight.identity_auth.repositories.OauthIdentityRepository;
@@ -21,16 +18,13 @@ import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 public class OauthIdentityService {
 
     private final OauthIdentityRepository oauthIdentityRepository;
-    private final JwtConfig jwtConfig;
     private final JwtEncoder jwtEncoder;
     private final AppUserService appUserService;
     private final PasswordEncoder passwordEncoder;
 
-    public OauthIdentityService(OauthIdentityRepository oauthIdentityRepository, JwtConfig jwtConfig,
-            JwtEncoder jwtEncoder,
+    public OauthIdentityService(OauthIdentityRepository oauthIdentityRepository, JwtEncoder jwtEncoder,
             PasswordEncoder passwordEncoder, AppUserService appUserService) {
         this.oauthIdentityRepository = oauthIdentityRepository;
-        this.jwtConfig = jwtConfig;
         this.jwtEncoder = jwtEncoder;
         this.passwordEncoder = passwordEncoder;
         this.appUserService = appUserService;
@@ -45,11 +39,6 @@ public class OauthIdentityService {
         }
 
         String token = generateToken(user.getUserId(), user.getRole().getRoleName());
-
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(jwtConfig.jwtPublicKey()).build();
-        Jwt jwt = decoder.decode(token);
-        System.out.println(jwt.getSubject());
-        System.out.println(jwt.getClaims());
 
         return new LoginResponse(token, user.getRole().getRoleName());
     }
