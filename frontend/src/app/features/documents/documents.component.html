@@ -1,15 +1,89 @@
 <div class="container documents-container">
   <div class="documents-page">
-    <app-side-nav 
+    <app-side-nav
       [navItems]="documentNavItems"
       [initialSelectedItem]="'all'"
       (itemSelected)="onCategorySelected($event)">
     </app-side-nav>
-    
+
     <div class="documents-content">
       <h1>Documents</h1>
-      <p>Selected category: {{ selectedDocumentCategory }}</p>
-      <p>This is the Documents page placeholder.</p>
+
+      <div class="search-bar">
+        <label for="search-type">Search by</label>
+        <select id="search-type" name="searchType" [(ngModel)]="searchType">
+          @for (opt of getSearchTypeOptions(); track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+        <input
+          type="number"
+          id="search-id"
+          name="searchId"
+          [(ngModel)]="searchIdInput"
+          placeholder="Enter ID"
+          min="1"
+          (keydown.enter)="searchById(); $event.preventDefault()" />
+        <button type="button" class="btn-search" (click)="searchById()">Search</button>
+        @if (searchLabel) {
+          <button type="button" class="btn-clear" (click)="clearSearch()">Clear</button>
+        }
+      </div>
+
+      @if (loading) {
+        <p class="loading">Loading documents...</p>
+      } @else if (error) {
+        <p class="error">{{ error }}</p>
+      } @else {
+        <p class="category-label">{{ getCategoryLabel() }}</p>
+
+        @if (filteredDocuments.length === 0) {
+          <p class="empty">No documents found.</p>
+        } @else {
+          <div class="documents-table-wrapper">
+            <table class="documents-table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Type</th>
+                  <th>Uploaded</th>
+                  @if (showCtrIdColumn()) {
+                    <th>CTR ID</th>
+                  }
+                  @if (showSarIdColumn()) {
+                    <th>SAR ID</th>
+                  }
+                  @if (showCaseIdColumn()) {
+                    <th>Case ID</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (doc of filteredDocuments; track doc.documentId) {
+                  <tr>
+                    <td>
+                      <button type="button" class="doc-link" (click)="openDocument(doc)">
+                        {{ doc.fileName }}
+                      </button>
+                    </td>
+                    <td><span class="doc-type doc-type-{{ doc.documentType | lowercase }}">{{ doc.documentType }}</span></td>
+                    <td>{{ formatDate(doc.uploadedAt) }}</td>
+                    @if (showCtrIdColumn()) {
+                      <td>{{ doc.ctrId ?? '-' }}</td>
+                    }
+                    @if (showSarIdColumn()) {
+                      <td>{{ doc.sarId ?? '-' }}</td>
+                    }
+                    @if (showCaseIdColumn()) {
+                      <td>{{ doc.caseId ?? '-' }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
     </div>
   </div>
 </div>
