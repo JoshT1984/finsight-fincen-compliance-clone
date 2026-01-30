@@ -1,0 +1,69 @@
+server:
+  port: ${SUSPECT_REGISTRY_PORT:${PORT:8080}}
+
+spring:
+  application:
+    name: suspect-registry-service
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/finsight_suspects}
+    username: ${DB_USER:root}
+    password: ${DB_PASS:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+
+  # For MVP/local, SQL init is fine. In shared envs, prefer Flyway.
+  sql:
+    init:
+      mode: never
+      platform: mysql
+      continue-on-error: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: false
+
+aws:
+  region: ${AWS_REGION:us-east-1}
+
+  sqs:
+    # This service typically CONSUMES suspect upsert/enrichment requests
+    # and/or PUBLISHES suspect-changed events.
+    suspectRequestsQueueUrl: ${SUSPECT_REQUESTS_QUEUE_URL:}
+    suspectEventsQueueUrl: ${SUSPECT_EVENTS_QUEUE_URL:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+encryption:
+  key: ${ENCRYPTION_KEY:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+
+logging:
+  level:
+    root: INFO
+    com.finsight: INFO

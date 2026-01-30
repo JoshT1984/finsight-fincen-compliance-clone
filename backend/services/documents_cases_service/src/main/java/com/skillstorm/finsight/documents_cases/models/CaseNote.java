@@ -3,7 +3,6 @@ package com.skillstorm.finsight.documents_cases.models;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 @Entity
 @Table(name = "case_note")
@@ -17,8 +16,8 @@ public class CaseNote {
     @Column(name = "case_id", nullable = false)
     private Long caseId;
 
-    @Column(name = "author_user_id", nullable = false)
-    private UUID authorUserId;
+    @Column(name = "author_user_id", nullable = false, length = 36, columnDefinition = "VARCHAR(36)")
+    private String authorUserId;
 
     @Column(name = "note_text", nullable = false, columnDefinition = "TEXT")
     private String noteText;
@@ -29,7 +28,7 @@ public class CaseNote {
     public CaseNote() {
     }
 
-    public CaseNote(Long noteId, Long caseId, UUID authorUserId, String noteText, Instant createdAt) {
+    public CaseNote(Long noteId, Long caseId, String authorUserId, String noteText, Instant createdAt) {
         this.noteId = noteId;
         this.caseId = caseId;
         this.authorUserId = authorUserId;
@@ -52,11 +51,11 @@ public class CaseNote {
         this.caseId = caseId;
     }
 
-    public UUID getAuthorUserId() {
+    public String getAuthorUserId() {
         return authorUserId;
     }
 
-    public void setAuthorUserId(UUID authorUserId) {
+    public void setAuthorUserId(String authorUserId) {
         this.authorUserId = authorUserId;
     }
 

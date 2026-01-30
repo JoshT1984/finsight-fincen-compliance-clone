@@ -2,57 +2,61 @@ package com.skillstorm.finsight.suspect_registry.controllers;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.skillstorm.finsight.suspect_registry.models.Organization;
+import com.skillstorm.finsight.suspect_registry.dtos.request.CreateOrganizationRequest;
+import com.skillstorm.finsight.suspect_registry.dtos.request.PatchOrganizationRequest;
+import com.skillstorm.finsight.suspect_registry.dtos.response.OrganizationResponse;
 import com.skillstorm.finsight.suspect_registry.services.OrganizationService;
 
+import jakarta.validation.Valid;
+
 @RestController
-@RequestMapping("/organization")
+@RequestMapping("/api/organizations")
 public class OrganizationController {
   
-  private final OrganizationService organizationService;
+  private final OrganizationService service;
 
-  public OrganizationController(OrganizationService organizationService) {
-    this.organizationService = organizationService;
-  }
-
-  @GetMapping
-  public ResponseEntity<List<Organization>> getAllOrganizations() {
-    try {
-      List<Organization> organizations = organizationService.getAllOrganizations();
-      return ResponseEntity.ok(organizations);
-    } catch (Exception e) {
-      return ResponseEntity.status(500).build();
-    }
-  }
-
-  @GetMapping("/{id}")
-  public ResponseEntity<Organization> getOrganizationById(@PathVariable long id) {
-    try {
-      Organization organization = organizationService.getOrganizationById(id);
-      if (organization != null) {
-        return ResponseEntity.ok(organization);
-      } else {
-        return ResponseEntity.notFound().build();
-      }
-    } catch (Exception e) {
-      return ResponseEntity.status(500).build();
-    }
+  public OrganizationController(OrganizationService service) {
+    this.service = service;
   }
 
   @PostMapping
-  public ResponseEntity<Organization> createOrganization(Organization organization) {
-    try {
-      Organization createdOrganization = organizationService.createOrganization(organization);
-      return ResponseEntity.status(201).body(createdOrganization);
-    } catch (Exception e) {
-      return ResponseEntity.status(500).build();
-    }
+  public ResponseEntity<OrganizationResponse> create(@Valid @RequestBody CreateOrganizationRequest request) {
+    OrganizationResponse response = service.create(request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  @GetMapping
+  public ResponseEntity<List<OrganizationResponse>> getAll() {
+    List<OrganizationResponse> organizations = service.findAll();
+    return ResponseEntity.ok(organizations);
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<OrganizationResponse> getById(@PathVariable Long id) {
+    OrganizationResponse response = service.findById(id);
+    return ResponseEntity.ok(response);
+  }
+
+  @PatchMapping("/{id}")
+  public ResponseEntity<OrganizationResponse> update(@PathVariable Long id, @Valid @RequestBody PatchOrganizationRequest request) {
+    OrganizationResponse response = service.updateById(id, request);
+    return ResponseEntity.ok(response);
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    service.deleteById(id);
+    return ResponseEntity.noContent().build();
   }
 }

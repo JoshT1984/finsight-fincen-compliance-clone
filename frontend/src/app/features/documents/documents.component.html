@@ -1,0 +1,15 @@
+<div class="container documents-container">
+  <div class="documents-page">
+    <app-side-nav 
+      [navItems]="documentNavItems"
+      [initialSelectedItem]="'all'"
+      (itemSelected)="onCategorySelected($event)">
+    </app-side-nav>
+    
+    <div class="documents-content">
+      <h1>Documents</h1>
+      <p>Selected category: {{ selectedDocumentCategory }}</p>
+      <p>This is the Documents page placeholder.</p>
+    </div>
+  </div>
+</div>

@@ -10,26 +10,27 @@
       <a class="btn primary" routerLink="/cases">Go to Cases</a>
       <a class="btn ghost" routerLink="/documents">Upload CTR/SAR PDF</a>
       <a class="btn ghost" routerLink="/ctrs">View CTRs</a>
+      <a class="btn ghost" routerLink="/sars">View SARs</a>
     </div>
   </section>
 
   <section class="grid" aria-label="Key areas">
-    <article class="card">
+    <a routerLink="/ctrs" class="card">
       <div class="tag">CTRs</div>
       <h3>Currency Transaction Reports</h3>
       <p>Browse daily aggregated CTRs, view totals, and drill into linked activity.</p>
-    </article>
+    </a>
 
-    <article class="card">
+    <a routerLink="/sars" class="card">
       <div class="tag">SARs</div>
       <h3>Suspicious Activity Reports</h3>
       <p>Review SAR drafts/submissions with explainable rule hits and narratives.</p>
-    </article>
+    </a>
 
-    <article class="card">
+    <a routerLink="/cases" class="card">
       <div class="tag">Cases</div>
       <h3>Case Management</h3>
       <p>Work a queue of cases with notes, referral actions, and status tracking.</p>
-    </article>
+    </a>
   </section>
 </div>
