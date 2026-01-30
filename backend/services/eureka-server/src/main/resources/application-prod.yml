@@ -3,10 +3,11 @@ eureka:
     enable-self-preservation: true
     renewal-percent-threshold: 0.85
   instance:
-    hostname: ${EUREKA_HOSTNAME:localhost}
-    prefer-ip-address: true
-    ip-address: ${ECS_TASK_IP:}
+    hostname: ${EUREKA_HOSTNAME:eureka-server}
+    prefer-ip-address: false
   client:
+    register-with-eureka: false
+    fetch-registry: false
     service-url:
       defaultZone: ${EUREKA_SERVER_URL:http://${eureka.instance.hostname}:${server.port}/eureka/}
 

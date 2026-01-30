@@ -21,13 +21,22 @@ spring:
         jdbc:
           time_zone: UTC
 
-  # Best practice: avoid schema init in shared/prod unless intentional
   sql:
     init:
       mode: ${SQL_INIT_MODE:never}
 
+  # 🔹 RabbitMQ (Amazon MQ)
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5671}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    ssl:
+      enabled: true
+
 aws:
   region: ${AWS_REGION:us-east-1}
+
   sqs:
     ctrEventsQueueUrl: ${CTR_EVENTS_QUEUE_URL:}
     sarEventsQueueUrl: ${SAR_EVENTS_QUEUE_URL:}

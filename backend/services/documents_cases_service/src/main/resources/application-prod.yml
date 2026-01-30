@@ -11,35 +11,30 @@ spring:
     password: ${DB_PASS}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+
   sql:
     init:
       mode: ${SQL_INIT_MODE:never}
 
 eureka:
   client:
-    # In ECS, REQUIRED: set EUREKA_SERVER_URL to your Eureka DNS
-    # Example: http://eureka-server:8761/eureka/
     service-url:
       defaultZone: ${EUREKA_SERVER_URL}
     register-with-eureka: true
     fetch-registry: true
   instance:
-    # Set to a stable DNS name (Service Connect/Cloud Map), not localhost
     hostname: ${EUREKA_INSTANCE_HOSTNAME:documents-cases}
     prefer-ip-address: false
-    # Ensures Eureka uses hostnames
     instance-id: ${EUREKA_INSTANCE_HOSTNAME:documents-cases}:${PORT:8080}
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
-
-aws:
-  region: ${AWS_REGION:us-east-1}
-  dynamodb:
-    endpoint: ${DDB_ENDPOINT:}
-  sqs:
-    caseQueueUrl: ${CASE_QUEUE_URL:}
-  s3:
-    bucket: ${DOCS_BUCKET}
 
 management:
   endpoints:
