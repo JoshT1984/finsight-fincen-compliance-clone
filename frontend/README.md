@@ -54,6 +54,17 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## API Configuration (AWS Deployment)
+
+API URLs are configured via environment files (not hardcoded):
+
+- **Development** (`src/environment/environment.ts`):
+  - Documents microservice: `http://localhost:8081`
+  - Suspect registry microservice: `http://localhost:8082`
+- **Production** (`src/environment/environment.production.ts`): uses `''` (same-origin) by default
+
+For AWS deployment, update each `*ApiBaseUrl` in `environment.production.ts` to your API Gateway or Load Balancer URL before building, or keep `''` if your APIs are proxied behind the same domain as the frontend.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

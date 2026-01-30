@@ -78,10 +78,10 @@
       <artifactId>dynamodb</artifactId>
     </dependency>
 
-    <!-- AWS: SQS (consume case signals) -->
+    <!-- RabbitMQ (document upload events for compliance service) -->
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>sqs</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-amqp</artifactId>
     </dependency>
 
     <!-- AWS: S3 (presigned upload/download URLs) -->

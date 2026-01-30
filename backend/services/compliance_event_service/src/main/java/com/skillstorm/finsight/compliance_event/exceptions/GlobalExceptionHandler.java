@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
-import software.amazon.awssdk.services.sqs.model.ResourceNotFoundException;
+
+
 
 /**
  * <ul>

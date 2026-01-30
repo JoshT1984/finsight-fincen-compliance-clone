@@ -27,7 +27,7 @@ public class ComplianceEventLinkId implements Serializable {
     @Column(name = "link_type", nullable = false, length = 32)
     private ComplianceEventLink.LinkType linkType;
 
-    protected ComplianceEventLinkId() {
+    public ComplianceEventLinkId() {
     }
 
     public ComplianceEventLinkId(

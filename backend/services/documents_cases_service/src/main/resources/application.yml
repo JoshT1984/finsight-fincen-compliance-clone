@@ -1,6 +1,10 @@
 server:
   port: ${DOCUMENTS_CASES_PORT:${PORT:8080}}
 
+# CORS: allowed origins for frontend (comma-separated). Default: Angular dev server.
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 spring:
   application:
     name: documents-cases-service
@@ -35,6 +39,14 @@ spring:
       platform: mysql
       continue-on-error: true
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:/}
+    connection-timeout: 30000  # 30 seconds - wait for RabbitMQ if both start together
+
 eureka:
   client:
     service-url:
@@ -45,14 +57,17 @@ eureka:
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     prefer-ip-address: false
 
+finsight:
+  rabbitmq:
+    queues:
+      ctr-events: ${CTR_EVENTS_QUEUE:finsight.ctr.events}
+      sar-events: ${SAR_EVENTS_QUEUE:finsight.sar.events}
+
 aws:
   region: ${AWS_REGION:us-east-1}
 
   dynamodb:
     endpoint: ${DDB_ENDPOINT:}
-
-  sqs:
-    caseQueueUrl: ${CASE_QUEUE_URL:}
 
   s3:
     bucket: ${DOCS_BUCKET:finsight-documents-2026}
@@ -71,3 +86,5 @@ logging:
   level:
     root: INFO
     com.finsight: INFO
+  file:
+    name: logs/documents-cases-service.log

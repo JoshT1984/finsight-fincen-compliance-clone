@@ -19,6 +19,10 @@ Desktop.ini
 *.iml
 *.ipr
 *.iws
+.classpath
+.project
+.settings/
+
 
 #######################################
 # Node / Angular
@@ -122,4 +126,5 @@ temp/
 # OS backups
 *~
 
-application-dev.yml
+# Pem Files
+*.pem

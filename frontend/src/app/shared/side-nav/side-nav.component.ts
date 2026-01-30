@@ -22,11 +22,12 @@ export class SideNavComponent {
   selectedItem: string = '';
 
   ngOnInit() {
-    // Set initial selected item - use provided initialSelectedItem, or first item, or empty string
     if (this.initialSelectedItem) {
       this.selectedItem = this.initialSelectedItem;
+      this.itemSelected.emit(this.initialSelectedItem);
     } else if (this.navItems.length > 0) {
       this.selectedItem = this.navItems[0].id;
+      this.itemSelected.emit(this.navItems[0].id);
     }
   }
 
