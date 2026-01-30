@@ -1,16 +1,47 @@
 package com.skillstorm.finsight.identity_auth.controllers;
 
-import org.springframework.web.bind.annotation.*;
+import java.util.Base64;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
+
+import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
+import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
+import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
 
 @RestController
-@RequestMapping("/api/oauth-identities")
+@RequestMapping("/auth")
 public class OauthIdentityController {
 
     private OauthIdentityService oauthIdentityService;
 
     public OauthIdentityController(OauthIdentityService oauthIdentityService) {
         this.oauthIdentityService = oauthIdentityService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(oauthIdentityService.login(request.email(), request.password()));
+    }
+
+    @PostMapping("/oauth/link/{provider}")
+    public ResponseEntity<Void> linkAccount(
+            @PathVariable String provider,
+            OAuth2AuthenticationToken auth,
+            Authentication internalAuth) {
+        System.out.println("Linking OAuth identity for provider: " + provider);
+        String appUserId = internalAuth.getName();
+
+        String providerUserId = auth.getPrincipal().getAttribute("sub");
+
+        oauthIdentityService.linkOAuthIdentity(
+                appUserId,
+                provider,
+                providerUserId);
+        return ResponseEntity.noContent().build();
     }
 }

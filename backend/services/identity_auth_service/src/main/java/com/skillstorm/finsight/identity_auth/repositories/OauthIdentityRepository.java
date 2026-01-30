@@ -9,4 +9,6 @@ import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
 public interface OauthIdentityRepository extends JpaRepository<OauthIdentity, Long> {
 
     public List<OauthIdentity> findByEmailAtProvider(String email);
+
+    public boolean existsByProviderAndProviderUserId(String provider, String providerUserId);
 }

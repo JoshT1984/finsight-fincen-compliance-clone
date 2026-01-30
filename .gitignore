@@ -107,6 +107,7 @@ terraform.tfvars.json
 *.local.yaml
 application-local.yml
 application-local.yaml
+application-dev.yml
 
 #######################################
 # Testing / Coverage
