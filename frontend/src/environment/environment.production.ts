@@ -9,4 +9,6 @@ export const environment = {
   documentsApiBaseUrl: '',
   /** Suspect registry microservice. Use '' for same-origin, or full URL for AWS. */
   suspectApiBaseUrl: '',
+  /** Identity and Authorization microservice. Use '' for same-origin, or full URL for AWS. */
+  identityApiBaseUrl: '',
 };

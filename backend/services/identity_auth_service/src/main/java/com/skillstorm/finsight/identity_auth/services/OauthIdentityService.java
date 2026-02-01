@@ -3,6 +3,7 @@ package com.skillstorm.finsight.identity_auth.services;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -30,17 +31,17 @@ public class OauthIdentityService {
         this.appUserService = appUserService;
     }
 
-    public LoginResponse login(String email, String password) {
-        var user = appUserService.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+    public String login(String email, String password) {
+        AppUser user = appUserService.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new BadCredentialsException("Invalid credentials");
         }
 
         String token = generateToken(user.getUserId(), user.getRole().getRoleName());
 
-        return new LoginResponse(token, user.getRole().getRoleName());
+        return token;
     }
 
     public void linkOAuthIdentity(

@@ -1,6 +1,7 @@
 package com.skillstorm.finsight.identity_auth.controllers;
 
 import java.util.Base64;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,8 +25,9 @@ public class OauthIdentityController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(oauthIdentityService.login(request.email(), request.password()));
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest loginRequest) {
+        String token = oauthIdentityService.login(loginRequest.email(), loginRequest.password());
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @PostMapping("/oauth/link/{provider}")
