@@ -36,4 +36,23 @@ export class IdentityService {
   getProfileSnapshot(): ProfileModel | null {
     return this.profileSubject.value;
   }
+
+  checkAuthOnStartup() {
+    // This endpoint should return the current user's profile if authenticated, or 401 if not
+    return this.http
+      .get<ProfileModel>(`${this.apiBaseUrl}/api/users/me`, { withCredentials: true })
+      .pipe(
+        tap(
+          (profile) => {
+            this.setProfile(profile);
+            this._isLoggedIn.next(true);
+          },
+          () => {
+            this.clearProfile();
+            this._isLoggedIn.next(false);
+          },
+        ),
+      )
+      .subscribe();
+  }
 }

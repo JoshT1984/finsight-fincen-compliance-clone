@@ -36,6 +36,13 @@ public class AppUserService {
         return appUserRepository.findAll();
     }
 
+    /**
+     * Returns the current user by userId (from Authentication.getName()).
+     */
+    public Optional<AppUser> getCurrentUser(String userId) {
+        return findById(userId);
+    }
+
     public Optional<AppUser> findById(String id) {
         return appUserRepository.findById(id);
     }

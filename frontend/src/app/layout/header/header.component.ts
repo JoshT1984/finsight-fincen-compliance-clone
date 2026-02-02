@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 
 import { CommonModule } from '@angular/common';
 import { LoginDialogService } from '../../shared/services/loginDialog.service';
+import { IdentityService } from '../../shared/services/identity.service';
 import { LoginDialogComponent } from '../../shared/login-dialog/login-dialog.component';
 
 @Component({
@@ -15,6 +16,7 @@ import { LoginDialogComponent } from '../../shared/login-dialog/login-dialog.com
 export class HeaderComponent {
   constructor(
     public loginDialog: LoginDialogService,
+    public identityService: IdentityService,
     private router: Router,
   ) {}
 

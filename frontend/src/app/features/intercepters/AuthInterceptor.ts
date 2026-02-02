@@ -21,9 +21,12 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<any> {
-    // 🔑 ALWAYS read token at intercept time (not once at construction)
-    const token = localStorage.getItem('authToken');
+    // Do NOT add Authorization header for login or refresh endpoints
+    if (req.url.includes('/auth/login') || req.url.includes('/auth/refresh')) {
+      return next.handle(req);
+    }
 
+    const token = localStorage.getItem('authToken');
     const authReq = token
       ? req.clone({
           setHeaders: {

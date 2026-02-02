@@ -39,6 +39,14 @@ public class AppUserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<AppUserDto> getCurrentUser(org.springframework.security.core.Authentication authentication) {
+        String userId = authentication.getName();
+        Optional<AppUser> user = appUserService.findById(userId);
+        return user.map(u -> ResponseEntity.ok(AppUserMapper.toDto(u)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/analyst")
     public ResponseEntity<AppUserDto> createAnalyst(@RequestBody UserCreationDto user) {
         AppUser created = appUserService.createUser(user, "ANALYST");

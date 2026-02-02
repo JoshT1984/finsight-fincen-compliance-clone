@@ -1,13 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, map, Observable, tap, switchMap } from 'rxjs';
+import { map, Observable, tap, switchMap } from 'rxjs';
 import { IdentityService } from './identity.service';
 import { environment } from '../../../environment/environment';
 
 @Injectable({ providedIn: 'root' })
 export class LoginDialogService {
-  private _isLoggedIn = new BehaviorSubject(false);
-  isLoggedIn$ = this._isLoggedIn.asObservable();
+  // Use IdentityService for login state and profile
+  get isLoggedIn$() {
+    return this.identityService.isLoggedIn$;
+  }
 
   private readonly apiBaseUrl: string;
 
@@ -40,7 +42,6 @@ export class LoginDialogService {
         tap((res) => {
           localStorage.setItem('authToken', res.accessToken);
           this.userId = res.userId;
-          this._isLoggedIn.next(true);
           this.close();
         }),
         switchMap((res) => this.identityService.fetchAndSetProfile(res.userId)),
@@ -53,8 +54,9 @@ export class LoginDialogService {
   }
 
   logout() {
-    this._isLoggedIn.next(false);
     localStorage.removeItem('authToken');
+    this.identityService.clearProfile();
+    // IdentityService will update isLoggedIn$ accordingly
   }
 
   private _loginOpen = signal(false);

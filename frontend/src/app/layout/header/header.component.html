@@ -20,21 +20,21 @@
         </div>
         <button
           class="btn primary brand__btn"
-          *ngIf="!(loginDialog.isLoggedIn$ | async)"
+          *ngIf="!(identityService.isLoggedIn$ | async)"
           (click)="login()"
         >
           Login
         </button>
         <button
           class="btn primary brand__btn"
-          *ngIf="loginDialog.isLoggedIn$ | async"
+          *ngIf="identityService.isLoggedIn$ | async"
           (click)="logout()"
         >
           Logout
         </button>
         <button
           class="btn primary brand__btn"
-          *ngIf="loginDialog.isLoggedIn$ | async"
+          *ngIf="identityService.isLoggedIn$ | async"
           (click)="openProfile()"
         >
           Profile
