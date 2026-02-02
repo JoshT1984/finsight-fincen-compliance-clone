@@ -1,8 +1,13 @@
-import { HttpClient, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpHandler,
+  HttpInterceptor,
+  HttpRequest,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { throwError } from 'rxjs/internal/observable/throwError';
-import { catchError } from 'rxjs/internal/operators/catchError';
-import { switchMap } from 'rxjs/internal/operators/switchMap';
+import { Observable, throwError } from 'rxjs';
+import { catchError, switchMap, finalize } from 'rxjs/operators';
 import { environment } from '../../../environment/environment';
 
 @Injectable()
@@ -12,22 +17,37 @@ export class AuthInterceptor implements HttpInterceptor {
 
   constructor(private http: HttpClient) {
     const base = environment.identityApiBaseUrl || '';
-    this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
+    this.apiBaseUrl = base ? base.replace(/\/$/, '') : '';
   }
 
-  intercept(req: HttpRequest<any>, next: HttpHandler) {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<any> {
+    // 🔑 ALWAYS read token at intercept time (not once at construction)
     const token = localStorage.getItem('authToken');
 
-    const authReq = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+    const authReq = token
+      ? req.clone({
+          setHeaders: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      : req;
 
     return next.handle(authReq).pipe(
-      catchError((error) => {
-        if (error.status === 401 && !this.isRefreshing) {
+      catchError((error: HttpErrorResponse) => {
+        // Only attempt refresh once, and never for auth endpoints
+        if (
+          error.status === 401 &&
+          !this.isRefreshing &&
+          !authReq.url.includes('/auth/login') &&
+          !authReq.url.includes('/auth/refresh')
+        ) {
           this.isRefreshing = true;
+
           return this.refreshToken().pipe(
-            switchMap((res: { accessToken: string }) => {
+            switchMap((res) => {
               localStorage.setItem('authToken', res.accessToken);
-              this.isRefreshing = false;
+
+              // Retry original request with NEW token
               return next.handle(
                 authReq.clone({
                   setHeaders: {
@@ -36,14 +56,19 @@ export class AuthInterceptor implements HttpInterceptor {
                 }),
               );
             }),
+            finalize(() => {
+              this.isRefreshing = false;
+            }),
           );
         }
+
         return throwError(() => error);
       }),
     );
   }
 
-  refreshToken() {
+  private refreshToken() {
+    // withCredentials ONLY belongs here if refresh uses cookies
     return this.http.post<{ accessToken: string }>(
       `${this.apiBaseUrl}/auth/refresh`,
       {},

@@ -9,7 +9,6 @@ import com.skillstorm.finsight.identity_auth.requestDtos.UpdateUserDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.UserCreationDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangeEmailDto;
-import com.skillstorm.finsight.identity_auth.requestDtos.AdminUpdateDto;
 import com.skillstorm.finsight.identity_auth.responseDtos.AppUserDto;
 import com.skillstorm.finsight.identity_auth.mappers.AppUserMapper;
 

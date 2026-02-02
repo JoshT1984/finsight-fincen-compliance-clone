@@ -47,7 +47,7 @@ public class OauthIdentityService {
         String refreshToken = java.util.UUID.randomUUID().toString();
         refreshTokenStore.put(refreshToken, user.getUserId());
         return new com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse(accessToken,
-                user.getRole().getRoleName(), refreshToken);
+                user.getUserId(), refreshToken);
     }
 
     public LoginResponse refreshAccessToken(String refreshToken) {
@@ -59,7 +59,7 @@ public class OauthIdentityService {
                 .orElseThrow(() -> new BadCredentialsException("User not found"));
         String accessToken = generateToken(user.getUserId(), user.getRole().getRoleName());
         return new com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse(accessToken,
-                user.getRole().getRoleName(), refreshToken);
+                user.getUserId(), refreshToken);
     }
 
     public void revokeRefreshToken(String refreshToken) {

@@ -1,16 +1,17 @@
 <div class="profile-container">
   <h2>User Profile</h2>
-  <div *ngIf="!editMode">
-    <p><strong>First Name:</strong> {{ profile.first_name }}</p>
-    <p><strong>Last Name:</strong> {{ profile.last_name }}</p>
+
+  <div *ngIf="profile && !editMode">
+    <p><strong>First Name:</strong> {{ profile.firstName }}</p>
+    <p><strong>Last Name:</strong> {{ profile.lastName }}</p>
     <p><strong>Email:</strong> {{ profile.email }}</p>
     <p><strong>Phone:</strong> {{ profile.phone }}</p>
-    <p><strong>Role:</strong> {{ profile.role_name }}</p>
+    <p><strong>Role:</strong> {{ profile.roleName }}</p>
     <button class="btn" (click)="startEdit()">Edit Profile</button>
   </div>
-  <form *ngIf="editMode" (ngSubmit)="saveEdit()">
-    <label>First Name: <input [(ngModel)]="profile.first_name" name="first_name" /></label><br />
-    <label>Last Name: <input [(ngModel)]="profile.last_name" name="last_name" /></label><br />
+  <form *ngIf="profile && editMode" (ngSubmit)="saveEdit()">
+    <label>First Name: <input [(ngModel)]="profile.firstName" name="firstName" /></label><br />
+    <label>Last Name: <input [(ngModel)]="profile.lastName" name="lastName" /></label><br />
     <label>Email: <input [(ngModel)]="profile.email" name="email" /></label><br />
     <label>Phone: <input [(ngModel)]="profile.phone" name="phone" /></label><br />
     <button class="btn primary" type="submit">Save</button>

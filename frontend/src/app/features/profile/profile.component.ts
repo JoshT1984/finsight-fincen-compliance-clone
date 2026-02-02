@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ProfileModel } from './profile.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { IdentityService } from '../../shared/services/identity.service';
 
 @Component({
   selector: 'app-profile',
@@ -10,14 +11,16 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule],
 })
-export class ProfileComponent {
-  profile: ProfileModel = {
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '555-1234',
-    role_name: 'Analyst',
-  };
+export class ProfileComponent implements OnInit {
+  profile: ProfileModel | null = null;
+
+  constructor(private identityService: IdentityService) {}
+
+  ngOnInit() {
+    this.identityService.profile$.subscribe(profile => {
+      this.profile = profile;
+    });
+  }
 
   editMode = false;
   editPasswordMode = false;

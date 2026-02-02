@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, map, Observable, tap, switchMap } from 'rxjs';
+import { IdentityService } from './identity.service';
 import { environment } from '../../../environment/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -10,7 +11,12 @@ export class LoginDialogService {
 
   private readonly apiBaseUrl: string;
 
-  constructor(private http: HttpClient) {
+  private userId: string | null = null;
+
+  constructor(
+    private http: HttpClient,
+    private identityService: IdentityService,
+  ) {
     const base = environment.identityApiBaseUrl || '';
     this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
   }
@@ -23,24 +29,27 @@ export class LoginDialogService {
     this._loginOpen.set(false);
   }
 
-  login(email: string, password: string) {
-    // this._loginOpen.set(false);
-    console.log('Attempting login ', `${this.apiBaseUrl}/auth/login`);
+  login(email: string, password: string): Observable<string> {
     return this.http
-      .post<{ token: string }>(`${this.apiBaseUrl}/auth/login`, { email, password })
-      .subscribe({
-        next: (response) => {
-          localStorage.setItem('authToken', response.token);
+      .post<{
+        accessToken: string;
+        userId: string;
+        refreshToken: string;
+      }>(`${this.apiBaseUrl}/auth/login`, { email, password })
+      .pipe(
+        tap((res) => {
+          localStorage.setItem('authToken', res.accessToken);
+          this.userId = res.userId;
           this._isLoggedIn.next(true);
           this.close();
-        },
-        error: (error) => {
-          if (error.status === 401) {
-            alert('Invalid email or password. Please try again.');
-          }
-          console.error('Login failed', error);
-        },
-      });
+        }),
+        switchMap((res) => this.identityService.fetchAndSetProfile(res.userId)),
+        map(() => ''),
+      );
+  }
+
+  getUserId(): string | null {
+    return this.userId;
   }
 
   logout() {

@@ -14,13 +14,20 @@ export class LoginDialogComponent {
   email = '';
   password = '';
 
-  constructor(private loginDialogService: LoginDialogService) {}
+  constructor(private loginDialog: LoginDialogService) {}
 
   close() {
-    this.loginDialogService.close();
+    this.loginDialog.close();
   }
 
   login() {
-    this.loginDialogService.login(this.email, this.password);
+    this.loginDialog.login(this.email, this.password).subscribe({
+      next: (token: string) => {
+        console.log('Login successful, token:', token);
+      },
+      error: (error: any) => {
+        console.error('Login failed', error);
+      },
+    });
   }
 }
