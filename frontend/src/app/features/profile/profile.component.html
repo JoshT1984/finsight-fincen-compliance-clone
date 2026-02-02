@@ -1,0 +1,35 @@
+<div class="profile-container">
+  <h2>User Profile</h2>
+  <div *ngIf="!editMode">
+    <p><strong>First Name:</strong> {{ profile.first_name }}</p>
+    <p><strong>Last Name:</strong> {{ profile.last_name }}</p>
+    <p><strong>Email:</strong> {{ profile.email }}</p>
+    <p><strong>Phone:</strong> {{ profile.phone }}</p>
+    <p><strong>Role:</strong> {{ profile.role_name }}</p>
+    <button class="btn" (click)="startEdit()">Edit Profile</button>
+  </div>
+  <form *ngIf="editMode" (ngSubmit)="saveEdit()">
+    <label>First Name: <input [(ngModel)]="profile.first_name" name="first_name" /></label><br />
+    <label>Last Name: <input [(ngModel)]="profile.last_name" name="last_name" /></label><br />
+    <label>Email: <input [(ngModel)]="profile.email" name="email" /></label><br />
+    <label>Phone: <input [(ngModel)]="profile.phone" name="phone" /></label><br />
+    <button class="btn primary" type="submit">Save</button>
+    <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+  </form>
+
+  <div *ngIf="!editPasswordMode">
+    <button class="btn" (click)="startEditPassword()">Change Password</button>
+  </div>
+  <form *ngIf="editPasswordMode" (ngSubmit)="saveEditPassword()">
+    <label>New Password: <input type="password" name="newPassword" /></label><br />
+    <label>Confirm Password: <input type="password" name="confirmPassword" /></label><br />
+    <button class="btn primary" type="submit">Save Password</button>
+    <button class="btn" type="button" (click)="cancelEditPassword()">Cancel</button>
+  </form>
+
+  <div class="profile-oauth">
+    <span>Link to account:</span>
+    <button class="btn oauth google" (click)="linkGoogle()">Google</button>
+    <button class="btn oauth github" (click)="linkGithub()">GitHub</button>
+  </div>
+</div>

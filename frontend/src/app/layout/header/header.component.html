@@ -32,6 +32,13 @@
         >
           Logout
         </button>
+        <button
+          class="btn primary brand__btn"
+          *ngIf="loginDialog.isLoggedIn$ | async"
+          (click)="openProfile()"
+        >
+          Profile
+        </button>
         <app-login-dialog *ngIf="loginDialog.loginOpen"></app-login-dialog>
       </div>
     </div>
