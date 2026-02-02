@@ -35,6 +35,9 @@ export class LoginDialogService {
           this.close();
         },
         error: (error) => {
+          if (error.status === 401) {
+            alert('Invalid email or password. Please try again.');
+          }
           console.error('Login failed', error);
         },
       });
@@ -42,6 +45,7 @@ export class LoginDialogService {
 
   logout() {
     this._isLoggedIn.next(false);
+    localStorage.removeItem('authToken');
   }
 
   private _loginOpen = signal(false);
