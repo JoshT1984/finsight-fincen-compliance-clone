@@ -8,4 +8,6 @@ export const environment = {
   documentsApiBaseUrl: 'http://localhost:8081',
   /** Suspect registry microservice (suspect-registry-service). No trailing slash. */
   suspectApiBaseUrl: 'http://localhost:8082',
+  /** Identity and Authorization microservice (identity-auth-service). No trailing slash. */
+  identityApiBaseUrl: 'http://localhost:8083',
 };

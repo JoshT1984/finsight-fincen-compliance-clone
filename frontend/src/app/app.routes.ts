@@ -5,6 +5,7 @@ import { DocumentsComponent } from './features/documents/documents.component';
 import { LandingComponent } from './features/landing/landing.component';
 import { SarsComponent } from './features/sars/sars.component';
 import { ShellComponent } from './layout/shell/shell.component';
+import { ProfileComponent } from './features/profile/profile.component';
 
 export const routes: Routes = [
   {
@@ -16,6 +17,7 @@ export const routes: Routes = [
       { path: 'sars', component: SarsComponent },
       { path: 'ctrs', component: CtrsComponent },
       { path: 'documents', component: DocumentsComponent },
+      { path: 'profile', component: ProfileComponent },
     ],
   },
   { path: '**', redirectTo: '' },
