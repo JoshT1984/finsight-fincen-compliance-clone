@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -43,6 +43,7 @@ export class UploadComponent implements OnInit, OnDestroy {
   constructor(
     private documentsService: DocumentsService,
     private complianceService: ComplianceService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -129,14 +130,16 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.success = null;
   }
 
-  upload(): void {
+  upload(fileInput?: HTMLInputElement): void {
     if (!this.selectedFile) {
       this.error = 'Please select a file to upload.';
+      this.cdr.detectChanges();
       return;
     }
 
     if (this.documentType === 'CASE' && (this.caseId == null || this.caseId < 1)) {
       this.error = 'Please select a case. Case is required for Case document uploads.';
+      this.cdr.detectChanges();
       return;
     }
 
@@ -157,14 +160,25 @@ export class UploadComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           this.success = response;
-          this.selectedFile = null;
+          this.resetFormOnly(fileInput);
           this.loading = false;
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.error = err?.error?.message || err?.message || 'Upload failed. Please try again.';
           this.loading = false;
+          this.cdr.detectChanges();
         },
       });
+  }
+
+  /** Resets form fields only (keeps success/error). Used after successful upload. */
+  private resetFormOnly(fileInput?: HTMLInputElement): void {
+    this.selectedFile = null;
+    this.ctrId = null;
+    this.sarId = null;
+    this.caseId = null;
+    if (fileInput) fileInput.value = '';
   }
 
   reset(fileInput?: HTMLInputElement): void {
