@@ -1,6 +1,10 @@
 server:
   port: ${SUSPECT_REGISTRY_PORT:${PORT:8080}}
 
+# CORS: allowed origins for frontend (comma-separated). Default: Angular dev server.
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
 spring:
   application:
     name: suspect-registry-service

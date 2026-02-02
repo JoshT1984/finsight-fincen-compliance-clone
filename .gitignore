@@ -19,6 +19,10 @@ Desktop.ini
 *.iml
 *.ipr
 *.iws
+.classpath
+.project
+.settings/
+
 
 #######################################
 # Node / Angular

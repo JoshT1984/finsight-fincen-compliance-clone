@@ -1,0 +1,40 @@
+# Maven build output
+target/
+
+# Git
+.git/
+.gitignore
+
+# Docker files themselves (not needed in image)
+Dockerfile
+.dockerignore
+
+# IDE / Editor files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & temp files
+*.log
+*.tmp
+
+# Test & reports (optional)
+**/surefire-reports/
+**/failsafe-reports/
+
+# Node / frontend (in case repo grows)
+node_modules/
+dist/
+
+# Secrets (defensive)
+.env
+.env.*
+*.pem
+*.key
+*.crt
