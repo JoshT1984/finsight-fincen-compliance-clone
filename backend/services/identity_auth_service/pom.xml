@@ -64,6 +64,12 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- RabbitMQ (document upload events for compliance service) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-amqp</artifactId>
+    </dependency>
+
     <!-- Actuator + tracing hooks -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -76,6 +82,23 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-otlp</artifactId>
+    </dependency>
+
+    <!-- JWT support in Spring Security -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+
+    <!-- Dependencies for Oauth2 -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-client</artifactId>
     </dependency>
 
     <!-- Test -->

@@ -1,0 +1,50 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: identity-auth-service
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        jdbc:
+          time_zone: UTC
+
+  sql:
+    init:
+      mode: ${SQL_INIT_MODE:never}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:identity-auth}
+    prefer-ip-address: false
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:identity-auth}:${PORT:8080}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
