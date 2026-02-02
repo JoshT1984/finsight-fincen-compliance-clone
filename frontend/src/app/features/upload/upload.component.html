@@ -1,0 +1,133 @@
+<div class="container upload-container">
+  <div id="upload-header">
+    <h1>Document Upload</h1>
+  </div>
+
+  <div class="upload-form">
+    <div class="form-group">
+      <label for="document-type">Document Type</label>
+      <select id="document-type" name="documentType" [(ngModel)]="documentType" (ngModelChange)="onDocumentTypeChange($event)">
+        <option value="CTR">CTR</option>
+        <option value="SAR">SAR</option>
+        <option value="CASE">Case</option>
+      </select>
+    </div>
+
+    @if (documentType === 'CTR') {
+      <div class="form-group">
+        <label>CTR</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="ctrMode" value="new" [(ngModel)]="ctrMode" (ngModelChange)="ctrId = null" />
+            Create new CTR
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="ctrMode" value="existing" [(ngModel)]="ctrMode" />
+            Select CTR
+          </label>
+        </div>
+        @if (ctrMode === 'existing') {
+          @if (loadingOptions) {
+            <p class="options-loading">Loading CTRs...</p>
+          } @else {
+            <select
+              id="ctr-select"
+              name="ctrId"
+              [(ngModel)]="ctrId"
+              class="descriptive-select ctr-dropdown">
+              <option [ngValue]="null" disabled>— Select a CTR —</option>
+              @for (opt of ctrOptions; track opt.id) {
+                <option [ngValue]="opt.id">{{ opt.label }}</option>
+              }
+            </select>
+          }
+        }
+      </div>
+    }
+    @if (documentType === 'SAR') {
+      <div class="form-group">
+        <label>SAR</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="sarMode" value="new" [(ngModel)]="sarMode" (ngModelChange)="sarId = null" />
+            Create new SAR
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="sarMode" value="existing" [(ngModel)]="sarMode" />
+            Select SAR
+          </label>
+        </div>
+        @if (sarMode === 'existing') {
+          @if (loadingOptions) {
+            <p class="options-loading">Loading SARs...</p>
+          } @else {
+            <select
+              id="sar-select"
+              name="sarId"
+              [(ngModel)]="sarId"
+              class="descriptive-select ctr-dropdown">
+              <option [ngValue]="null" disabled>— Select a SAR —</option>
+              @for (opt of sarOptions; track opt.id) {
+                <option [ngValue]="opt.id">{{ opt.label }}</option>
+              }
+            </select>
+          }
+        }
+      </div>
+    }
+    @if (documentType === 'CASE') {
+      <div class="form-group">
+        <label for="case-select">Case <span class="required">(required)</span></label>
+        @if (loadingOptions) {
+          <p class="options-loading">Loading cases...</p>
+        } @else {
+          <select
+            id="case-select"
+            name="caseId"
+            [(ngModel)]="caseId"
+            required
+            class="descriptive-select">
+            <option [ngValue]="null" disabled>— Select a case —</option>
+            @for (opt of caseOptions; track opt.id) {
+              <option [ngValue]="opt.id">{{ opt.label }}</option>
+            }
+          </select>
+        }
+      </div>
+    }
+
+    @if (optionsError) {
+      <p class="options-error">{{ optionsError }}</p>
+    }
+
+    <div class="form-group">
+      <label for="file-input">File</label>
+      <input
+        #fileInput
+        type="file"
+        id="file-input"
+        name="file"
+        accept=".pdf,.doc,.docx"
+        (change)="onFileSelected($event)" />
+      @if (selectedFile) {
+        <p class="file-name">{{ selectedFile.name }}</p>
+      }
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-upload" (click)="upload()" [disabled]="loading || !selectedFile">
+        {{ loading ? 'Uploading...' : 'Upload' }}
+      </button>
+      @if (selectedFile || success || error) {
+        <button type="button" class="btn-reset" (click)="reset(fileInput)">Reset</button>
+      }
+    </div>
+
+    @if (error) {
+      <p class="error">{{ error }}</p>
+    }
+    @if (success) {
+      <p class="success">Document uploaded successfully: {{ success.fileName }}</p>
+    }
+  </div>
+</div>

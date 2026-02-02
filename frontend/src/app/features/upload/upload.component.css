@@ -1,0 +1,150 @@
+.upload-container {
+  margin-left: 51px !important;
+  margin-right: 51px !important;
+  max-width: 1440px !important;
+}
+
+#upload-header {
+  margin-bottom: 1.5rem;
+}
+
+h1 {
+  color: #083c6f;
+  margin-bottom: 1rem;
+}
+
+.upload-form {
+  max-width: 480px;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.radio-option input[type='radio'] {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+}
+
+.ctr-dropdown {
+  margin-top: 0.75rem;
+}
+
+.form-group select,
+.form-group input[type='number'] {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-height: 2.25rem;
+  width: 100%;
+  max-width: 280px;
+}
+
+.form-group input[type='file'] {
+  display: block;
+  font-size: 1rem;
+}
+
+.descriptive-select {
+  min-width: 320px;
+  max-width: 100%;
+}
+
+.required {
+  color: #c00;
+  font-weight: 600;
+}
+
+.options-loading,
+.options-error {
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.options-loading {
+  color: #666;
+}
+
+.options-error {
+  color: #c00;
+}
+
+.file-name {
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.btn-upload,
+.btn-reset {
+  padding: 0.55rem 1.25rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-height: 2.25rem;
+  cursor: pointer;
+}
+
+.btn-upload {
+  background-color: #0056b3;
+  color: white;
+  border: none;
+}
+
+.btn-upload:hover:not(:disabled) {
+  background-color: #004494;
+}
+
+.btn-upload:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-reset {
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+}
+
+.btn-reset:hover {
+  background-color: #f5f5f5;
+}
+
+.error {
+  color: #c00;
+  margin-top: 1rem;
+}
+
+.success {
+  color: #2e7d32;
+  margin-top: 1rem;
+}
