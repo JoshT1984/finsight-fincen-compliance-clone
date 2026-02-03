@@ -1,0 +1,111 @@
+/* Match header/navbar container alignment */
+.cases-container {
+  margin-left: 51px !important;
+  margin-right: 51px !important;
+  max-width: 1440px !important;
+}
+
+.cases-page {
+  display: flex;
+}
+
+#cases-header {
+  margin-bottom: 1.5rem;
+}
+
+.cases-content {
+  flex: 1;
+  padding: 0rem 2rem 0rem 2rem;
+}
+
+.category-label {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.loading,
+.empty {
+  color: #666;
+}
+
+.error {
+  color: #c00;
+}
+
+.cases-table-wrapper {
+  overflow-x: auto;
+}
+
+.cases-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cases-table th,
+.cases-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.cases-table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+}
+
+.cases-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.cases-table-row-link {
+  cursor: pointer;
+}
+
+.cases-table-row-link:focus {
+  outline: 2px solid var(--navy-800);
+  outline-offset: -2px;
+}
+
+.case-status {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Open: active/in progress — sky + navy */
+.case-status-open {
+  background-color: var(--sky-200);
+  color: var(--navy-900);
+  border: 1px solid rgba(0, 38, 76, 0.2);
+}
+
+/* Referred: pending/attention — slightly warmer tint, still in family */
+.case-status-referred {
+  background-color: #e8eef5;
+  color: var(--navy-800);
+  border: 1px solid rgba(9, 60, 111, 0.25);
+}
+
+/* Closed: done/success — green for contrast */
+.case-status-closed {
+  background-color: var(--green-100);
+  color: var(--green-600);
+  border: 1px solid rgba(28, 122, 75, 0.3);
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.cases-view-link {
+  color: var(--navy-800);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cases-view-link:hover {
+  text-decoration: underline;
+}

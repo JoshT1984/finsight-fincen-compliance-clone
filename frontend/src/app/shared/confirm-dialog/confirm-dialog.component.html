@@ -1,0 +1,27 @@
+<div class="confirm-dialog">
+  <div class="confirm-dialog__overlay" (click)="onCancel()"></div>
+  <div class="confirm-dialog__content">
+    <h2 class="confirm-dialog__title">{{ title }}</h2>
+    <p class="confirm-dialog__message">{{ message }}</p>
+    @if (showAgencyInput) {
+      <div class="confirm-dialog__field">
+        <label for="confirm-dialog-agency">Referred to agency</label>
+        <input
+          id="confirm-dialog-agency"
+          type="text"
+          [(ngModel)]="agencyInput"
+          placeholder="Enter agency name"
+          (keydown.enter)="onConfirm(); $event.preventDefault()" />
+      </div>
+    }
+    <div class="confirm-dialog__actions">
+      <button type="button" class="btn-confirm-dialog btn-cancel" (click)="onCancel()">
+        {{ cancelText }}
+      </button>
+      <button type="button" class="btn-confirm-dialog btn-confirm" (click)="onConfirm()">
+        {{ confirmText }}
+      </button>
+    </div>
+    <button type="button" class="confirm-dialog__close" (click)="onCancel()" aria-label="Close">×</button>
+  </div>
+</div>

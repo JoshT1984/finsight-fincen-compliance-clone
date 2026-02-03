@@ -1,10 +1,23 @@
 <nav class="side-nav">
-  <a 
-    *ngFor="let item of navItems"
-    href="javascript:void(0)"
-    (click)="selectItem(item.id); $event.preventDefault()"
-    [class.active]="selectedItem === item.id"
-    class="side-nav-link">
-    {{ item.label }}
-  </a>
+  @if (linkBasePath) {
+    @for (item of navItems; track item.id) {
+      <a
+        [routerLink]="linkBasePath + '/' + item.id"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="item.id === 'overview' ? { exact: true } : { exact: false }"
+        class="side-nav-link">
+        {{ item.label }}
+      </a>
+    }
+  } @else {
+    @for (item of navItems; track item.id) {
+      <a
+        href="javascript:void(0)"
+        (click)="selectItem(item.id); $event.preventDefault()"
+        [class.active]="selectedItem === item.id"
+        class="side-nav-link">
+        {{ item.label }}
+      </a>
+    }
+  }
 </nav>

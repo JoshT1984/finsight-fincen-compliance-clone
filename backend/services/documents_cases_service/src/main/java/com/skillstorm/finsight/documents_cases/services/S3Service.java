@@ -1,10 +1,14 @@
 package com.skillstorm.finsight.documents_cases.services;
 
+import java.io.IOException;
+import java.time.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
@@ -16,9 +20,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
-import java.io.IOException;
-import java.time.Duration;
-
 @Service
 public class S3Service {
     
@@ -27,7 +28,7 @@ public class S3Service {
     private final S3Client s3Client;
     private final String bucketName;
     
-    public S3Service(S3Client s3Client, @Value("${aws.s3.bucket}") String bucketName) {
+    public S3Service(S3Client s3Client, @Value("${aws.s3.bucket:finsight-documents-2026}") String bucketName) {
         this.s3Client = s3Client;
         this.bucketName = bucketName;
     }
