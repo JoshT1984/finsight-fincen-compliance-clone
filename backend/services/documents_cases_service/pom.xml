@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.9</version>
+    <version>3.4.2</version>
     <relativePath/>
   </parent>
 
@@ -15,16 +15,21 @@
   <artifactId>documents-cases-service</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>documents-cases-service</name>
-  <description>FinSight Documents + Cases microservice</description>
+  <description>FinSight Documents/Cases microservice</description>
 
   <properties>
     <java.version>17</java.version>
+
+    <!-- Spring Cloud release train compatible with Spring Boot 3.4.x -->
+    <spring-cloud.version>2024.0.2</spring-cloud.version>
+
+    <!-- AWS SDK v2 BOM version -->
     <aws.sdk.version>2.41.11</aws.sdk.version>
-    <spring-cloud.version>2024.0.0</spring-cloud.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
+      <!-- Spring Cloud BOM -->
       <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-dependencies</artifactId>
@@ -32,6 +37,8 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
+      <!-- AWS SDK v2 BOM -->
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>
@@ -49,19 +56,39 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
 
+    <!-- Eureka Client (remove if you are NOT using Eureka) -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
+
+    <!-- Security -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- OAuth2 / JWT -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-jose</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-client</artifactId>
+    </dependency>
+
     <!-- Validation -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
 
-    <!-- Spring Security Core -->
-    <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-core</artifactId>
-    </dependency>
-
-    <!-- Structured DB: MySQL (cases, assignments, SAR refs, etc.) -->
+    <!-- JPA + MySQL -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -72,35 +99,36 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Unstructured DB: DynamoDB (case timeline / activity log) -->
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>dynamodb</artifactId>
-    </dependency>
-
-    <!-- RabbitMQ (document upload events for compliance service) -->
+    <!-- RabbitMQ -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-amqp</artifactId>
     </dependency>
 
-    <!-- AWS: S3 (presigned upload/download URLs) -->
+    <!-- AWS SDK v2 modules (add only what you use) -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>s3</artifactId>
     </dependency>
 
-    <!-- Service Discovery: Eureka Client -->
     <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>secretsmanager</artifactId>
     </dependency>
 
-    <!-- Actuator + tracing hooks -->
+    <!-- If you use DynamoDB, keep this. If not, delete it. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
+    </dependency>
+
+    <!-- Actuator -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+
+    <!-- Tracing (optional) -->
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-tracing-bridge-otel</artifactId>
@@ -110,10 +138,15 @@
       <artifactId>opentelemetry-exporter-otlp</artifactId>
     </dependency>
 
-    <!-- Test -->
+    <!-- Tests -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -126,4 +159,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>

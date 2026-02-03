@@ -1,4 +1,6 @@
+
 #!/usr/bin/env bash
+# set -euo pipefail  # Disabled for VS Code/zsh compatibility
 
 echo "🧹 Clearing environment variables..."
 
@@ -14,5 +16,5 @@ unset RABBITMQ_USERNAME
 unset RABBITMQ_PASSWORD
 
 echo "✅ Environment cleared"
-echo "Active profile: ${SPRING_PROFILES_ACTIVE:-local}"
+echo "Active profile: $(printenv SPRING_PROFILES_ACTIVE || echo local)"
 

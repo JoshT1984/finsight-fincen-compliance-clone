@@ -3,6 +3,7 @@ package com.skillstorm.finsight.identity_auth.services;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -30,17 +31,39 @@ public class OauthIdentityService {
         this.appUserService = appUserService;
     }
 
-    public LoginResponse login(String email, String password) {
-        var user = appUserService.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+    // In-memory store for refresh tokens (replace with persistent store in
+    // production)
+    private final java.util.Map<String, String> refreshTokenStore = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public LoginResponse loginWithRefresh(String email, String password) {
+        AppUser user = appUserService.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new BadCredentialsException("Invalid credentials");
         }
 
-        String token = generateToken(user.getUserId(), user.getRole().getRoleName());
+        String accessToken = generateToken(user.getUserId(), user.getRole().getRoleName());
+        String refreshToken = java.util.UUID.randomUUID().toString();
+        refreshTokenStore.put(refreshToken, user.getUserId());
+        return new com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse(accessToken,
+                user.getUserId(), refreshToken);
+    }
 
-        return new LoginResponse(token, user.getRole().getRoleName());
+    public LoginResponse refreshAccessToken(String refreshToken) {
+        String userId = refreshTokenStore.get(refreshToken);
+        if (userId == null) {
+            throw new BadCredentialsException("Invalid refresh token");
+        }
+        AppUser user = appUserService.findById(userId)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+        String accessToken = generateToken(user.getUserId(), user.getRole().getRoleName());
+        return new com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse(accessToken,
+                user.getUserId(), refreshToken);
+    }
+
+    public void revokeRefreshToken(String refreshToken) {
+        refreshTokenStore.remove(refreshToken);
     }
 
     public void linkOAuthIdentity(
@@ -74,7 +97,7 @@ public class OauthIdentityService {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("identity-service")
                 .issuedAt(now)
-                .expiresAt(now.plus(1, ChronoUnit.HOURS))
+                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
                 .subject(userId)
                 .claim("role", role)
                 .build();

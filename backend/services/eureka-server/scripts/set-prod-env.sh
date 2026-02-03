@@ -1,20 +1,50 @@
 #!/usr/bin/env bash
+# eureka-dev-env.sh
+# Usage: source ./eureka-dev-env.sh
 
-echo "🔧 Setting PROD environment variables..."
+echo "🔧 Setting DEV environment variables for Eureka Server..."
 
-export SPRING_PROFILES_ACTIVE=prod
+# ----------------------
+# Spring profile
+# ----------------------
+export SPRING_PROFILES_ACTIVE="prod"
+# (You are intentionally using application-prod.yml even in dev ECS)
 
-# Database
-export DB_URL=jdbc:mysql://localhost:3306/compliance_event
-export DB_USER=mysql
-export DB_PASS=mysql
+# ----------------------
+# Server
+# ----------------------
+export SERVER_PORT="8761"
 
-# RabbitMQ (Amazon MQ)
-export RABBITMQ_HOST=b-xxxx.mq.us-east-1.amazonaws.com
-export RABBITMQ_PORT=5671
-export RABBITMQ_USERNAME=finsight
-export RABBITMQ_PASSWORD=secret
+# ----------------------
+# Safety: explicitly disable things Eureka must not try to use
+# ----------------------
+unset DB_URL
+unset DB_USER
+unset DB_PASS
 
-echo "✅ PROD environment set"
-echo "Active profile: $SPRING_PROFILES_ACTIVE"
+unset RABBITMQ_HOST
+unset RABBITMQ_PORT
+unset RABBITMQ_USERNAME
+unset RABBITMQ_PASSWORD
 
+unset AWS_S3_BUCKET
+unset AWS_REGION
+
+# ----------------------
+# Friendly output
+# ----------------------
+safe_print() {
+  local name="$1"
+  local value="$(printenv "$name")"
+  if [[ -z "$value" ]]; then
+    printf '%s: %s\n' "$name" "<unset>"
+  else
+    printf '%s: %s\n' "$name" "$value"
+  fi
+}
+
+echo "✅ Eureka DEV environment set"
+safe_print "SPRING_PROFILES_ACTIVE"
+safe_print "SERVER_PORT"
+
+echo "ℹ️  Tip: run with 'source ./eureka-dev-env.sh'"
