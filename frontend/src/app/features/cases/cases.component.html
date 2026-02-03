@@ -1,4 +1,109 @@
-<div class="container">
-  <h1>Cases</h1>
-  <p>This is the Cases page placeholder.</p>
+<div class="container cases-container">
+  <div id="cases-header">
+    <h1>Cases</h1>
+  </div>
+  <div class="cases-page">
+    <app-side-nav
+      [navItems]="caseNavItems"
+      [initialSelectedItem]="'all'"
+      (itemSelected)="onCategorySelected($event)">
+    </app-side-nav>
+
+    <div class="cases-content">
+      @if (feedbackMessage) {
+        <div class="feedback" [class.feedback-success]="feedbackSuccess" [class.feedback-error]="!feedbackSuccess">
+          @if (feedbackSuccess) {
+            <span class="feedback-icon" aria-hidden="true">✅</span>
+          }
+          {{ feedbackMessage }}
+        </div>
+      }
+
+      @if (loading) {
+        <p class="loading">Loading cases...</p>
+      } @else if (error) {
+        <p class="error">{{ error }}</p>
+      } @else {
+        <p class="category-label">{{ getCategoryLabel() }}</p>
+
+        @if (filteredCases.length === 0) {
+          <p class="empty">No cases found.</p>
+        } @else {
+          <div class="cases-table-wrapper">
+            <table class="cases-table">
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>SAR ID</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Referred At</th>
+                  <th>Closed At</th>
+                  <th>Referred To</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of filteredCases; track c.caseId) {
+                  <tr>
+                    <td>{{ c.caseId }}</td>
+                    <td>{{ c.sarId ?? '-' }}</td>
+                    <td><span class="case-status case-status-{{ c.status | lowercase }}">{{ c.status }}</span></td>
+                    <td>{{ formatDate(c.createdAt) }}</td>
+                    <td>{{ formatDate(c.referredAt) }}</td>
+                    <td>{{ formatDate(c.closedAt) }}</td>
+                    <td>{{ c.referredToAgency ?? '-' }}</td>
+                    <td class="actions-cell">
+                      <button type="button" class="btn-action btn-audit" (click)="openAuditModal(c)">
+                        Audit
+                      </button>
+                      <button type="button" class="btn-action btn-notes" (click)="openNotesModal(c)">
+                        Notes
+                      </button>
+                      @if (canRefer(c)) {
+                        <button type="button" class="btn-action btn-refer" (click)="openReferDialog(c)">
+                          Refer
+                        </button>
+                      }
+                      @if (canClose(c)) {
+                        <button type="button" class="btn-action btn-close" (click)="openCloseDialog(c)">
+                          Close
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </div>
+  </div>
 </div>
+
+@if (showConfirmDialog) {
+  <app-confirm-dialog
+    [title]="confirmDialogTitle"
+    [message]="confirmDialogMessage"
+    [mode]="confirmDialogMode"
+    confirmText="Confirm"
+    cancelText="Cancel"
+    (confirm)="onConfirmDialogConfirm($event)"
+    (cancel)="onConfirmDialogCancel()">
+  </app-confirm-dialog>
+}
+
+@if (showAuditModal && caseIdForAudit != null) {
+  <app-audit-events-modal
+    [caseId]="caseIdForAudit"
+    (close)="onAuditModalClose()">
+  </app-audit-events-modal>
+}
+
+@if (showNotesModal && caseIdForNotes != null) {
+  <app-case-notes-modal
+    [caseId]="caseIdForNotes"
+    (close)="onNotesModalClose()">
+  </app-case-notes-modal>
+}

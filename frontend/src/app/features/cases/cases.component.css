@@ -1,0 +1,172 @@
+/* Match header/navbar container alignment */
+.cases-container {
+  margin-left: 51px !important;
+  margin-right: 51px !important;
+  max-width: 1440px !important;
+}
+
+.cases-page {
+  display: flex;
+}
+
+#cases-header {
+  margin-bottom: 1.5rem;
+}
+
+.cases-content {
+  flex: 1;
+  padding: 0rem 2rem 0rem 2rem;
+}
+
+h1 {
+  color: #083c6f;
+  margin-bottom: 1rem;
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.feedback-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.feedback-success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.feedback-error {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.category-label {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.loading,
+.empty {
+  color: #666;
+}
+
+.error {
+  color: #c00;
+}
+
+.cases-table-wrapper {
+  overflow-x: auto;
+}
+
+.cases-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cases-table th,
+.cases-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.cases-table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+}
+
+.cases-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.case-status {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.case-status-open {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.case-status-referred {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.case-status-closed {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.btn-action {
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  margin-right: 0.5rem;
+}
+
+.btn-action:last-child {
+  margin-right: 0;
+}
+
+.btn-refer {
+  background-color: #e65100;
+  color: white;
+}
+
+.btn-refer:hover {
+  background-color: #cc4700;
+}
+
+.btn-close {
+  background-color: #0056b3;
+  color: white;
+}
+
+.btn-close:hover {
+  background-color: #004494;
+}
+
+.btn-audit {
+  background-color: #5c6bc0;
+  color: white;
+}
+
+.btn-audit:hover {
+  background-color: #3f51b5;
+}
+
+.btn-notes {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.btn-notes:hover {
+  background-color: #1b5e20;
+}
+
+.no-actions {
+  color: #999;
+}
