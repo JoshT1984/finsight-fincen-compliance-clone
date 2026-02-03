@@ -25,6 +25,8 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        # Boot/Hibernate can infer this, but keeping it is fine.
+        # If you want to remove deprecation warnings later, switch to MySQLDialect.
         dialect: org.hibernate.dialect.MySQL8Dialect
         jdbc:
           time_zone: UTC
