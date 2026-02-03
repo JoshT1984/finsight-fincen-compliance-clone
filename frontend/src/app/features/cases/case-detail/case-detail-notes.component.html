@@ -20,7 +20,7 @@
         @for (note of notes; track note.noteId) {
           <tr>
             <td class="case-section__date">{{ formatDate(note.createdAt) }}</td>
-            <td class="case-section__author">{{ note.authorUserId ?? '—' }}</td>
+            <td class="case-section__author">{{ getAuthorDisplay(note.authorUserId) }}</td>
             <td class="case-section__text">{{ note.noteText }}</td>
           </tr>
         }

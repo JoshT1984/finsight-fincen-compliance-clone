@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CasesService, CaseNoteResponse } from '../../../shared/services/cases.service';
+import { IdentityService } from '../../../shared/services/identity.service';
 
 @Component({
   selector: 'app-case-detail-notes',
@@ -17,9 +18,13 @@ export class CaseDetailNotesComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
+  /** Cache of author userId -> display name (e.g. "Jane Doe") */
+  authorDisplayMap: Record<string, string> = {};
+
   constructor(
     private route: ActivatedRoute,
     private casesService: CasesService,
+    private identityService: IdentityService,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -32,6 +37,7 @@ export class CaseDetailNotesComponent implements OnInit {
   loadNotes(): void {
     this.loading = true;
     this.error = null;
+    this.authorDisplayMap = {};
     this.cdr.detectChanges();
     this.casesService.getCaseNotes(this.caseId).subscribe({
       next: (list) => {
@@ -39,6 +45,7 @@ export class CaseDetailNotesComponent implements OnInit {
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
+        this.loadAuthorNames();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -52,6 +59,29 @@ export class CaseDetailNotesComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  /** Resolve author user IDs to display names via identity service. */
+  private loadAuthorNames(): void {
+    const userIds = [...new Set(this.notes.map((n) => n.authorUserId).filter(Boolean))] as string[];
+    userIds.forEach((userId) => {
+      if (this.authorDisplayMap[userId]) return;
+      this.identityService.getUserProfile(userId).subscribe({
+        next: (profile) => {
+          this.authorDisplayMap[userId] = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || profile.email || userId;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.authorDisplayMap[userId] = userId;
+          this.cdr.detectChanges();
+        },
+      });
+    });
+  }
+
+  getAuthorDisplay(authorUserId: string | null): string {
+    if (authorUserId == null || authorUserId === '') return '—';
+    return this.authorDisplayMap[authorUserId] ?? authorUserId;
   }
 
   formatDate(isoString: string | null): string {
