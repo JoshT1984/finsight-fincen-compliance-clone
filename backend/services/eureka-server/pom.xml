@@ -7,7 +7,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.4.5</version>
+    <version>3.4.2</version>
     <relativePath/>
   </parent>
 
@@ -19,7 +19,7 @@
 
   <properties>
     <java.version>17</java.version>
-    <spring-cloud.version>2024.0.0</spring-cloud.version>
+    <spring-cloud.version>2024.0.2</spring-cloud.version>
   </properties>
 
   <dependencyManagement>
@@ -35,19 +35,16 @@
   </dependencyManagement>
 
   <dependencies>
-    <!-- Eureka Server -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
     </dependency>
 
-    <!-- Actuator for health checks -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
-    <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -63,4 +60,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>

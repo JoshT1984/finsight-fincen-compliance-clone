@@ -46,6 +46,10 @@ export class IdentityService {
 
   checkAuthOnStartup() {
     // This endpoint should return the current user's profile if authenticated, or 401 if not
+    if (!localStorage.getItem('authToken')) {
+      this._isLoggedIn.next(false);
+      return;
+    }
     return this.http
       .get<ProfileModel>(`${this.apiBaseUrl}/api/users/me`, { withCredentials: true })
       .pipe(
