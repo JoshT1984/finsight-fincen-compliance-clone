@@ -7,11 +7,14 @@
     <p><strong>Email:</strong> {{ profile.email }}</p>
     <p><strong>Phone:</strong> {{ profile.phone }}</p>
     <p><strong>Role:</strong> {{ profile.roleName }}</p>
-    <button class="btn" (click)="startEdit()">Edit Profile</button>
   </div>
+  <button *ngIf="profile && !editMode && !editPasswordMode" class="btn" (click)="startEdit()">
+    Edit Profile
+  </button>
   <form *ngIf="profile && editMode && !editPasswordMode" (ngSubmit)="saveEdit()">
     <label class="form-label"
-      >First Name: <input [(ngModel)]="profile.firstName" name="firstName" class="form-input"
+      ><span>First Name:</span>
+      <input [(ngModel)]="profile.firstName" name="firstName" class="form-input"
     /></label>
     <label class="form-label"
       >Last Name: <input [(ngModel)]="profile.lastName" name="lastName"
@@ -27,9 +30,10 @@
     </div>
   </form>
 
-  <div *ngIf="!editPasswordMode && !editMode">
-    <button class="btn primary" (click)="startEditPassword()">Change Password</button>
-  </div>
+  <button *ngIf="!editPasswordMode && !editMode" class="btn primary" (click)="startEditPassword()">
+    Change Password
+  </button>
+  <div></div>
   <form *ngIf="editPasswordMode && !editMode" (ngSubmit)="saveEditPassword()">
     <label class="form-label"
       >Current Password:

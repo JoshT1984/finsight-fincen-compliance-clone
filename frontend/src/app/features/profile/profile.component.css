@@ -1,5 +1,5 @@
 .profile-container {
-  max-width: 500px;
+  max-width: 70%;
   margin: 2rem auto;
   padding: 2rem;
   background: #fff;
@@ -13,16 +13,6 @@
 
 .profile-container h2 {
   margin-bottom: 1.5rem;
-}
-
-.profile-container label {
-  display: block;
-  margin: 0.5rem 0;
-}
-
-.profile-container input {
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
 }
 
 form {
@@ -40,13 +30,24 @@ form {
   width: 100%;
 }
 
-/* .form-input {
-  margin-left: auto;
-} */
+button {
+  width: 40%;
+}
 
 .btn__div {
   display: flex;
   justify-content: space-between;
+}
+
+.profile-oauth {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-oauth button {
+  width: 25%;
 }
 
 .btn.oauth.google {
