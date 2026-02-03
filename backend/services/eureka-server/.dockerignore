@@ -1,0 +1,38 @@
+# VCS
+.git
+.gitignore
+
+# IDEs
+.idea
+.vscode
+*.iml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Java / Maven / Gradle
+target
+build
+.gradle
+.mvn
+*.class
+
+# Tests and coverage
+coverage
+dist
+reports
+test-results
+
+# Docker
+Dockerfile*
+docker-compose*

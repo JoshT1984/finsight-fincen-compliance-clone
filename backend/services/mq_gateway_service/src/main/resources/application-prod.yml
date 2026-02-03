@@ -3,26 +3,54 @@ server:
 
 spring:
   application:
-    name: mq-gateway-service
+    name: mq_gateway-service
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
 
   rabbitmq:
     host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT:5671}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
-    virtual-host: ${RABBITMQ_VHOST:/}
+    virtual-host: /
     ssl:
-      enabled: true
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:mq_gateway}
+    prefer-ip-address: false
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:mq_gateway}:${PORT:8080}
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
         enabled: true
-  health:
-    rabbit:
-      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
