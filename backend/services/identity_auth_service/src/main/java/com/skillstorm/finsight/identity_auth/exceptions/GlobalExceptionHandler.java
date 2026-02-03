@@ -1,3 +1,4 @@
+
 package com.skillstorm.finsight.identity_auth.exceptions;
 
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,16 @@ public class GlobalExceptionHandler {
         body.put("fields", fieldErrors);
 
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.NoHandlerFoundException.class)
+    public ResponseEntity<Object> handleNoHandlerFoundException(
+            org.springframework.web.servlet.NoHandlerFoundException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Not Found");
+        body.put("message", "The requested resource was not found");
+        body.put("path", ex.getRequestURL());
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
