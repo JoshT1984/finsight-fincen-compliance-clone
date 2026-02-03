@@ -7,6 +7,11 @@ spring:
   application:
     name: identity-auth-service
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientWebMvcSecurityAutoConfiguration
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
@@ -25,8 +30,6 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        # Boot/Hibernate can infer this, but keeping it is fine.
-        # If you want to remove deprecation warnings later, switch to MySQLDialect.
         dialect: org.hibernate.dialect.MySQL8Dialect
         jdbc:
           time_zone: UTC
@@ -49,33 +52,33 @@ spring:
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:}
-            client-secret: ${GOOGLE_CLIENT_SECRET:}
-            scope:
-              - openid
-              - profile
-              - email
-            redirect-uri: ${GOOGLE_REDIRECT_URI:{baseUrl}/login/oauth2/code/google}
-          github:
-            client-id: ${GITHUB_CLIENT_ID:}
-            client-secret: ${GITHUB_CLIENT_SECRET:}
-            scope:
-              - user:email
-            redirect-uri: ${GITHUB_REDIRECT_URI:{baseUrl}/login/oauth2/code/github}
-        provider:
-          github:
-            authorization-uri: https://github.com/login/oauth/authorize
-            token-uri: https://github.com/login/oauth/access_token
-            user-info-uri: https://api.github.com/user
-          google:
-            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-            token-uri: https://oauth2.googleapis.com/token
-            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+  # security:
+  #   oauth2:
+  #     client:
+  #       registration:
+  #         google:
+  #           client-id: ${GOOGLE_CLIENT_ID:}
+  #           client-secret: ${GOOGLE_CLIENT_SECRET:}
+  #           scope:
+  #             - openid
+  #             - profile
+  #             - email
+  #           redirect-uri: ${GOOGLE_REDIRECT_URI:{baseUrl}/login/oauth2/code/google}
+  #         github:
+  #           client-id: ${GITHUB_CLIENT_ID:}
+  #           client-secret: ${GITHUB_CLIENT_SECRET:}
+  #           scope:
+  #             - user:email
+  #           redirect-uri: ${GITHUB_REDIRECT_URI:{baseUrl}/login/oauth2/code/github}
+  #       provider:
+  #         github:
+  #           authorization-uri: https://github.com/login/oauth/authorize
+  #           token-uri: https://github.com/login/oauth/access_token
+  #           user-info-uri: https://api.github.com/user
+  #         google:
+  #           authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+  #           token-uri: https://oauth2.googleapis.com/token
+  #           user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
 
 jwt:
   private-key: ${JWT_PRIVATE_KEY}
