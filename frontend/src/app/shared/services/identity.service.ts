@@ -71,7 +71,6 @@ export class IdentityService {
         tap({
           next: (profile) => {
             this.setProfile(profile);
-            console.log(profile);
           },
           error: () => {
             console.error('Failed to save profile updates');

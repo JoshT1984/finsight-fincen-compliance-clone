@@ -53,7 +53,6 @@ public class AppUserController {
             Authentication authentication,
             @RequestBody UpdateUserDto updateUserDto) {
         String userId = authentication.getName();
-        System.out.println("Getting current user for ID: " + authentication.getName());
         Optional<AppUser> userOpt = appUserService.findById(userId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
