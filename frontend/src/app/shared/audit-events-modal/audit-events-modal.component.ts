@@ -1,7 +1,13 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { CasesService, AuditEventResponse } from '../services/cases.service';
+import { DocumentsService } from '../services/documents.service';
+
+/** Audit event with a display label for which entity it refers to (Case vs Document). */
+export type AuditEventWithEntity = AuditEventResponse & { entityLabel: string };
 
 @Component({
   selector: 'app-audit-events-modal',
@@ -15,7 +21,7 @@ export class AuditEventsModalComponent implements OnChanges {
 
   @Output() close = new EventEmitter<void>();
 
-  events: AuditEventResponse[] = [];
+  events: AuditEventWithEntity[] = [];
   loading = false;
   error: string | null = null;
 
@@ -24,6 +30,7 @@ export class AuditEventsModalComponent implements OnChanges {
 
   constructor(
     private casesService: CasesService,
+    private documentsService: DocumentsService,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -43,9 +50,44 @@ export class AuditEventsModalComponent implements OnChanges {
     this.loading = true;
     this.error = null;
     this.cdr.detectChanges();
-    this.casesService.getAuditEventsForCase(this.caseId).subscribe({
-      next: (list) => {
-        this.events = list ?? [];
+
+    const caseEvents$ = this.casesService.getAuditEventsForCase(this.caseId).pipe(
+      map((list) => (list ?? []).map((e) => ({ ...e, entityLabel: 'Case' } as AuditEventWithEntity))),
+    );
+    const documents$ = this.documentsService.getByCaseId(this.caseId);
+
+    forkJoin({ caseEvents: caseEvents$, documents: documents$ }).pipe(
+      switchMap(({ caseEvents, documents }) => {
+        const docList = documents ?? [];
+        if (docList.length === 0) {
+          const merged = [...caseEvents].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          return of(merged);
+        }
+        const documentEvents$ = docList.map((doc) =>
+          this.casesService
+            .getAuditEventsForEntity('DOCUMENT', String(doc.documentId))
+            .pipe(
+              map((list) =>
+                (list ?? []).map((e) =>
+                  ({ ...e, entityLabel: `Document: ${doc.fileName}` } as AuditEventWithEntity),
+                ),
+              ),
+            ),
+        );
+        return forkJoin(documentEvents$).pipe(
+          map((arrays) => {
+            const all = [...caseEvents, ...arrays.flat()];
+            return all.sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            );
+          }),
+        );
+      }),
+    ).subscribe({
+      next: (merged) => {
+        this.events = merged;
         this.loading = false;
         this.cdr.detectChanges();
       },

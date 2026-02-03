@@ -29,6 +29,13 @@ export class IdentityService {
       .pipe(tap((profile) => this.setProfile(profile)));
   }
 
+  /** Fetch a user's profile by ID (e.g. for displaying actor names). Does not set current user profile. */
+  getUserProfile(userId: string): Observable<ProfileModel> {
+    return this.http.get<ProfileModel>(`${this.apiBaseUrl}/api/users/${userId}`, {
+      withCredentials: true,
+    });
+  }
+
   clearProfile() {
     this.profileSubject.next(null);
   }

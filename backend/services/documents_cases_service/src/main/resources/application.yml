@@ -25,6 +25,12 @@ spring:
         jdbc:
           time_zone: UTC
 
+# AWS S3 (optional for local dev; set in prod or when using document upload)
+aws:
+  region: ${AWS_REGION:us-east-1}
+  s3:
+    bucket: ${AWS_S3_BUCKET:finsight-documents-2026}
+
 eureka:
   client:
     service-url:

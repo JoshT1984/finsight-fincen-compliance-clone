@@ -11,4 +11,6 @@ export const environment = {
   suspectApiBaseUrl: '',
   /** Identity and Authorization microservice. Use '' for same-origin, or full URL for AWS. */
   identityApiBaseUrl: '',
+  /** Compliance event microservice. Use '' for same-origin, or full URL for AWS. */
+  complianceApiBaseUrl: '',
 };

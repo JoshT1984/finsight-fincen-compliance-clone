@@ -39,7 +39,7 @@
 .audit-events-modal__title {
   margin: 0 2rem 0 0;
   font-size: 1.25rem;
-  color: #083c6f;
+  color: var(--navy-800);
   flex-shrink: 0;
 }
 
@@ -101,41 +101,58 @@
   background-color: #f9f9f9;
 }
 
+.audit-events-modal__entity {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .audit-action {
   display: inline-block;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
+  font-weight: 600;
 }
 
-.audit-action-create {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+/* Matches Refer button (navy-900, white) */
+.audit-action-refer {
+  background-color: var(--navy-900);
+  color: white;
 }
 
+/* Matches Close button (navy-800, white) */
+.audit-action-close {
+  background-color: var(--navy-800);
+  color: white;
+}
+
+/* Matches Audit button style (sky-050 + navy-900) */
 .audit-action-update {
-  background-color: #e3f2fd;
-  color: #1565c0;
+  background-color: var(--sky-050);
+  color: var(--navy-900);
+  border: 1px solid var(--border);
 }
 
+/* Matches Notes button style (sky-200 + navy-900) */
+.audit-action-upload {
+  background-color: var(--sky-200);
+  color: var(--navy-900);
+  border: 1px solid rgba(0, 38, 76, 0.18);
+}
+
+/* Create: green for success/creation contrast */
+.audit-action-create {
+  background-color: var(--green-100);
+  color: var(--green-600);
+  border: 1px solid rgba(28, 122, 75, 0.35);
+}
+
+/* Delete: danger, no corresponding button — keep red */
 .audit-action-delete {
   background-color: #ffebee;
   color: #c62828;
-}
-
-.audit-action-refer {
-  background-color: #fff3e0;
-  color: #e65100;
-}
-
-.audit-action-close {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.audit-action-upload {
-  background-color: #e0f2f1;
-  color: #00695c;
 }
 
 .audit-metadata-cell {
@@ -147,15 +164,15 @@
   display: inline-block;
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
-  color: #0056b3;
-  background: transparent;
-  border: 1px solid #0056b3;
+  color: var(--navy-800);
+  background: var(--sky-050);
+  border: 1px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
 }
 
 .audit-metadata-toggle:hover {
-  background: #e8f4fc;
+  background: var(--sky-200);
 }
 
 .audit-metadata-block {

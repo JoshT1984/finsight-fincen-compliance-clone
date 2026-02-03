@@ -72,8 +72,13 @@ export class CasesService {
 
   /** Fetch audit events for a case (entityType CASE, entityId = caseId). */
   getAuditEventsForCase(caseId: number): Observable<AuditEventResponse[]> {
+    return this.getAuditEventsForEntity('CASE', String(caseId));
+  }
+
+  /** Fetch audit events for any entity (e.g. CASE, DOCUMENT, CASE_NOTE). */
+  getAuditEventsForEntity(entityType: string, entityId: string): Observable<AuditEventResponse[]> {
     return this.http.get<AuditEventResponse[]>(
-      `${this.auditEventsUrl}/entity/CASE/${caseId}`,
+      `${this.auditEventsUrl}/entity/${entityType}/${entityId}`,
     );
   }
 

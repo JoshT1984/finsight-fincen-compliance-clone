@@ -9,13 +9,14 @@
     } @else if (error) {
       <p class="audit-events-modal__error">{{ error }}</p>
     } @else if (events.length === 0) {
-      <p class="audit-events-modal__empty">No audit events for this case.</p>
+      <p class="audit-events-modal__empty">No audit events for this case or its documents.</p>
     } @else {
       <div class="audit-events-modal__table-wrapper">
         <table class="audit-events-modal__table">
           <thead>
             <tr>
               <th>Date</th>
+              <th>Entity</th>
               <th>Action</th>
               <th>Actor</th>
               <th>Metadata</th>
@@ -25,6 +26,7 @@
             @for (ev of events; track ev.auditId) {
               <tr>
                 <td>{{ formatDate(ev.createdAt) }}</td>
+                <td class="audit-events-modal__entity">{{ ev.entityLabel }}</td>
                 <td><span class="audit-action audit-action-{{ ev.action | lowercase }}">{{ ev.action }}</span></td>
                 <td>{{ ev.actorUserId ?? '—' }}</td>
                 <td class="audit-metadata-cell">

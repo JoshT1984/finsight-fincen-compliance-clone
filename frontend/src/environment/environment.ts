@@ -10,4 +10,6 @@ export const environment = {
   suspectApiBaseUrl: 'http://localhost:8082',
   /** Identity and Authorization microservice (identity-auth-service). No trailing slash. */
   identityApiBaseUrl: 'http://localhost:8083',
+  /** Compliance event microservice (compliance-event-service). No trailing slash. */
+  complianceApiBaseUrl: 'http://localhost:8085',
 };
