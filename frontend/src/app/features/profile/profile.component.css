@@ -44,10 +44,11 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1rem;
 }
 
 .profile-oauth button {
-  width: 25%;
+  width: 50%;
 }
 
 .btn.oauth.google {
