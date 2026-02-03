@@ -6,5 +6,5 @@ export const environment = {
   production: false,
   documentsApiBaseUrl: 'http://localhost:8081',
   suspectApiBaseUrl: 'http://localhost:8082',
-  complianceApiBaseUrl: 'http://localhost:8080',
+  complianceApiBaseUrl: 'http://localhost:8085',
 };

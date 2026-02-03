@@ -62,41 +62,51 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.sarId = null;
     this.caseId = null;
     this.error = null;
+    this.optionsError = null; // Clear so error disappears when changing document type
     this.loadOptions();
   }
 
   loadOptions(): void {
     this.loadingOptions = true;
     this.optionsError = null;
+    const forType = this.documentType;
 
-    if (this.documentType === 'CTR') {
+    if (forType === 'CTR') {
       this.complianceService
         .getCtrOptions()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (opts) => {
+            if (this.documentType !== forType) return;
             this.ctrOptions = opts;
             this.loadingOptions = false;
+            this.cdr.detectChanges();
           },
           error: (err) => {
+            if (this.documentType !== forType) return;
             this.optionsError = 'Could not load CTR list. Select "Create new CTR" to upload without linking.';
             this.ctrOptions = [];
             this.loadingOptions = false;
+            this.cdr.detectChanges();
           },
         });
-    } else if (this.documentType === 'SAR') {
+    } else if (forType === 'SAR') {
       this.complianceService
         .getSarOptions()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (opts) => {
+            if (this.documentType !== forType) return;
             this.sarOptions = opts;
             this.loadingOptions = false;
+            this.cdr.detectChanges();
           },
           error: (err) => {
+            if (this.documentType !== forType) return;
             this.optionsError = 'Could not load SAR list. Select "Create new SAR" to upload without linking.';
             this.sarOptions = [];
             this.loadingOptions = false;
+            this.cdr.detectChanges();
           },
         });
     } else {
@@ -105,13 +115,17 @@ export class UploadComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (cases) => {
+            if (this.documentType !== forType) return;
             this.caseOptions = cases.map((c) => this.toCaseOption(c));
             this.loadingOptions = false;
+            this.cdr.detectChanges();
           },
           error: (err) => {
+            if (this.documentType !== forType) return;
             this.optionsError = 'Could not load cases. Please try again.';
             this.caseOptions = [];
             this.loadingOptions = false;
+            this.cdr.detectChanges();
           },
         });
     }
