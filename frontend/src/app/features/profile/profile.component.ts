@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ProfileModel } from './profile.model';
+import { ProfileModel } from '../../models/profile.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IdentityService } from '../../shared/services/identity.service';
@@ -29,7 +29,9 @@ export class ProfileComponent implements OnInit {
     this.editMode = true;
   }
   saveEdit() {
-    this.editMode = false; /* TODO: Save changes */
+    this.identityService.saveProfileUpdates(this.profile!).subscribe(() => {
+      this.editMode = false;
+    });
   }
   cancelEdit() {
     this.editMode = false;

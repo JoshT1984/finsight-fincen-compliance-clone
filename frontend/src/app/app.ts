@@ -13,5 +13,6 @@ export class App {
 
   constructor(private identityService: IdentityService) {
     this.identityService.checkAuthOnStartup();
+    this.identityService.startInactivityTracking();
   }
 }
