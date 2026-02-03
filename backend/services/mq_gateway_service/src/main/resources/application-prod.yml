@@ -5,24 +5,52 @@ spring:
   application:
     name: mq-gateway-service
 
+  datasource:
+    url: ${DB_URL:?DB_URL is required}
+    username: ${DB_USER:?DB_USER is required}
+    password: ${DB_PASS:?DB_PASS is required}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT:5671}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+    host: ${RABBITMQ_HOST:?RABBITMQ_HOST is required}
+    port: ${RABBITMQ_PORT:?RABBITMQ_PORT is required}
+    username: ${RABBITMQ_USERNAME:?RABBITMQ_USERNAME is required}
+    password: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
     virtual-host: ${RABBITMQ_VHOST:/}
     ssl:
-      enabled: true
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:?EUREKA_SERVER_URL is required}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:mq-gateway-service}
+    prefer-ip-address: false
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:mq-gateway-service}:${PORT:8080}
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
         enabled: true
-  health:
-    rabbit:
-      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:}

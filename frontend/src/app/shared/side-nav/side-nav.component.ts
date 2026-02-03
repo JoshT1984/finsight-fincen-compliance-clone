@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 export interface NavItem {
   id: string;
@@ -9,19 +10,22 @@ export interface NavItem {
 @Component({
   selector: 'app-side-nav',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './side-nav.component.html',
   styleUrls: ['./side-nav.component.css'],
 })
 export class SideNavComponent {
   @Input() navItems: NavItem[] = [];
   @Input() initialSelectedItem?: string;
-  
+  /** When set, nav items are rendered as router links to linkBasePath + '/' + item.id (e.g. /cases/123/overview). */
+  @Input() linkBasePath?: string;
+
   @Output() itemSelected = new EventEmitter<string>();
 
   selectedItem: string = '';
 
   ngOnInit() {
+    if (this.linkBasePath) return;
     if (this.initialSelectedItem) {
       this.selectedItem = this.initialSelectedItem;
       this.itemSelected.emit(this.initialSelectedItem);

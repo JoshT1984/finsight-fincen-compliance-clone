@@ -1,0 +1,40 @@
+<p class="category-label">Documents</p>
+
+@if (loading) {
+  <p class="case-section__loading">Loading documents...</p>
+} @else if (error) {
+  <p class="case-section__error">{{ error }}</p>
+} @else if (documents.length === 0) {
+  <p class="case-section__empty">No documents uploaded for this case.</p>
+} @else {
+  <div class="case-section__table-wrapper">
+    <table class="case-section__table">
+      <thead>
+        <tr>
+          <th>File name</th>
+          <th>Type</th>
+          <th>Uploaded</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (doc of documents; track doc.documentId) {
+          <tr>
+            <td class="case-section__filename">{{ doc.fileName }}</td>
+            <td>{{ doc.documentType }}</td>
+            <td class="case-section__date">{{ formatDate(doc.uploadedAt) }}</td>
+            <td>
+              <button
+                type="button"
+                class="case-section__download"
+                (click)="downloadDocument(doc)"
+                [disabled]="downloadingId === doc.documentId">
+                {{ downloadingId === doc.documentId ? '…' : 'Download' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

@@ -16,5 +16,6 @@ export class NavComponent {
     { path: '/sars', label: 'SARs' },
     { path: '/ctrs', label: 'CTRs' },
     { path: '/documents', label: 'Documents' },
+    { path: '/upload', label: 'Upload' },
   ];
 }

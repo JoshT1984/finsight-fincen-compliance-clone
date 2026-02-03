@@ -1,4 +1,64 @@
-<div class="container">
-  <h1>Cases</h1>
-  <p>This is the Cases page placeholder.</p>
+<div class="container cases-container">
+  <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
+  <div id="cases-header">
+    <h1>Cases</h1>
+  </div>
+  <div class="cases-page">
+    <app-side-nav
+      [navItems]="caseNavItems"
+      [initialSelectedItem]="'all'"
+      (itemSelected)="onCategorySelected($event)">
+    </app-side-nav>
+
+    <div class="cases-content">
+      @if (loading) {
+        <p class="loading">Loading cases...</p>
+      } @else if (error) {
+        <p class="error">{{ error }}</p>
+      } @else {
+        <p class="category-label">{{ getCategoryLabel() }}</p>
+
+        @if (filteredCases.length === 0) {
+          <p class="empty">No cases found.</p>
+        } @else {
+          <div class="cases-table-wrapper">
+            <table class="cases-table">
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>SAR ID</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Referred At</th>
+                  <th>Closed At</th>
+                  <th>Referred To</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of filteredCases; track c.caseId) {
+                  <tr class="cases-table-row-link" (click)="navigateToCase(c.caseId)" role="button" tabindex="0" (keydown.enter)="navigateToCase(c.caseId)" (keydown.space)="navigateToCase(c.caseId); $event.preventDefault()">
+                    <td>{{ c.caseId }}</td>
+                    <td>{{ c.sarId ?? '-' }}</td>
+                    <td>
+                      <span class="case-status case-status-{{ c.status | lowercase }}">{{
+                        c.status
+                      }}</span>
+                    </td>
+                    <td>{{ formatDate(c.createdAt) }}</td>
+                    <td>{{ formatDate(c.referredAt) }}</td>
+                    <td>{{ formatDate(c.closedAt) }}</td>
+                    <td>{{ c.referredToAgency ?? '-' }}</td>
+                    <td class="actions-cell">
+                      <a [routerLink]="['/cases', c.caseId]" class="cases-view-link" (click)="$event.stopPropagation()">View</a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </div>
+  </div>
 </div>

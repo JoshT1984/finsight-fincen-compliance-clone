@@ -19,6 +19,7 @@
   <properties>
     <java.version>17</java.version>
     <aws.sdk.version>2.41.11</aws.sdk.version>
+    <spring-cloud.version>2024.0.2</spring-cloud.version>
   </properties>
 
   <dependencyManagement>
@@ -74,7 +75,7 @@
       <artifactId>micrometer-tracing-bridge-otel</artifactId>
     </dependency>
 
-    <!-- Security Dependency-->
+    <!-- Security Dependency -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
@@ -90,11 +91,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
-    </dependency>
-
-    <dependency> 
-      <groupId>org.springframework.boot</groupId> 
-      <artifactId>spring-boot-starter-security</artifactId> 
     </dependency>
   </dependencies>
 
