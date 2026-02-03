@@ -1,7 +1,7 @@
 <div class="profile-container">
   <h2>User Profile</h2>
 
-  <div *ngIf="profile && !editMode">
+  <div *ngIf="profile && !editMode && !editPasswordMode">
     <p><strong>First Name:</strong> {{ profile.firstName }}</p>
     <p><strong>Last Name:</strong> {{ profile.lastName }}</p>
     <p><strong>Email:</strong> {{ profile.email }}</p>
@@ -9,23 +9,43 @@
     <p><strong>Role:</strong> {{ profile.roleName }}</p>
     <button class="btn" (click)="startEdit()">Edit Profile</button>
   </div>
-  <form *ngIf="profile && editMode" (ngSubmit)="saveEdit()">
-    <label>First Name: <input [(ngModel)]="profile.firstName" name="firstName" /></label><br />
-    <label>Last Name: <input [(ngModel)]="profile.lastName" name="lastName" /></label><br />
-    <label>Email: <input [(ngModel)]="profile.email" name="email" /></label><br />
-    <label>Phone: <input [(ngModel)]="profile.phone" name="phone" /></label><br />
-    <button class="btn primary" type="submit">Save</button>
-    <button class="btn" type="button" (click)="cancelEdit()">Cancel</button>
+  <form *ngIf="profile && editMode && !editPasswordMode" (ngSubmit)="saveEdit()">
+    <label class="form-label"
+      >First Name: <input [(ngModel)]="profile.firstName" name="firstName" class="form-input"
+    /></label>
+    <label class="form-label"
+      >Last Name: <input [(ngModel)]="profile.lastName" name="lastName"
+    /></label>
+    <label class="form-label">
+      Email:
+      <input [(ngModel)]="profile.email" name="email" />
+    </label>
+    <label class="form-label">Phone: <input [(ngModel)]="profile.phone" name="phone" /></label>
+    <div class="btn__div">
+      <button class="btn primary" type="submit">Save</button>
+      <button class="btn primary" type="button" (click)="cancelEdit()">Cancel</button>
+    </div>
   </form>
 
-  <div *ngIf="!editPasswordMode">
-    <button class="btn" (click)="startEditPassword()">Change Password</button>
+  <div *ngIf="!editPasswordMode && !editMode">
+    <button class="btn primary" (click)="startEditPassword()">Change Password</button>
   </div>
-  <form *ngIf="editPasswordMode" (ngSubmit)="saveEditPassword()">
-    <label>New Password: <input type="password" name="newPassword" /></label><br />
-    <label>Confirm Password: <input type="password" name="confirmPassword" /></label><br />
-    <button class="btn primary" type="submit">Save Password</button>
-    <button class="btn" type="button" (click)="cancelEditPassword()">Cancel</button>
+  <form *ngIf="editPasswordMode && !editMode" (ngSubmit)="saveEditPassword()">
+    <label class="form-label"
+      >Current Password:
+      <input type="password" name="currentPassword" [(ngModel)]="currentPassword"
+    /></label>
+    <label class="form-label"
+      >New Password: <input type="password" name="newPassword" [(ngModel)]="newPassword"
+    /></label>
+    <label class="form-label"
+      >Confirm Password:
+      <input type="password" name="confirmPassword" [(ngModel)]="confirmPassword"
+    /></label>
+    <div class="btn__div">
+      <button class="btn secondary" type="submit">Save Password</button>
+      <button class="btn secondary" type="button" (click)="cancelEditPassword()">Cancel</button>
+    </div>
   </form>
 
   <div class="profile-oauth">

@@ -80,6 +80,14 @@ export class IdentityService {
       );
   }
 
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.put<void>(
+      `${this.apiBaseUrl}/api/users/me/password`,
+      { currentPassword, newPassword },
+      { withCredentials: true },
+    );
+  }
+
   // Inactivity timer (15 minutes)
   private inactivityTimeoutMs = 15 * 60 * 1000;
   private inactivityTimer: any = null;
@@ -108,7 +116,6 @@ export class IdentityService {
     this.clearProfile();
     localStorage.removeItem('authToken');
     this._isLoggedIn.next(false);
-    // Optionally, show a message or redirect to login
     console.log('Logged out due to inactivity');
   }
 }

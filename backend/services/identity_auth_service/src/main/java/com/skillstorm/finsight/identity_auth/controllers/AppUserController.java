@@ -61,6 +61,20 @@ public class AppUserController {
         return ResponseEntity.ok(AppUserMapper.toDto(updated));
     }
 
+    @PutMapping("/me/password")
+    public ResponseEntity<AppUserDto> updateCurrentUserPassword(
+            Authentication authentication,
+            @RequestBody ChangePasswordDto passwordDto) {
+        String userId = authentication.getName();
+        System.out.println(passwordDto);
+        Optional<AppUser> userOpt = appUserService.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AppUser updated = appUserService.updateUserPassword(userId, passwordDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
     @PostMapping("/analyst")
     public ResponseEntity<AppUserDto> createAnalyst(@RequestBody UserCreationDto user) {
         AppUser created = appUserService.createUser(user, "ANALYST");
