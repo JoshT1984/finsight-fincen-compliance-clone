@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8080}
+  port: 8085
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
@@ -9,49 +9,41 @@ spring:
     name: compliance-event-service
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/compliance_event}
-    username: ${DB_USER:mysql}
-    password: ${DB_PASS:mysql}
+    url: jdbc:mysql://localhost:3306/compliance_event
+    username: root
+    password: password
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: none
+    open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         jdbc:
           time_zone: UTC
 
-  # For MVP/local, SQL init is fine. In shared envs, prefer Flyway.
-  sql:
-    init:
-      mode: always
-      platform: mysql
-      continue-on-error: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: /
+    ssl:
+      enabled: false
 
-aws:
-  region: ${AWS_REGION:us-east-1}
-
-  sqs:
-    # This service typically CONSUMES events published by ctr_sar_service
-    # and writes normalized rows into compliance_event + detail tables.
-    ctrEventsQueueUrl: ${CTR_EVENTS_QUEUE_URL:}
-    sarEventsQueueUrl: ${SAR_EVENTS_QUEUE_URL:}
-    linkEventsQueueUrl: ${LINK_EVENTS_QUEUE_URL:}
-    auditActionsQueueUrl: ${AUDIT_ACTIONS_QUEUE_URL:}
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
   endpoint:
     health:
       probes:
         enabled: true
-
-logging:
-  level:
-    root: INFO
-    com.finsight: INFO
+  endpoints:
+    web:
+      exposure:
+        include: health

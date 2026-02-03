@@ -1,0 +1,55 @@
+.login-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+.login-dialog__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.login-dialog__content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 50vw;
+  min-width: 320px;
+  max-width: 600px;
+  box-shadow: 0 2px 32px rgba(0, 0, 0, 0.3);
+}
+.login-dialog__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.login-dialog__oauth {
+  margin-top: 1rem;
+  text-align: center;
+}
+.btn.oauth {
+  margin: 0 0.5rem;
+}
+.btn.oauth.google {
+  background: #4285f4;
+  color: #fff;
+}
+.btn.oauth.github {
+  background: #333;
+  color: #fff;
+}

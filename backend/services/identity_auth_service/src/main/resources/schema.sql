@@ -33,8 +33,6 @@ CREATE TABLE IF NOT EXISTS oauth_identity (
   revoked TINYINT(1) NOT NULL DEFAULT 0,
   revoked_at TIMESTAMP NULL DEFAULT NULL,
   UNIQUE (provider, provider_user_id),
-  revoked TINYINT(1) NOT NULL DEFAULT 0,
-  revoked_at TIMESTAMP NULL DEFAULT NULL,
   FOREIGN KEY (user_id) REFERENCES app_user(user_id)
 );
 

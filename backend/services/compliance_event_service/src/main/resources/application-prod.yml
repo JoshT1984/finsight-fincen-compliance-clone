@@ -21,25 +21,36 @@ spring:
         jdbc:
           time_zone: UTC
 
-  # Best practice: avoid schema init in shared/prod unless intentional
-  sql:
-    init:
-      mode: ${SQL_INIT_MODE:never}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: /
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
 
-aws:
-  region: ${AWS_REGION:us-east-1}
-  sqs:
-    ctrEventsQueueUrl: ${CTR_EVENTS_QUEUE_URL:}
-    sarEventsQueueUrl: ${SAR_EVENTS_QUEUE_URL:}
-    linkEventsQueueUrl: ${LINK_EVENTS_QUEUE_URL:}
-    auditActionsQueueUrl: ${AUDIT_ACTIONS_QUEUE_URL:}
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:compliance-event}
+    prefer-ip-address: false
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:compliance-event}:${PORT:8080}
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
   endpoint:
     health:
       probes:
         enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}

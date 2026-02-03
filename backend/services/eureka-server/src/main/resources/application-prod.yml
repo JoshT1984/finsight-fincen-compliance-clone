@@ -1,20 +1,31 @@
+spring:
+  application:
+    name: eureka-server
+
+server:
+  port: ${SERVER_PORT:8761}
+
 eureka:
-  server:
-    enable-self-preservation: true
-    renewal-percent-threshold: 0.85
   instance:
-    hostname: ${EUREKA_HOSTNAME:localhost}
     prefer-ip-address: true
-    ip-address: ${ECS_TASK_IP:}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
   client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://${eureka.instance.hostname}:${server.port}/eureka/}
+    register-with-eureka: false
+    fetch-registry: false
 
-aws:
-  region: ${AWS_REGION:us-east-1}
-
-logging:
-  level:
-    root: INFO
-    com.netflix.eureka: INFO
-    com.netflix.discovery: INFO
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true

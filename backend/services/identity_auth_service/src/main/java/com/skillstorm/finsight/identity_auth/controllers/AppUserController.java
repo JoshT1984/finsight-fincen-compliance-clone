@@ -9,7 +9,6 @@ import com.skillstorm.finsight.identity_auth.requestDtos.UpdateUserDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.UserCreationDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangeEmailDto;
-import com.skillstorm.finsight.identity_auth.requestDtos.AdminUpdateDto;
 import com.skillstorm.finsight.identity_auth.responseDtos.AppUserDto;
 import com.skillstorm.finsight.identity_auth.mappers.AppUserMapper;
 
@@ -36,6 +35,14 @@ public class AppUserController {
     @GetMapping("/{id}")
     public ResponseEntity<AppUserDto> getUserById(@PathVariable String id) {
         Optional<AppUser> user = appUserService.findById(id);
+        return user.map(u -> ResponseEntity.ok(AppUserMapper.toDto(u)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<AppUserDto> getCurrentUser(org.springframework.security.core.Authentication authentication) {
+        String userId = authentication.getName();
+        Optional<AppUser> user = appUserService.findById(userId);
         return user.map(u -> ResponseEntity.ok(AppUserMapper.toDto(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

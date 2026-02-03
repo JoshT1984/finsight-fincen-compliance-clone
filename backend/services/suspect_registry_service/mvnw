@@ -1,0 +1,13 @@
+#!/bin/sh
+
+##############################################################################
+# Maven Wrapper script for UNIX
+##############################################################################
+
+if [ -z "$MAVEN_HOME" ]; then
+  MAVEN_CMD="mvn"
+else
+  MAVEN_CMD="$MAVEN_HOME/bin/mvn"
+fi
+
+exec "$MAVEN_CMD" "$@"

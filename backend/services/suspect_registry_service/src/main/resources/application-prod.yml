@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: suspect-registry-service
+    name: suspect_registry-service
 
   datasource:
     url: ${DB_URL}
@@ -11,9 +11,24 @@ spring:
     password: ${DB_PASS}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  sql:
-    init:
-      mode: ${SQL_INIT_MODE:never}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: /
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
 
 eureka:
   client:
@@ -22,27 +37,20 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
   instance:
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:suspect-registry}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:suspect_registry}
     prefer-ip-address: false
-    instance-id: ${EUREKA_INSTANCE_HOSTNAME:suspect-registry}:${PORT:8080}
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
-
-aws:
-  region: ${AWS_REGION:us-east-1}
-  sqs:
-    suspectRequestsQueueUrl: ${SUSPECT_REQUESTS_QUEUE_URL:}
-    suspectEventsQueueUrl: ${SUSPECT_EVENTS_QUEUE_URL:}
-
-encryption:
-  key: ${ENCRYPTION_KEY}
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:suspect_registry}:${PORT:8080}
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
   endpoint:
     health:
       probes:
         enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
