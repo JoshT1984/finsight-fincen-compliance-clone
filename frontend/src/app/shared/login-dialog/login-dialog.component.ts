@@ -22,12 +22,29 @@ export class LoginDialogComponent {
 
   login() {
     this.loginDialog.login(this.email, this.password).subscribe({
-      next: (token: string) => {
-        console.log('Login successful, token:', token);
-      },
+      next: (token: string) => {},
       error: (error: any) => {
         console.error('Login failed', error);
       },
     });
+  }
+
+  forgotPasswordEmail = '';
+
+  get forgotPasswordMode() {
+    return this.loginDialog.forgotPasswordMode();
+  }
+  get forgotPasswordMessage() {
+    return this.loginDialog.forgotPasswordMessage();
+  }
+
+  openForgotPassword() {
+    this.loginDialog.openForgotPassword();
+  }
+  closeForgotPassword() {
+    this.loginDialog.closeForgotPassword();
+  }
+  requestPasswordReset() {
+    this.loginDialog.requestPasswordReset(this.forgotPasswordEmail).subscribe();
   }
 }

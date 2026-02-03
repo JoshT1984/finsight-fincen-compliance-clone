@@ -322,6 +322,10 @@ a {
   background: var(--navy-900);
   color: #fff;
 }
+.btn.secondary {
+  background: var(--navy-800);
+  color: #fff;
+}
 .btn.primary:hover {
   filter: brightness(1.05);
 }
