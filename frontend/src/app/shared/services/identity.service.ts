@@ -118,4 +118,11 @@ export class IdentityService {
     this._isLoggedIn.next(false);
     console.log('Logged out due to inactivity');
   }
+
+  /**
+   * Reset password using token and new password.
+   */
+  resetPassword(token: string, newPassword: string) {
+    return this.http.post(`${this.apiBaseUrl}/auth/reset-password`, { token, newPassword });
+  }
 }

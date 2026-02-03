@@ -1,6 +1,6 @@
+
 package com.skillstorm.finsight.identity_auth.controllers;
 
-import java.util.Base64;
 import java.util.Map;
 
 import org.springframework.http.ResponseCookie;
@@ -8,11 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
-import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
@@ -81,5 +78,32 @@ public class OauthIdentityController {
                 return ResponseEntity.noContent()
                                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                                 .build();
+        }
+
+        @PostMapping("/forgot-password")
+        public ResponseEntity<Void> forgotPassword(@RequestBody Map<String, String> payload) {
+                String email = payload.get("email");
+                boolean sent = oauthIdentityService.sendPasswordResetEmail(email);
+                // Always return 200 OK with generic message for security
+                return ResponseEntity.ok().build();
+        }
+
+        /**
+         * Reset password using a token and new password.
+         * Expects JSON: { "token": "...", "newPassword": "..." }
+         */
+        @PostMapping("/reset-password")
+        public ResponseEntity<Void> resetPassword(@RequestBody Map<String, String> payload) {
+                String token = payload.get("token");
+                String newPassword = payload.get("newPassword");
+                if (token == null || newPassword == null) {
+                        return ResponseEntity.badRequest().build();
+                }
+                boolean success = oauthIdentityService.resetPassword(token, newPassword);
+                if (success) {
+                        return ResponseEntity.ok().build();
+                } else {
+                        return ResponseEntity.status(403).build(); // Invalid or expired token
+                }
         }
 }

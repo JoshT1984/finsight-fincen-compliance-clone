@@ -28,4 +28,23 @@ export class LoginDialogComponent {
       },
     });
   }
+
+  forgotPasswordEmail = '';
+
+  get forgotPasswordMode() {
+    return this.loginDialog.forgotPasswordMode();
+  }
+  get forgotPasswordMessage() {
+    return this.loginDialog.forgotPasswordMessage();
+  }
+
+  openForgotPassword() {
+    this.loginDialog.openForgotPassword();
+  }
+  closeForgotPassword() {
+    this.loginDialog.closeForgotPassword();
+  }
+  requestPasswordReset() {
+    this.loginDialog.requestPasswordReset(this.forgotPasswordEmail).subscribe();
+  }
 }

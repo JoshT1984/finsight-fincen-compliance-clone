@@ -18,6 +18,13 @@ export const routes: Routes = [
       { path: 'ctrs', component: CtrsComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'profile', component: ProfileComponent },
+      {
+        path: 'reset-password',
+        loadComponent: () =>
+          import('./features/reset-password/reset-password.component').then(
+            (m) => m.ResetPasswordComponent,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
