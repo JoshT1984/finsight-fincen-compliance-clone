@@ -3,12 +3,12 @@ server:
 
 spring:
   application:
-    name: mq_gateway-service
+    name: mq-gateway-service
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: ${DB_URL:?DB_URL is required}
+    username: ${DB_USER:?DB_USER is required}
+    password: ${DB_PASS:?DB_PASS is required}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -22,24 +22,24 @@ spring:
           time_zone: UTC
 
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
-    virtual-host: /
+    host: ${RABBITMQ_HOST:?RABBITMQ_HOST is required}
+    port: ${RABBITMQ_PORT:?RABBITMQ_PORT is required}
+    username: ${RABBITMQ_USERNAME:?RABBITMQ_USERNAME is required}
+    password: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
+    virtual-host: ${RABBITMQ_VHOST:/}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL}
+      defaultZone: ${EUREKA_SERVER_URL:?EUREKA_SERVER_URL is required}
     register-with-eureka: true
     fetch-registry: true
   instance:
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:mq_gateway}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:mq-gateway-service}
     prefer-ip-address: false
-    instance-id: ${EUREKA_INSTANCE_HOSTNAME:mq_gateway}:${PORT:8080}
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:mq-gateway-service}:${PORT:8080}
 
 management:
   endpoint:
@@ -53,4 +53,4 @@ management:
 
 aws:
   s3:
-    bucket: ${AWS_S3_BUCKET}
+    bucket: ${AWS_S3_BUCKET:}
