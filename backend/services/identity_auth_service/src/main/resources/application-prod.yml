@@ -63,6 +63,11 @@ spring:
                         authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
                         token-uri: https://oauth2.googleapis.com/token
                         user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+    mail:
+        host: email-smtp.us-east-1.amazonaws.com
+        port: 587
+        username: ${SES_SMTP_USERNAME}
+        password: ${SES_SMTP_PASSWORD}
 jwt:
     private-key: ${JWT_PRIVATE_KEY}
     public-key: ${JWT_PUBLIC_KEY}
