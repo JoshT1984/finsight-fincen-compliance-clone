@@ -3,6 +3,8 @@ package com.skillstorm.finsight.documents_cases.services;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import com.skillstorm.finsight.documents_cases.models.Document;
 import com.skillstorm.finsight.documents_cases.models.DocumentType;
 import com.skillstorm.finsight.documents_cases.repositories.CaseFileRepository;
 import com.skillstorm.finsight.documents_cases.repositories.DocumentRepository;
+import com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils;
 
 @Service
 public class DocumentService {
@@ -53,7 +56,8 @@ public class DocumentService {
     			document.getUploadedAt(),
     			document.getCtrId(),
     			document.getSarId(),
-    			document.getCaseId()
+    			document.getCaseId(),
+    			document.getUploadedByUserId()
     	);
     }
     
@@ -134,7 +138,8 @@ public class DocumentService {
     	document.setCtrId(finalCtrId);
     	document.setSarId(finalSarId);
     	document.setCaseId(finalCaseId);
-    	
+    	SecurityContextUtils.getCurrentUserId().map(UUID::toString).ifPresent(document::setUploadedByUserId);
+
     	Document saved = repo.save(document);
     	log.info("Created document with ID: {} (type: {}, file: {})", 
     			saved.getDocumentId(), saved.getDocumentType(), saved.getFileName());
@@ -150,39 +155,170 @@ public class DocumentService {
     
     public List<DocumentResponse> findAll() {
     	log.debug("Retrieving all documents");
-    	return repo.findAll().stream()
-    			.map(this::toResponse)
-    			.collect(Collectors.toList());
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		String userId = currentUserIdString();
+    		if (userId == null) return List.of();
+    		return repo.findByUploadedByUserId(userId).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		Set<Long> visibleCaseIds = visibleToLawEnforcementCaseIds();
+    		Set<Long> visibleSarIds = visibleToLawEnforcementSarIds();
+    		List<Document> byCase = repo.findByCaseIdIn(List.copyOf(visibleCaseIds));
+    		List<Document> bySar = visibleSarIds.isEmpty() ? List.of() : repo.findBySarIdIn(List.copyOf(visibleSarIds));
+    		return java.util.stream.Stream.concat(byCase.stream(), bySar.stream())
+    				.distinct()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		return repo.findAll().stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	// Unknown or unauthenticated role - deny access
+    	log.warn("Document findAll denied: user has no recognized role (ANALYST, LAW_ENFORCEMENT_USER, COMPLIANCE_USER)");
+    	return List.of();
     }
-    
+
     public DocumentResponse findById(Long documentId) {
     	log.debug("Retrieving document with ID: {}", documentId);
-    	
     	Document document = repo.findById(documentId)
     			.orElseThrow(() -> new ResourceNotFoundException("Document with ID " + documentId + " not found"));
-    	
+    	enforceDocumentAccess(document);
     	return toResponse(document);
     }
-    
+
     public List<DocumentResponse> findByCtrId(Long ctrId) {
     	log.debug("Retrieving documents for CTR ID: {}", ctrId);
-    	return repo.findByCtrId(ctrId).stream()
-    			.map(this::toResponse)
-    			.collect(Collectors.toList());
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		return List.of(); // Law enforcement has no access to CTR documents
+    	}
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		String userId = currentUserIdString();
+    		if (userId == null) return List.of();
+    		return repo.findByCtrId(ctrId).stream()
+    				.filter(d -> userId.equals(d.getUploadedByUserId()))
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		return repo.findByCtrId(ctrId).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	return List.of();
     }
-    
+
     public List<DocumentResponse> findBySarId(Long sarId) {
     	log.debug("Retrieving documents for SAR ID: {}", sarId);
-    	return repo.findBySarId(sarId).stream()
-    			.map(this::toResponse)
-    			.collect(Collectors.toList());
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		String userId = currentUserIdString();
+    		if (userId == null) return List.of();
+    		return repo.findBySarId(sarId).stream()
+    				.filter(d -> userId.equals(d.getUploadedByUserId()))
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		if (!visibleToLawEnforcementSarIds().contains(sarId)) {
+    			return List.of();
+    		}
+    		return repo.findBySarId(sarId).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		return repo.findBySarId(sarId).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	return List.of();
     }
-    
+
     public List<DocumentResponse> findByCaseId(Long caseId) {
     	log.debug("Retrieving documents for Case ID: {}", caseId);
-    	return repo.findByCaseId(caseId).stream()
-    			.map(this::toResponse)
-    			.collect(Collectors.toList());
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		if (!visibleToLawEnforcementCaseIds().contains(caseId)) {
+    			return List.of();
+    		}
+    		// Include CASE documents (case_id) and SAR documents tied to this case (sar_id = case.sarId)
+    		CaseFile caseFile = caseFileRepo.findById(caseId).orElse(null);
+    		if (caseFile == null) return List.of();
+    		List<Document> byCase = repo.findByCaseId(caseId);
+    		List<Document> bySar = repo.findBySarId(caseFile.getSarId());
+    		return java.util.stream.Stream.concat(byCase.stream(), bySar.stream())
+    				.distinct()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		String userId = currentUserIdString();
+    		if (userId == null) return List.of();
+    		CaseFile caseFile = caseFileRepo.findById(caseId).orElse(null);
+    		if (caseFile == null) return List.of(); // Case does not exist
+    		List<Document> byCase = repo.findByCaseId(caseId);
+    		List<Document> bySar = repo.findBySarId(caseFile.getSarId());
+    		return java.util.stream.Stream.concat(byCase.stream(), bySar.stream())
+    				.distinct()
+    				.filter(d -> userId.equals(d.getUploadedByUserId()))
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		CaseFile caseFile = caseFileRepo.findById(caseId).orElse(null);
+    		if (caseFile == null) return repo.findByCaseId(caseId).stream().map(this::toResponse).collect(Collectors.toList());
+    		List<Document> byCase = repo.findByCaseId(caseId);
+    		List<Document> bySar = repo.findBySarId(caseFile.getSarId());
+    		return java.util.stream.Stream.concat(byCase.stream(), bySar.stream())
+    				.distinct()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	return List.of();
+    }
+
+    private String currentUserIdString() {
+    	return SecurityContextUtils.getCurrentUserId().map(UUID::toString).orElse(null);
+    }
+
+    private Set<Long> visibleToLawEnforcementCaseIds() {
+    	return caseFileRepo.findVisibleToLawEnforcement().stream()
+    			.map(CaseFile::getCaseId)
+    			.collect(Collectors.toSet());
+    }
+
+    private Set<Long> visibleToLawEnforcementSarIds() {
+    	return caseFileRepo.findVisibleToLawEnforcement().stream()
+    			.map(CaseFile::getSarId)
+    			.collect(Collectors.toSet());
+    }
+
+    private void enforceDocumentAccess(Document document) {
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		String userId = currentUserIdString();
+    		if (userId == null || !userId.equals(document.getUploadedByUserId())) {
+    			throw new ResourceNotFoundException("Document with ID " + document.getDocumentId() + " not found");
+    		}
+    		return;
+    	}
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		Set<Long> visibleCaseIds = visibleToLawEnforcementCaseIds();
+    		Set<Long> visibleSarIds = visibleToLawEnforcementSarIds();
+    		boolean hasAccess = (document.getCaseId() != null && visibleCaseIds.contains(document.getCaseId()))
+    				|| (document.getSarId() != null && visibleSarIds.contains(document.getSarId()));
+    		if (!hasAccess) {
+    			throw new ResourceNotFoundException("Document with ID " + document.getDocumentId() + " not found");
+    		}
+    		return;
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		return; // Full access
+    	}
+    	// Unknown or unauthenticated role - deny access
+    	log.warn("Document access denied for ID {}: user has no recognized role", document.getDocumentId());
+    	throw new ResourceNotFoundException("Document with ID " + document.getDocumentId() + " not found");
     }
     
     @Transactional
@@ -194,7 +330,7 @@ public class DocumentService {
     	
     	Document document = repo.findById(documentId)
     			.orElseThrow(() -> new ResourceNotFoundException("Document with ID " + documentId + " not found"));
-    	
+    	enforceDocumentAccess(document);
     	// Create a copy of the old document for audit comparison
     	Document oldDocument = new Document();
     	oldDocument.setDocumentId(document.getDocumentId());
@@ -205,7 +341,8 @@ public class DocumentService {
     	oldDocument.setCtrId(document.getCtrId());
     	oldDocument.setSarId(document.getSarId());
     	oldDocument.setCaseId(document.getCaseId());
-    	
+    	oldDocument.setUploadedByUserId(document.getUploadedByUserId());
+
     	// Store original values to detect changes that require S3 file move
     	DocumentType originalDocumentType = document.getDocumentType();
     	Long originalCtrId = document.getCtrId();
@@ -335,7 +472,7 @@ public class DocumentService {
     	// Retrieve document first to get the S3 storage path
     	Document document = repo.findById(documentId)
     			.orElseThrow(() -> new ResourceNotFoundException("Document with ID " + documentId + " not found"));
-    	
+    	enforceDocumentAccess(document);
     	String storagePath = document.getStoragePath();
     	log.info("Deleting document ID: {} with storagePath: {}", documentId, storagePath);
     	
@@ -361,7 +498,7 @@ public class DocumentService {
     	
     	Document document = repo.findById(documentId)
     			.orElseThrow(() -> new ResourceNotFoundException("Document with ID " + documentId + " not found"));
-    	
+    	enforceDocumentAccess(document);
     	int expiration = expirationMinutes != null ? expirationMinutes : 15;
     	String downloadUrl = s3Service.generateDownloadUrl(document.getStoragePath(), expiration);
     	
@@ -475,7 +612,8 @@ public class DocumentService {
     	document.setCtrId(ctrId);
     	document.setSarId(sarId);
     	document.setCaseId(caseId);
-    	
+    	SecurityContextUtils.getCurrentUserId().map(UUID::toString).ifPresent(document::setUploadedByUserId);
+
     	try {
     		Document saved = repo.save(document);
     		log.info("Created document with ID: {} (type: {}, file: {}, S3 key: {})", 

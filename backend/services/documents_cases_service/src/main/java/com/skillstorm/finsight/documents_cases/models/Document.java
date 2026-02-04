@@ -1,8 +1,16 @@
 package com.skillstorm.finsight.documents_cases.models;
 
-import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "document")
@@ -35,10 +43,13 @@ public class Document {
     @Column(name = "case_id")
     private Long caseId;
 
+    @Column(name = "uploaded_by_user_id", length = 36)
+    private String uploadedByUserId;
+
     public Document() {
     }
 
-    public Document(Long documentId, DocumentType documentType, String fileName, String storagePath, Instant uploadedAt, Long ctrId, Long sarId, Long caseId) {
+    public Document(Long documentId, DocumentType documentType, String fileName, String storagePath, Instant uploadedAt, Long ctrId, Long sarId, Long caseId, String uploadedByUserId) {
         this.documentId = documentId;
         this.documentType = documentType;
         this.fileName = fileName;
@@ -47,6 +58,7 @@ public class Document {
         this.ctrId = ctrId;
         this.sarId = sarId;
         this.caseId = caseId;
+        this.uploadedByUserId = uploadedByUserId;
     }
     public Long getDocumentId() {
         return documentId;
@@ -112,6 +124,14 @@ public class Document {
         this.caseId = caseId;
     }
 
+    public String getUploadedByUserId() {
+        return uploadedByUserId;
+    }
+
+    public void setUploadedByUserId(String uploadedByUserId) {
+        this.uploadedByUserId = uploadedByUserId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -136,6 +156,7 @@ public class Document {
                 ", ctrId=" + ctrId +
                 ", sarId=" + sarId +
                 ", caseId=" + caseId +
+                ", uploadedByUserId=" + uploadedByUserId +
                 '}';
     }
 }

@@ -4,14 +4,14 @@ package com.skillstorm.finsight.identity_auth.services;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.SimpleMailMessage;
 
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.models.OauthIdentity;

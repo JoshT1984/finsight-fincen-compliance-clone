@@ -1,12 +1,14 @@
 package com.skillstorm.finsight.documents_cases.utils;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.Optional;
-import java.util.UUID;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
  * Utility class for extracting user information from Spring Security context.
@@ -39,7 +41,15 @@ public class SecurityContextUtils {
             Object principal = authentication.getPrincipal();
             
             // Handle different principal types
-            if (principal instanceof UUID) {
+            if (principal instanceof Jwt) {
+                String subject = ((Jwt) principal).getSubject();
+                try {
+                    return Optional.of(UUID.fromString(subject));
+                } catch (IllegalArgumentException e) {
+                    log.warn("JWT subject is not a valid UUID: {}", subject);
+                    return Optional.empty();
+                }
+            } else if (principal instanceof UUID) {
                 return Optional.of((UUID) principal);
             } else if (principal instanceof String) {
                 try {
@@ -66,5 +76,42 @@ public class SecurityContextUtils {
             log.debug("Could not extract user ID from security context (Spring Security may not be configured): {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private static final String ROLE_PREFIX = "ROLE_";
+
+    /**
+     * Extracts the current user's role from Spring Security authorities (e.g. ANALYST, LAW_ENFORCEMENT_USER, COMPLIANCE_USER).
+     */
+    public static Optional<String> getCurrentUserRole() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return Optional.empty();
+            }
+            return authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(a -> a.startsWith(ROLE_PREFIX))
+                    .map(a -> a.substring(ROLE_PREFIX.length()))
+                    .findFirst();
+        } catch (Exception e) {
+            log.debug("Could not extract role from security context: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /** Returns true if the current user has the ANALYST role. */
+    public static boolean isAnalyst() {
+        return "ANALYST".equals(getCurrentUserRole().orElse(null));
+    }
+
+    /** Returns true if the current user has the LAW_ENFORCEMENT_USER role. */
+    public static boolean isLawEnforcement() {
+        return "LAW_ENFORCEMENT_USER".equals(getCurrentUserRole().orElse(null));
+    }
+
+    /** Returns true if the current user has the COMPLIANCE_USER role. */
+    public static boolean isComplianceUser() {
+        return "COMPLIANCE_USER".equals(getCurrentUserRole().orElse(null));
     }
 }
