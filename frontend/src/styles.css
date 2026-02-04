@@ -6,6 +6,8 @@
   --sky-200: #b2e3fa;
   --sky-050: #eff6fb;
   --gray-050: #f0f0f0;
+  --green-600: rgb(28, 122, 75);
+  --green-100: rgba(28, 122, 75, 0.14);
 
   /* UI tokens */
   --text: #0b1220;
@@ -42,6 +44,7 @@ h5,
 h6 {
   font-family: 'Merriweather Web', georgia, serif;
   font-weight: 400;
+  color: rgb(27,27,27)
 }
 
 p {
@@ -317,6 +320,10 @@ a {
 }
 .btn.primary {
   background: var(--navy-900);
+  color: #fff;
+}
+.btn.secondary {
+  background: var(--navy-800);
   color: #fff;
 }
 .btn.primary:hover {

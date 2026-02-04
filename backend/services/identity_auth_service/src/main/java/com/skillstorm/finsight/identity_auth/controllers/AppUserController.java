@@ -11,6 +11,7 @@ import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
 import com.skillstorm.finsight.identity_auth.requestDtos.ChangeEmailDto;
 import com.skillstorm.finsight.identity_auth.responseDtos.AppUserDto;
 import com.skillstorm.finsight.identity_auth.mappers.AppUserMapper;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,11 +41,38 @@ public class AppUserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<AppUserDto> getCurrentUser(org.springframework.security.core.Authentication authentication) {
+    public ResponseEntity<AppUserDto> getCurrentUser(Authentication authentication) {
         String userId = authentication.getName();
         Optional<AppUser> user = appUserService.findById(userId);
         return user.map(u -> ResponseEntity.ok(AppUserMapper.toDto(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<AppUserDto> updateCurrentUser(
+            Authentication authentication,
+            @RequestBody UpdateUserDto updateUserDto) {
+        String userId = authentication.getName();
+        Optional<AppUser> userOpt = appUserService.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AppUser updated = appUserService.updateUser(userId, updateUserDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<AppUserDto> updateCurrentUserPassword(
+            Authentication authentication,
+            @RequestBody ChangePasswordDto passwordDto) {
+        String userId = authentication.getName();
+        System.out.println(passwordDto);
+        Optional<AppUser> userOpt = appUserService.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AppUser updated = appUserService.updateUserPassword(userId, passwordDto);
+        return ResponseEntity.ok(AppUserMapper.toDto(updated));
     }
 
     @PostMapping("/analyst")

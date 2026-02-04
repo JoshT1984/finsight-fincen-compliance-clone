@@ -1,0 +1,31 @@
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  color: var(--muted, #4b5563);
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.breadcrumbs__link {
+  color: var(--muted, #4b5563);
+  text-decoration: none;
+}
+
+.breadcrumbs__link:hover {
+  color: var(--navy-800);
+  text-decoration: underline;
+}
+
+.breadcrumbs__current {
+  color: var(--navy-800);
+  font-weight: 600;
+}
+
+.breadcrumbs__sep {
+  color: var(--muted, #4b5563);
+  user-select: none;
+}

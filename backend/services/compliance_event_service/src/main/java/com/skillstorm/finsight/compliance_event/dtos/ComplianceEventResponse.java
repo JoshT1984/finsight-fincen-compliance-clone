@@ -2,6 +2,7 @@ package com.skillstorm.finsight.compliance_event.dtos;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 
 import com.skillstorm.finsight.compliance_event.models.EventStatus;
 import com.skillstorm.finsight.compliance_event.models.EventType;
@@ -15,5 +16,7 @@ public record ComplianceEventResponse(
         BigDecimal totalAmount,
         EventStatus status,
         Integer severityScore,
-        Instant createdAt) {
+        Instant createdAt,
+        Long suspectId,
+        Map<String, Object> suspectMinimal) {
 }

@@ -1,3 +1,4 @@
+
 package com.skillstorm.finsight.identity_auth.services;
 
 import java.time.Instant;
@@ -9,10 +10,13 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.SimpleMailMessage;
 
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
 import com.skillstorm.finsight.identity_auth.repositories.OauthIdentityRepository;
+import com.skillstorm.finsight.identity_auth.requestDtos.ChangePasswordDto;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 
 @Service
@@ -20,20 +24,36 @@ public class OauthIdentityService {
 
     private final OauthIdentityRepository oauthIdentityRepository;
     private final JwtEncoder jwtEncoder;
+
     private final AppUserService appUserService;
     private final PasswordEncoder passwordEncoder;
+    private final JavaMailSender mailSender;
 
     public OauthIdentityService(OauthIdentityRepository oauthIdentityRepository, JwtEncoder jwtEncoder,
-            PasswordEncoder passwordEncoder, AppUserService appUserService) {
+            PasswordEncoder passwordEncoder, AppUserService appUserService, JavaMailSender mailSender) {
         this.oauthIdentityRepository = oauthIdentityRepository;
         this.jwtEncoder = jwtEncoder;
         this.passwordEncoder = passwordEncoder;
         this.appUserService = appUserService;
+        this.mailSender = mailSender;
     }
 
     // In-memory store for refresh tokens (replace with persistent store in
     // production)
     private final java.util.Map<String, String> refreshTokenStore = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // In-memory store for password reset tokens: token -> (userId, expiration)
+    private final java.util.Map<String, ResetTokenInfo> resetTokenStore = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static class ResetTokenInfo {
+        String userId;
+        Instant expiresAt;
+
+        ResetTokenInfo(String userId, Instant expiresAt) {
+            this.userId = userId;
+            this.expiresAt = expiresAt;
+        }
+    }
 
     public LoginResponse loginWithRefresh(String email, String password) {
         AppUser user = appUserService.findByEmail(email)
@@ -103,5 +123,78 @@ public class OauthIdentityService {
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+    // Real password reset email logic
+    public boolean sendPasswordResetEmail(String email) {
+        AppUser user = null;
+        try {
+            user = appUserService.findByEmail(email).orElse(null);
+            if (user == null) {
+                // Do not reveal if user exists
+                return false;
+            }
+            // Generate a reset token and store it with expiration (15 min)
+            String resetToken = java.util.UUID.randomUUID().toString();
+            Instant expiresAt = Instant.now().plus(15, ChronoUnit.MINUTES);
+            resetTokenStore.put(resetToken, new ResetTokenInfo(user.getUserId(), expiresAt));
+
+            // Send email with real reset link (replace with your frontend URL)
+            String resetUrl = "http://localhost:4200/reset-password?token=" + resetToken;
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(user.getEmail());
+            message.setFrom("matthew.wright9630@gmail.com");
+            message.setSubject("Password Reset Request");
+            message.setText("You requested a password reset. Use this link to reset your password: " + resetUrl
+                    + "\n\nThis link will expire in 15 minutes.");
+            mailSender.send(message);
+
+            System.out.println("Password reset email sent to: " + user.getEmail() + " with token: " + resetToken);
+            return true;
+        } catch (Exception e) {
+            // Log the exception to console for debugging
+            System.err.println("Exception in sendPasswordResetEmail: " + e.getMessage());
+            e.printStackTrace();
+            // Do not reveal error details to client
+            return false;
+        }
+    }
+
+    /**
+     * Validate a password reset token and return the userId if valid, else null.
+     */
+    public String validateResetToken(String token) {
+        ResetTokenInfo info = resetTokenStore.get(token);
+        if (info == null)
+            return null;
+        if (Instant.now().isAfter(info.expiresAt)) {
+            resetTokenStore.remove(token);
+            return null;
+        }
+        return info.userId;
+    }
+
+    /**
+     * Consume a password reset token (removes it from the store).
+     */
+    public void consumeResetToken(String token) {
+        resetTokenStore.remove(token);
+    }
+
+    /**
+     * Reset the user's password using a valid token.
+     */
+    public boolean resetPassword(String token, String newPassword) {
+        String userId = validateResetToken(token);
+        if (userId == null)
+            return false;
+        AppUser user = appUserService.findById(userId).orElse(null);
+        if (user == null)
+            return false;
+        ChangePasswordDto passwordDto = new ChangePasswordDto();
+        passwordDto.setNewPassword(newPassword);
+        appUserService.updateUserPassword(user.getUserId(), passwordDto);
+        consumeResetToken(token);
+        return true;
     }
 }

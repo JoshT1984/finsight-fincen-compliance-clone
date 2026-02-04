@@ -1,0 +1,55 @@
+<div class="audit-events-modal">
+  <div class="audit-events-modal__overlay" (click)="onOverlayClick()"></div>
+  <div class="audit-events-modal__content">
+    <h2 class="audit-events-modal__title">Audit events — Case #{{ caseId }}</h2>
+    <button type="button" class="audit-events-modal__close" (click)="onClose()" aria-label="Close">×</button>
+
+    @if (loading) {
+      <p class="audit-events-modal__loading">Loading audit events...</p>
+    } @else if (error) {
+      <p class="audit-events-modal__error">{{ error }}</p>
+    } @else if (events.length === 0) {
+      <p class="audit-events-modal__empty">No audit events for this case or its documents.</p>
+    } @else {
+      <div class="audit-events-modal__table-wrapper">
+        <table class="audit-events-modal__table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Entity</th>
+              <th>Action</th>
+              <th>Actor</th>
+              <th>Metadata</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ev of events; track ev.auditId) {
+              <tr>
+                <td>{{ formatDate(ev.createdAt) }}</td>
+                <td class="audit-events-modal__entity">{{ ev.entityLabel }}</td>
+                <td><span class="audit-action audit-action-{{ ev.action | lowercase }}">{{ ev.action }}</span></td>
+                <td>{{ ev.actorUserId ?? '—' }}</td>
+                <td class="audit-metadata-cell">
+                  @if (hasMetadata(ev.metadata)) {
+                    <button
+                      type="button"
+                      class="audit-metadata-toggle"
+                      (click)="toggleMetadataExpanded(ev.auditId)"
+                      [attr.aria-expanded]="isMetadataExpanded(ev.auditId)">
+                      {{ isMetadataExpanded(ev.auditId) ? 'Hide metadata' : 'View metadata' }}
+                    </button>
+                    @if (isMetadataExpanded(ev.auditId)) {
+                      <pre class="audit-metadata-block">{{ formatMetadataPretty(ev.metadata) }}</pre>
+                    }
+                  } @else {
+                    <span class="audit-metadata-empty">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

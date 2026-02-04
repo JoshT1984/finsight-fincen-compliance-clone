@@ -75,6 +75,7 @@ public class AppUserService {
         foundUser.setFirstName(user.getFirstName());
         foundUser.setLastName(user.getLastName());
         foundUser.setPhone(user.getPhone());
+        foundUser.setEmail(user.getEmail());
         return foundUser;
     }
 

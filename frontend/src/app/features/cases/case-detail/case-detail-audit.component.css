@@ -1,0 +1,128 @@
+.category-label {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.case-section__loading,
+.case-section__empty {
+  color: #666;
+  margin: 0;
+}
+
+.case-section__error {
+  color: #c00;
+  margin: 0;
+}
+
+.case-section__table-wrapper {
+  overflow-x: auto;
+}
+
+.case-section__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.case-section__table th,
+.case-section__table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.case-section__table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.case-section__table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.case-section__entity {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case-section__metadata-cell {
+  vertical-align: top;
+  min-width: 120px;
+}
+
+.audit-action {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.audit-action-refer {
+  background-color: var(--navy-900);
+  color: white;
+}
+
+.audit-action-close {
+  background-color: var(--navy-800);
+  color: white;
+}
+
+.audit-action-update {
+  background-color: var(--sky-050);
+  color: var(--navy-900);
+  border: 1px solid var(--border);
+}
+
+.audit-action-upload {
+  background-color: var(--sky-200);
+  color: var(--navy-900);
+  border: 1px solid rgba(0, 38, 76, 0.18);
+}
+
+.audit-action-create {
+  background-color: var(--green-100);
+  color: var(--green-600);
+  border: 1px solid rgba(28, 122, 75, 0.35);
+}
+
+.audit-action-delete {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.audit-metadata-toggle {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--navy-800);
+  background: var(--sky-050);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.audit-metadata-toggle:hover {
+  background: var(--sky-200);
+}
+
+.audit-metadata-block {
+  margin: 0.5rem 0 0 0;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.audit-metadata-empty {
+  color: #999;
+}

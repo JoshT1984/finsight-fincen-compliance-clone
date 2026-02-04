@@ -4,10 +4,10 @@
  */
 export const environment = {
   production: false,
-  /** Documents microservice (documents-cases-service). No trailing slash. */
   documentsApiBaseUrl: 'http://localhost:8081',
-  /** Suspect registry microservice (suspect-registry-service). No trailing slash. */
   suspectApiBaseUrl: 'http://localhost:8082',
   /** Identity and Authorization microservice (identity-auth-service). No trailing slash. */
   identityApiBaseUrl: 'http://localhost:8083',
+  /** Compliance event microservice (compliance-event-service). No trailing slash. */
+  complianceApiBaseUrl: 'http://localhost:8085',
 };

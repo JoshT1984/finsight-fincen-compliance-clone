@@ -23,7 +23,7 @@
 }
 
 .side-nav-link.active {
-  color: #0056b3;
+  color: var(--navy-800, #093c6f);
   font-weight: bold;
 }
 
@@ -34,5 +34,5 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background-color: #0056b3;
+  background-color: var(--navy-800, #093c6f);
 }

@@ -1,38 +1,61 @@
 .profile-container {
-  max-width: 500px;
+  max-width: 70%;
   margin: 2rem auto;
   padding: 2rem;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
 }
+
 .profile-container h2 {
   margin-bottom: 1.5rem;
 }
-.profile-container label {
-  display: block;
-  margin: 0.5rem 0;
+
+form {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
 }
-.profile-container input {
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.5rem;
+
+.form-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
-.btn {
-  margin: 0.5rem 0.5rem 0.5rem 0;
-  padding: 0.5rem 1.2rem;
-  border: none;
-  border-radius: 4px;
-  background: #eee;
-  cursor: pointer;
+
+button {
+  width: 40%;
 }
-.btn.primary {
-  background: #005ea2;
-  color: #fff;
+
+.btn__div {
+  display: flex;
+  justify-content: space-between;
 }
+
+.profile-oauth {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-oauth button {
+  width: 50%;
+}
+
 .btn.oauth.google {
   background: #4285f4;
   color: #fff;
 }
+
 .btn.oauth.github {
   background: #333;
   color: #fff;

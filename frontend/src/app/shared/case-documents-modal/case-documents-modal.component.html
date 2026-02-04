@@ -1,0 +1,46 @@
+<div class="case-documents-modal">
+  <div class="case-documents-modal__overlay" (click)="onOverlayClick()"></div>
+  <div class="case-documents-modal__content">
+    <h2 class="case-documents-modal__title">Documents — Case #{{ caseId }}</h2>
+    <button type="button" class="case-documents-modal__close" (click)="onClose()" aria-label="Close">×</button>
+
+    @if (loading) {
+      <p class="case-documents-modal__loading">Loading documents...</p>
+    } @else if (error) {
+      <p class="case-documents-modal__error">{{ error }}</p>
+    } @else if (documents.length === 0) {
+      <p class="case-documents-modal__empty">No documents uploaded for this case.</p>
+    } @else {
+      <div class="case-documents-modal__table-wrapper">
+        <table class="case-documents-modal__table">
+          <thead>
+            <tr>
+              <th>File name</th>
+              <th>Type</th>
+              <th>Uploaded</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (doc of documents; track doc.documentId) {
+              <tr>
+                <td class="case-documents-modal__filename">{{ doc.fileName }}</td>
+                <td>{{ doc.documentType }}</td>
+                <td class="case-documents-modal__date">{{ formatDate(doc.uploadedAt) }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="case-documents-modal__download"
+                    (click)="downloadDocument(doc)"
+                    [disabled]="downloadingId === doc.documentId">
+                    {{ downloadingId === doc.documentId ? '…' : 'Download' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

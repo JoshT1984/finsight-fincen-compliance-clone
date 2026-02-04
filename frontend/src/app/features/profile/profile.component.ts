@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ProfileModel } from './profile.model';
+import { ProfileModel } from '../../models/profile.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IdentityService } from '../../shared/services/identity.service';
@@ -28,9 +28,13 @@ export class ProfileComponent implements OnInit {
   startEdit() {
     this.editMode = true;
   }
+
   saveEdit() {
-    this.editMode = false; /* TODO: Save changes */
+    this.identityService.saveProfileUpdates(this.profile!).subscribe(() => {
+      this.editMode = false;
+    });
   }
+
   cancelEdit() {
     this.editMode = false;
   }
@@ -38,9 +42,24 @@ export class ProfileComponent implements OnInit {
   startEditPassword() {
     this.editPasswordMode = true;
   }
+
+  currentPassword = '';
+  newPassword = '';
+  confirmPassword = '';
+
   saveEditPassword() {
-    this.editPasswordMode = false; /* TODO: Save password */
+    if (this.newPassword !== this.confirmPassword) {
+      // Optionally show error message
+      return;
+    }
+    this.identityService.changePassword(this.currentPassword, this.newPassword).subscribe(() => {
+      this.editPasswordMode = false;
+      this.currentPassword = '';
+      this.newPassword = '';
+      this.confirmPassword = '';
+    });
   }
+
   cancelEditPassword() {
     this.editPasswordMode = false;
   }

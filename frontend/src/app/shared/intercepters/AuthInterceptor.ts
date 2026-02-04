@@ -49,7 +49,6 @@ export class AuthInterceptor implements HttpInterceptor {
           return this.refreshToken().pipe(
             switchMap((res) => {
               localStorage.setItem('authToken', res.accessToken);
-
               // Retry original request with NEW token
               return next.handle(
                 authReq.clone({
@@ -59,12 +58,23 @@ export class AuthInterceptor implements HttpInterceptor {
                 }),
               );
             }),
+            catchError((refreshError) => {
+              // If refresh also fails, clear token and trigger logout
+              localStorage.removeItem('authToken');
+              // Optionally, trigger a logout event or redirect here
+              return throwError(() => refreshError);
+            }),
             finalize(() => {
               this.isRefreshing = false;
             }),
           );
         }
 
+        // If already tried refresh or not eligible, clear token and trigger logout
+        if (error.status === 401) {
+          localStorage.removeItem('authToken');
+          // Optionally, trigger a logout event or redirect here
+        }
         return throwError(() => error);
       }),
     );

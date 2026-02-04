@@ -29,6 +29,7 @@ export class LoginDialogService {
 
   close() {
     this._loginOpen.set(false);
+    this.closeForgotPassword();
   }
 
   login(email: string, password: string): Observable<string> {
@@ -62,5 +63,39 @@ export class LoginDialogService {
   private _loginOpen = signal(false);
   get loginOpen() {
     return this._loginOpen();
+  }
+
+  // Forgot password state
+  forgotPasswordMode = signal(false);
+  forgotPasswordEmail = signal('');
+  forgotPasswordMessage = signal('');
+
+  openForgotPassword() {
+    this.forgotPasswordMode.set(true);
+    this.forgotPasswordEmail.set('');
+    this.forgotPasswordMessage.set('');
+  }
+
+  closeForgotPassword() {
+    this.forgotPasswordMode.set(false);
+    this.forgotPasswordEmail.set('');
+    this.forgotPasswordMessage.set('');
+  }
+
+  requestPasswordReset(email: string): Observable<any> {
+    return this.http.post(`${this.apiBaseUrl}/auth/forgot-password`, { email }).pipe(
+      tap({
+        next: () => {
+          this.forgotPasswordMessage.set(
+            'If the email address is found, an email should arrive soon with instructions.',
+          );
+        },
+        error: () => {
+          this.forgotPasswordMessage.set(
+            'If the email address is found, an email should arrive soon with instructions.',
+          );
+        },
+      }),
+    );
   }
 }
