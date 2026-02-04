@@ -207,8 +207,11 @@ public class OauthIdentityService {
     }
 
     public String findUserId(String provider, String providerUserId) {
-        OauthIdentity identity = oauthIdentityRepository
-                .findByProviderAndProviderUserId(provider, providerUserId);
+        OauthIdentity identity = oauthIdentityRepository.findByProviderAndProviderUserId(provider, providerUserId);
+
+        if (identity == null || identity.getUser() == null) {
+            return null; // not linked yet
+        }
 
         return identity.getUser().getUserId();
     }

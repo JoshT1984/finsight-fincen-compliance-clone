@@ -13,10 +13,12 @@ export class IdentityService {
   profile$ = this.profileSubject.asObservable();
 
   private readonly apiBaseUrl: string;
+  private readonly REDIRECT_URI: string;
 
   constructor(private http: HttpClient) {
     const base = environment.identityApiBaseUrl || '';
     this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
+    this.REDIRECT_URI = 'http://localhost:8083/login/oauth2/code/google';
   }
 
   setProfile(profile: ProfileModel) {
@@ -148,6 +150,16 @@ export class IdentityService {
     // The backend should provide an endpoint that starts the OAuth flow and redirects back to the frontend
     // e.g., /auth/oauth2/authorize/google?redirect_uri=...
     if (provider === 'google') {
+      const jwt = localStorage.getItem('jwt'); // your internal JWT
+      if (jwt !== null) {
+        const state = encodeURIComponent(jwt); // simple, or use Base64
+        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?
+        client_id=516987948554-ndm6ct845c0angem1s92aver2i005c30.apps.googleusercontent.com
+        &redirect_uri=${this.REDIRECT_URI}?mode=link
+        &response_type=code
+        &scope=openid email profile
+        &state=${state}`;
+      }
       window.location.href = `${this.apiBaseUrl}/oauth2/authorization/google?mode=link`;
     } else if (provider === 'github') {
       window.location.href = `${this.apiBaseUrl}/oauth2/authorization/github?mode=link`;

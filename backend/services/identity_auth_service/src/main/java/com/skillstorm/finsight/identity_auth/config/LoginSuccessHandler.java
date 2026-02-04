@@ -8,7 +8,6 @@ import java.util.Map;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -16,7 +15,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
-import com.skillstorm.finsight.identity_auth.services.OauthStateService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,16 +24,10 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         private final JwtEncoder jwtEncoder;
         private final OauthIdentityService oauthIdentityService;
-        private final OauthStateService oauthStateService;
 
-        public LoginSuccessHandler(
-                        JwtEncoder jwtEncoder,
-                        OauthIdentityService oauthIdentityService,
-                        OauthStateService oauthStateService) {
-
+        public LoginSuccessHandler(JwtEncoder jwtEncoder, OauthIdentityService oauthIdentityService) {
                 this.jwtEncoder = jwtEncoder;
                 this.oauthIdentityService = oauthIdentityService;
-                this.oauthStateService = oauthStateService;
         }
 
         @Override
@@ -47,15 +39,27 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                 // 🔹 CASE 1: OAuth-based authentication
                 if (authentication instanceof OAuth2AuthenticationToken oauth) {
 
-                        String mode = extractMode(request);
+                        String provider = oauth.getAuthorizedClientRegistrationId();
+                        Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
+                        String providerUserId = extractProviderUserId(provider, attributes);
 
-                        if ("link".equals(mode)) {
-                                handleOAuthLinking(oauth, request, response);
-                                return;
+                        // 🔹 Check if provider is already linked
+
+                        System.out.println(provider + " user ID: " + providerUserId);
+                        String appUserId = oauthIdentityService.findUserId(provider, providerUserId);
+                        System.out.println("OAuth login attempt: provider=" + provider + ", providerUserId="
+                                        + providerUserId + ", appUserId=" + appUserId);
+
+                        if (appUserId != null) {
+                                // Existing provider → login
+                                handleOAuthLogin(appUserId, response);
+                        } else {
+                                System.out.println("No linked account found for provider user ID: " + providerUserId);
+                                // New provider → redirect to link account page
+                                // Store the OAuth token in session so /linkAccount can access it
+                                request.getSession().setAttribute("oauthToken", oauth);
+                                response.sendRedirect("http://localhost:4200/linkAccount");
                         }
-
-                        // Default OAuth behavior = login
-                        handleOAuthLogin(oauth, response);
                         return;
                 }
 
@@ -68,11 +72,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
          * =============== INTERNAL LOGIN (EMAIL/PASS)
          * =========================================================
          */
-
-        private void handleInternalLogin(
-                        Authentication authentication,
-                        HttpServletResponse response) throws IOException {
-
+        private void handleInternalLogin(Authentication authentication, HttpServletResponse response)
+                        throws IOException {
                 String userId = authentication.getName();
                 String role = authentication.getAuthorities()
                                 .stream()
@@ -88,52 +89,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
          * ==================== OAUTH LOGIN
          * =========================================================
          */
-
-        private void handleOAuthLogin(
-                        OAuth2AuthenticationToken oauth,
-                        HttpServletResponse response) throws IOException {
-
-                String provider = oauth.getAuthorizedClientRegistrationId();
-                Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
-
-                String providerUserId = extractProviderUserId(provider, attributes);
-
-                // 🔹 Map OAuth identity → internal user
-                String appUserId = oauthIdentityService.findUserId(provider, providerUserId);
-
+        private void handleOAuthLogin(String appUserId, HttpServletResponse response) throws IOException {
                 issueJwt(appUserId, "USER", response);
-        }
-
-        /*
-         * =========================================================
-         * ==================== OAUTH LINKING
-         * =========================================================
-         */
-
-        private void handleOAuthLinking(
-                        OAuth2AuthenticationToken oauth,
-                        HttpServletRequest request,
-                        HttpServletResponse response) throws IOException {
-
-                String appUserId = extractUserIdFromState(request);
-                if (appUserId == null) {
-                        throw new IllegalStateException("Missing userId in OAuth state");
-                }
-
-                String provider = oauth.getAuthorizedClientRegistrationId();
-                Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
-
-                String providerUserId = extractProviderUserId(provider, attributes);
-                String providerEmail = (String) attributes.get("email");
-
-                oauthIdentityService.linkOAuthIdentity(
-                                appUserId,
-                                provider,
-                                providerUserId,
-                                providerEmail);
-
-                // 🔹 No JWT issued here
-                response.sendRedirect("http://localhost:4200/settings?linked=success");
         }
 
         /*
@@ -141,11 +98,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
          * ==================== JWT CREATION
          * =========================================================
          */
-
-        private void issueJwt(
-                        String userId,
-                        String role,
-                        HttpServletResponse response) throws IOException {
+        private void issueJwt(String userId, String role, HttpServletResponse response) throws IOException {
 
                 Instant now = Instant.now();
 
@@ -174,66 +127,11 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
          * ==================== HELPERS
          * =========================================================
          */
-
-        private String extractMode(HttpServletRequest request) {
-
-                String state = request.getParameter("state");
-                Jwt jwt = oauthStateService.decodeState(state);
-
-                return jwt.getClaim("mode");
-        }
-
-        private String extractUserIdFromState(HttpServletRequest request) {
-
-                String state = request.getParameter("state");
-                Jwt jwt = oauthStateService.decodeState(state);
-                return jwt.getClaim("userId");
-        }
-
-        private String extractProviderUserId(
-                        String provider,
-                        Map<String, Object> attributes) {
-
+        private String extractProviderUserId(String provider, Map<String, Object> attributes) {
                 return switch (provider.toLowerCase()) {
                         case "google" -> (String) attributes.get("sub");
                         case "github" -> String.valueOf(attributes.get("id"));
-                        default -> throw new IllegalStateException(
-                                        "Unsupported OAuth provider: " + provider);
+                        default -> throw new IllegalStateException("Unsupported OAuth provider: " + provider);
                 };
         }
 }
-
-// @Override
-// public void onAuthenticationSuccess(
-// HttpServletRequest request,
-// HttpServletResponse response,
-// Authentication authentication) throws IOException {
-
-// Instant now = Instant.now();
-
-// String userId = authentication.getName(); // username or subject
-// String role = authentication.getAuthorities()
-// .stream()
-// .findFirst()
-// .map(GrantedAuthority::getAuthority)
-// .orElse("USER");
-
-// JwtClaimsSet claims = JwtClaimsSet.builder()
-// .issuer("identity-service")
-// .issuedAt(now)
-// .expiresAt(now.plus(1, ChronoUnit.HOURS))
-// .subject(userId)
-// .claim("role", role)
-// .build();
-
-// String token = jwtEncoder
-// .encode(JwtEncoderParameters.from(claims))
-// .getTokenValue();
-
-// response.setContentType("application/json");
-// response.getWriter().write("""
-// {
-// "accessToken": "%s"
-// }
-// """.formatted(token));
-// }

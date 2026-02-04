@@ -56,9 +56,8 @@ public class SecurityConfig {
     @Bean
     public LoginSuccessHandler loginSuccessHandler(
             org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder,
-            com.skillstorm.finsight.identity_auth.services.OauthIdentityService oauthIdentityService,
-            com.skillstorm.finsight.identity_auth.services.OauthStateService oauthStateService) {
-        return new LoginSuccessHandler(jwtEncoder, oauthIdentityService, oauthStateService);
+            com.skillstorm.finsight.identity_auth.services.OauthIdentityService oauthIdentityService) {
+        return new LoginSuccessHandler(jwtEncoder, oauthIdentityService);
     }
 
     @Bean
