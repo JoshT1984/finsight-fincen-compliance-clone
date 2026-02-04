@@ -19,6 +19,7 @@ export class ProfileComponent implements OnInit {
   ngOnInit() {
     this.identityService.profile$.subscribe((profile) => {
       this.profile = profile;
+      this.updateProviderLinks();
     });
   }
 
@@ -65,9 +66,31 @@ export class ProfileComponent implements OnInit {
   }
 
   linkGoogle() {
-    /* TODO: Link Google */
+    this.identityService.linkProvider('google');
   }
+
   linkGithub() {
-    /* TODO: Link GitHub */
+    this.identityService.linkProvider('github');
+  }
+
+  private updateProviderLinks() {
+    this.identityService.hasLinkedProvider('google').subscribe((val) => (this.googleLinked = val));
+    this.identityService.hasLinkedProvider('github').subscribe((val) => (this.githubLinked = val));
+  }
+
+  googleLinked = false;
+  githubLinked = false;
+
+  ngAfterViewInit() {
+    // If redirected back from OAuth, refresh profile
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('linked')) {
+      // Optionally, show a success message
+      this.identityService.setCurrentUserProfile().subscribe(() => {
+        this.updateProviderLinks();
+      });
+      // Remove the query param from the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }
 }

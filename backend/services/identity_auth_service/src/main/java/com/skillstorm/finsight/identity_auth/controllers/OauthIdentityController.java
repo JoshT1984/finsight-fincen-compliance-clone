@@ -1,11 +1,13 @@
 
 package com.skillstorm.finsight.identity_auth.controllers;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +15,8 @@ import org.springframework.http.HttpHeaders;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/auth")
@@ -38,20 +42,26 @@ public class OauthIdentityController {
                                 .body(response);
         }
 
-        @PostMapping("/oauth/link/{provider}")
-        public ResponseEntity<Void> linkAccount(
+        @GetMapping("/oauth/link/{provider}")
+        public void startLinking(
                         @PathVariable String provider,
-                        OAuth2AuthenticationToken auth,
-                        Authentication internalAuth) {
-                String appUserId = internalAuth.getName();
+                        HttpServletResponse response) throws IOException {
 
-                String providerUserId = auth.getPrincipal().getAttribute("sub");
+                response.sendRedirect("/oauth2/authorize/" + provider + "?mode=link");
+        }
 
-                oauthIdentityService.linkOAuthIdentity(
-                                appUserId,
-                                provider,
-                                providerUserId);
-                return ResponseEntity.noContent().build();
+        /**
+         * Checks if the current user is connected with the specified provider.
+         * Requires Authorization: Bearer <token> header.
+         */
+        @GetMapping("/oauth/linked/{provider}")
+        public ResponseEntity<Boolean> isProviderLinked(
+                        @PathVariable String provider,
+                        Authentication authentication) {
+                // Extract userId from authentication principal (assumes JWT subject is userId)
+                String userId = authentication.getName();
+                boolean linked = oauthIdentityService.isProviderLinked(userId, provider);
+                return ResponseEntity.ok(linked);
         }
 
         @PostMapping("/refresh")

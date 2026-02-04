@@ -30,6 +30,12 @@ export class IdentityService {
       .pipe(tap((profile) => this.setProfile(profile)));
   }
 
+  setCurrentUserProfile() {
+    return this.http
+      .get<ProfileModel>(`${this.apiBaseUrl}/api/users/me`, { withCredentials: true })
+      .pipe(tap((profile) => this.setProfile(profile)));
+  }
+
   /** Fetch a user's profile by ID (e.g. for displaying actor names). Does not set current user profile. */
   getUserProfile(userId: string): Observable<ProfileModel> {
     return this.http.get<ProfileModel>(`${this.apiBaseUrl}/api/users/${userId}`, {
@@ -131,5 +137,27 @@ export class IdentityService {
    */
   resetPassword(token: string, newPassword: string) {
     return this.http.post(`${this.apiBaseUrl}/auth/reset-password`, { token, newPassword });
+  }
+
+  /**
+   * Initiates OAuth linking for a provider (e.g., Google, GitHub).
+   * Redirects the user to the provider's login page.
+   * @param provider 'google' | 'github'
+   */
+  linkProvider(provider: 'google' | 'github') {
+    // The backend should provide an endpoint that starts the OAuth flow and redirects back to the frontend
+    // e.g., /auth/oauth2/authorize/google?redirect_uri=...
+    const redirectUri = encodeURIComponent(window.location.origin + '/profile?linked=' + provider);
+    window.location.href = `${this.apiBaseUrl}/auth/oauth2/authorize/${provider}?redirect_uri=${redirectUri}`;
+  }
+
+  /**
+   * Checks if the current user has a linked provider (e.g., Google, GitHub) by querying the backend.
+   * Returns an Observable<boolean>.
+   */
+  hasLinkedProvider(provider: 'google' | 'github'): Observable<boolean> {
+    return this.http.get<boolean>(`${this.apiBaseUrl}/auth/oauth/linked/${provider}`, {
+      withCredentials: true,
+    });
   }
 }

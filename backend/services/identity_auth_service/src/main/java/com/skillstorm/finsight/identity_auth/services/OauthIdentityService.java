@@ -89,7 +89,8 @@ public class OauthIdentityService {
     public void linkOAuthIdentity(
             String appUserId,
             String provider,
-            String providerUserId) {
+            String providerUserId,
+            String providerEmail) {
 
         AppUser user = appUserService.findById(appUserId)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
@@ -106,7 +107,7 @@ public class OauthIdentityService {
         identity.setProvider(provider);
         identity.setProviderUserId(providerUserId);
         identity.setUser(user);
-        identity.setEmailAtProvider(user.getEmail());
+        identity.setEmailAtProvider(providerEmail);
 
         oauthIdentityRepository.save(identity);
     }
@@ -196,5 +197,19 @@ public class OauthIdentityService {
         appUserService.updateUserPassword(user.getUserId(), passwordDto);
         consumeResetToken(token);
         return true;
+    }
+
+    /**
+     * Checks if the given user is connected with the specified provider.
+     */
+    public boolean isProviderLinked(String userId, String provider) {
+        return oauthIdentityRepository.existsByUserIdAndProvider(userId, provider);
+    }
+
+    public String findUserId(String provider, String providerUserId) {
+        OauthIdentity identity = oauthIdentityRepository
+                .findByProviderAndProviderUserId(provider, providerUserId);
+
+        return identity.getUser().getUserId();
     }
 }

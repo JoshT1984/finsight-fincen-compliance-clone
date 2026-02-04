@@ -39,11 +39,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/auth/oauth/link/**").authenticated()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error/**").permitAll()
                         .anyRequest().permitAll())
-                // .oauth2Login(oauth2 -> oauth2.successHandler(loginSuccessHandler)) // OAuth
+                .oauth2Login(oauth2 -> oauth2.successHandler(loginSuccessHandler)) // OAuth
                 // login
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
