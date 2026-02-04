@@ -14,7 +14,7 @@ public interface OauthIdentityRepository extends JpaRepository<OauthIdentity, Lo
     public boolean existsByProviderAndProviderUserId(String provider, String providerUserId);
 
     // Checks if a user is linked to a provider
-    public boolean existsByUserIdAndProvider(String userId, String provider);
+    public boolean existsByUserUserIdAndProvider(String userId, String provider);
 
     public OauthIdentity findByProviderAndProviderUserId(String provider, String providerUserId);
 }

@@ -147,8 +147,11 @@ export class IdentityService {
   linkProvider(provider: 'google' | 'github') {
     // The backend should provide an endpoint that starts the OAuth flow and redirects back to the frontend
     // e.g., /auth/oauth2/authorize/google?redirect_uri=...
-    const redirectUri = encodeURIComponent(window.location.origin + '/profile?linked=' + provider);
-    window.location.href = `${this.apiBaseUrl}/auth/oauth2/authorize/${provider}?redirect_uri=${redirectUri}`;
+    if (provider === 'google') {
+      window.location.href = `${this.apiBaseUrl}/oauth2/authorization/google?mode=link`;
+    } else if (provider === 'github') {
+      window.location.href = `${this.apiBaseUrl}/oauth2/authorization/github?mode=link`;
+    }
   }
 
   /**

@@ -203,7 +203,7 @@ public class OauthIdentityService {
      * Checks if the given user is connected with the specified provider.
      */
     public boolean isProviderLinked(String userId, String provider) {
-        return oauthIdentityRepository.existsByUserIdAndProvider(userId, provider);
+        return oauthIdentityRepository.existsByUserUserIdAndProvider(userId, provider);
     }
 
     public String findUserId(String provider, String providerUserId) {

@@ -5,32 +5,37 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
 
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
+import com.skillstorm.finsight.identity_auth.services.OauthStateService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-@Configuration
+@Component
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         private final JwtEncoder jwtEncoder;
         private final OauthIdentityService oauthIdentityService;
+        private final OauthStateService oauthStateService;
 
         public LoginSuccessHandler(
                         JwtEncoder jwtEncoder,
-                        OauthIdentityService oauthIdentityService) {
+                        OauthIdentityService oauthIdentityService,
+                        OauthStateService oauthStateService) {
 
                 this.jwtEncoder = jwtEncoder;
                 this.oauthIdentityService = oauthIdentityService;
+                this.oauthStateService = oauthStateService;
         }
 
         @Override
@@ -111,6 +116,9 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                         HttpServletResponse response) throws IOException {
 
                 String appUserId = extractUserIdFromState(request);
+                if (appUserId == null) {
+                        throw new IllegalStateException("Missing userId in OAuth state");
+                }
 
                 String provider = oauth.getAuthorizedClientRegistrationId();
                 Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
@@ -168,13 +176,18 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
          */
 
         private String extractMode(HttpServletRequest request) {
-                // TODO: decode from OAuth "state" parameter
-                return request.getParameter("mode"); // placeholder
+
+                String state = request.getParameter("state");
+                Jwt jwt = oauthStateService.decodeState(state);
+
+                return jwt.getClaim("mode");
         }
 
         private String extractUserIdFromState(HttpServletRequest request) {
-                // TODO: decode userId from OAuth "state"
-                return request.getParameter("userId"); // placeholder
+
+                String state = request.getParameter("state");
+                Jwt jwt = oauthStateService.decodeState(state);
+                return jwt.getClaim("userId");
         }
 
         private String extractProviderUserId(

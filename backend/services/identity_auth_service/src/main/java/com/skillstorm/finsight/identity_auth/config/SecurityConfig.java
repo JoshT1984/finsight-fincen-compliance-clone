@@ -16,11 +16,9 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    private LoginSuccessHandler loginSuccessHandler;
     private final JwtConfig jwtConfig;
 
-    public SecurityConfig(LoginSuccessHandler loginSuccessHandler, JwtConfig jwtConfig) {
-        this.loginSuccessHandler = loginSuccessHandler;
+    public SecurityConfig(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
     }
 
@@ -30,7 +28,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter,
+            LoginSuccessHandler loginSuccessHandler)
             throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -52,6 +51,14 @@ public class SecurityConfig {
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter)));
 
         return http.build();
+    }
+
+    @Bean
+    public LoginSuccessHandler loginSuccessHandler(
+            org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder,
+            com.skillstorm.finsight.identity_auth.services.OauthIdentityService oauthIdentityService,
+            com.skillstorm.finsight.identity_auth.services.OauthStateService oauthStateService) {
+        return new LoginSuccessHandler(jwtEncoder, oauthIdentityService, oauthStateService);
     }
 
     @Bean

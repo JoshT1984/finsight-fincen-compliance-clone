@@ -7,14 +7,13 @@ import java.util.Map;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.http.HttpHeaders;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
+import com.skillstorm.finsight.identity_auth.services.OauthStateService;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -23,9 +22,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class OauthIdentityController {
 
         private OauthIdentityService oauthIdentityService;
+        private OauthStateService oauthStateService;
 
-        public OauthIdentityController(OauthIdentityService oauthIdentityService) {
+        public OauthIdentityController(OauthIdentityService oauthIdentityService, OauthStateService oauthStateService) {
                 this.oauthIdentityService = oauthIdentityService;
+                this.oauthStateService = oauthStateService;
         }
 
         @PostMapping("/login")
@@ -42,13 +43,32 @@ public class OauthIdentityController {
                                 .body(response);
         }
 
-        @GetMapping("/oauth/link/{provider}")
-        public void startLinking(
+        @GetMapping("/oauth2/authorize/{provider}")
+        public void startOAuth(
                         @PathVariable String provider,
+                        @RequestParam String mode,
+                        Authentication authentication,
                         HttpServletResponse response) throws IOException {
 
-                response.sendRedirect("/oauth2/authorize/" + provider + "?mode=link");
+                String userId = null;
+
+                if ("link".equals(mode)) {
+                        userId = authentication.getName(); // internal user ID
+                }
+
+                String state = oauthStateService.createState(mode, userId);
+
+                response.sendRedirect(
+                                "/oauth2/authorization/" + provider + "?state=" + state);
         }
+
+        // @GetMapping("/oauth/link/{provider}")
+        // public void startLinking(
+        // @PathVariable String provider,
+        // HttpServletResponse response) throws IOException {
+
+        // response.sendRedirect("/oauth2/authorize/" + provider + "?mode=link");
+        // }
 
         /**
          * Checks if the current user is connected with the specified provider.
