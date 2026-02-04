@@ -18,6 +18,9 @@ import com.skillstorm.finsight.suspect_registry.models.AliasType;
 import com.skillstorm.finsight.suspect_registry.models.Suspect;
 import com.skillstorm.finsight.suspect_registry.repositories.AliasRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
+import com.skillstorm.finsight.suspect_registry.util.SecurityContextUtils;
+
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 public class AliasService {
@@ -46,6 +49,9 @@ public class AliasService {
 
   @Transactional
   public AliasResponse create(CreateAliasRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Creating alias for suspect ID: {}", request.suspectId());
     Suspect suspect = suspectRepo.findById(request.suspectId())
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + request.suspectId() + " not found"));
@@ -91,6 +97,9 @@ public class AliasService {
 
   @Transactional
   public AliasResponse updateById(Long aliasId, PatchAliasRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Patching alias with ID: {}", aliasId);
     Alias alias = repo.findById(aliasId)
         .orElseThrow(() -> new ResourceNotFoundException("Alias with ID " + aliasId + " not found"));
@@ -128,6 +137,9 @@ public class AliasService {
 
   @Transactional
   public void deleteById(Long aliasId) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Deleting alias with ID: {}", aliasId);
     if (!repo.existsById(aliasId)) {
       throw new ResourceNotFoundException("Alias with ID " + aliasId + " not found");
