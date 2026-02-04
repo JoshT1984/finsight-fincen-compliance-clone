@@ -16,6 +16,9 @@ import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundExcep
 import com.skillstorm.finsight.suspect_registry.models.Organization;
 import com.skillstorm.finsight.suspect_registry.models.OrganizationType;
 import com.skillstorm.finsight.suspect_registry.repositories.OrganizationRepository;
+import com.skillstorm.finsight.suspect_registry.util.SecurityContextUtils;
+
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 public class OrganizationService {
@@ -40,8 +43,11 @@ public class OrganizationService {
 
   @Transactional
   public OrganizationResponse create(CreateOrganizationRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Creating organization: {}", request.name());
-    
+
     if (repo.findByName(request.name()).isPresent()) {
       throw new ResourceConflictException("Organization with name " + request.name() + " already exists");
     }
@@ -72,6 +78,9 @@ public class OrganizationService {
 
   @Transactional
   public OrganizationResponse updateById(Long orgId, PatchOrganizationRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Patching organization with ID: {}", orgId);
     Organization org = repo.findById(orgId)
         .orElseThrow(() -> new ResourceNotFoundException("Organization with ID " + orgId + " not found"));
@@ -99,6 +108,9 @@ public class OrganizationService {
 
   @Transactional
   public void deleteById(Long orgId) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Deleting organization with ID: {}", orgId);
     if (!repo.existsById(orgId)) {
       throw new ResourceNotFoundException("Organization with ID " + orgId + " not found");

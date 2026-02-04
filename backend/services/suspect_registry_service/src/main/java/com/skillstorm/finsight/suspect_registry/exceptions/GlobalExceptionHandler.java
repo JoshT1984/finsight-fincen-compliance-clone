@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -28,6 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
  *   <li>{@link IllegalArgumentException} - Returns HTTP 400 (Bad Request) with full error logging</li>
  *   <li>{@link DataIntegrityViolationException} - Returns HTTP 400 (Bad Request) for database constraint violations</li>
  *   <li>{@link HttpMessageNotReadableException} - Returns HTTP 400 (Bad Request) for invalid JSON, including invalid enum values (e.g., organization type)</li>
+ *   <li>{@link AccessDeniedException} - Returns HTTP 403 (Forbidden) when compliance users attempt write operations</li>
  * </ul>
  * 
  * <p>All exception responses include:
@@ -76,7 +78,24 @@ public class GlobalExceptionHandler {
         pd.setProperty("path", request.getRequestURI());
         return pd;
     }
-	
+
+    /**
+     * Handles AccessDeniedException (e.g., compliance user attempting write) by returning an HTTP 403 response.
+     *
+     * @param ex The AccessDeniedException that was thrown
+     * @param request The HTTP request that triggered the exception
+     * @return A ProblemDetail with HTTP 403 status and message
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex,
+                                           HttpServletRequest request) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
+        pd.setTitle("Forbidden");
+        pd.setDetail(ex.getMessage() != null ? ex.getMessage() : "Compliance users have read-only access to the suspect registry");
+        pd.setProperty("path", request.getRequestURI());
+        return pd;
+    }
+
 	/**
 	 * Handles IllegalArgumentException by returning an HTTP 400 response.
 	 * 
