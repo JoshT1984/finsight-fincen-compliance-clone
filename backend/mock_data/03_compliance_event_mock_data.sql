@@ -1,49 +1,110 @@
--- ============================================
--- Mock Data: Compliance Event Service
--- Database: compliance_event
--- Run against compliance_event DB. Prerequisite: schema.sql
--- suspect_id references suspect.suspect_id in finsight_suspects (logical, no FK)
--- Event IDs 1,3 = CTR; 2,4 = SAR (referenced by case_file.sar_id and document)
--- ============================================
+-- =========================================================
+-- MOCK DATA
+-- =========================================================
 
-USE compliance_event;
+SET FOREIGN_KEY_CHECKS = 0;
 
--- Suspect snapshots (suspect_id 1,2,3 from suspect_registry)
-INSERT INTO suspect_snapshot_at_time_of_event (snapshot_id, suspect_id, last_known_alias, last_known_address, suspect_minimal, captured_at) VALUES
-  (1, 1, 'John Smith', '{"line1":"123 Main St","city":"New York"}', '{"name":"John Smith","risk":"HIGH"}', '2025-01-15 10:00:00.000'),
-  (2, 2, 'Maria Garcia', '{"line1":"456 Oak Ave","city":"Los Angeles"}', '{"name":"Maria Garcia","risk":"MEDIUM"}', '2025-01-15 11:00:00.000'),
-  (3, 3, 'Robert Chen', '{"line1":"789 Pine Rd","city":"Chicago"}', '{"name":"Robert Chen","risk":"LOW"}', '2025-01-15 12:00:00.000') AS new_row
-ON DUPLICATE KEY UPDATE last_known_alias = new_row.last_known_alias;
+TRUNCATE TABLE compliance_event_link;
+TRUNCATE TABLE audit_action;
+TRUNCATE TABLE compliance_event_ctr_detail;
+TRUNCATE TABLE compliance_event_sar_detail;
+TRUNCATE TABLE compliance_event;
+TRUNCATE TABLE suspect_snapshot_at_time_of_event;
+TRUNCATE TABLE cash_transaction;
 
--- Compliance events: 1=CTR, 2=SAR, 3=CTR, 4=SAR (source_entity_id must be unique per source_system)
-INSERT INTO compliance_event (event_id, event_type, source_system, source_entity_id, source_subject_type, source_subject_id, suspect_snapshot_id, event_time, total_amount, status, severity_score, created_at) VALUES
-  (1, 'CTR', 'CTR_SERVICE', '1', 'SUSPECT', '1', 1, '2025-01-15 14:30:00.000', 15000.00, 'FILED', NULL, '2025-01-15 14:30:00.000'),
-  (2, 'SAR', 'SAR_SERVICE', '1', 'SUSPECT', '1', 1, '2025-01-16 09:00:00.000', NULL, 'SUBMITTED', 75, '2025-01-16 09:00:00.000'),
-  (3, 'CTR', 'CTR_SERVICE', '2', 'SUSPECT', '2', 2, '2025-01-17 11:00:00.000', 25000.00, 'FILED', NULL, '2025-01-17 11:00:00.000'),
-  (4, 'SAR', 'SAR_SERVICE', '2', 'SUSPECT', '2', 2, '2025-01-18 10:00:00.000', NULL, 'SUBMITTED', 85, '2025-01-18 10:00:00.000') AS new_row
-ON DUPLICATE KEY UPDATE event_type = new_row.event_type;
+SET FOREIGN_KEY_CHECKS = 1;
 
--- CTR Detail (1:1 with CTR events 1 and 3)
-INSERT INTO compliance_event_ctr_detail (event_id, customer_name, transaction_time, ctr_form_data, created_at) VALUES
-  (1, 'John Smith', '2025-01-15 14:30:00.000', '{"amount":15000,"currency":"USD","transactionType":"CASH"}', '2025-01-15 14:30:00.000'),
-  (3, 'Maria Garcia', '2025-01-17 11:00:00.000', '{"amount":25000,"currency":"USD","transactionType":"WIRE"}', '2025-01-17 11:00:00.000') AS new_row
-ON DUPLICATE KEY UPDATE customer_name = new_row.customer_name;
+-- -------------------------
+-- A) Seed transactions that will generate a CTR (SUBJ-001)
+-- -------------------------
+INSERT INTO cash_transaction
+  (source_system, source_txn_id, external_subject_key, source_subject_type, source_subject_id, subject_name,
+   txn_time, cash_in, cash_out, currency, channel, location)
+VALUES
+  ('TXN_SEED', 'T-1001', 'SUBJ-001', 'CUSTOMER', 'CUST-001', 'John Doe',
+   '2026-02-01 09:00:00.000', 6000.00, 0.00, 'USD', 'BRANCH', 'Austin'),
+  ('TXN_SEED', 'T-1002', 'SUBJ-001', 'CUSTOMER', 'CUST-001', 'John Doe',
+   '2026-02-01 11:15:00.000', 5500.00, 0.00, 'USD', 'BRANCH', 'Austin');
 
--- SAR Detail (1:1 with SAR events 2 and 4)
-INSERT INTO compliance_event_sar_detail (event_id, narrative, activity_start, activity_end, form_data, submitted_at, created_at) VALUES
-  (2, 'Suspicious structuring activity involving multiple cash deposits under reporting threshold.', '2025-01-01 00:00:00.000', '2025-01-15 23:59:59.000', '{"suspiciousActivity":"STRUCTURING","amountInvolved":45000}', '2025-01-16 09:00:00.000', '2025-01-16 09:00:00.000'),
-  (4, 'Wire transfers to high-risk jurisdiction with no apparent business purpose.', '2025-01-10 00:00:00.000', '2025-01-18 23:59:59.000', '{"suspiciousActivity":"WIRE_FRAUD","amountInvolved":120000}', '2025-01-18 10:00:00.000', '2025-01-18 10:00:00.000') AS new_row
-ON DUPLICATE KEY UPDATE narrative = new_row.narrative;
+-- -------------------------
+-- B) Seed "structuring-style" pattern (SUBJ-002) for future SAR rules
+-- (each day < 10k, but multiple days in a short window)
+-- -------------------------
+INSERT INTO cash_transaction
+  (source_system, source_txn_id, external_subject_key, source_subject_type, source_subject_id, subject_name,
+   txn_time, cash_in, cash_out, currency, channel, location)
+VALUES
+  ('TXN_SEED', 'T-2001', 'SUBJ-002', 'CUSTOMER', 'CUST-002', 'Jane Smith',
+   '2026-01-30 10:00:00.000', 9500.00, 0.00, 'USD', 'BRANCH', 'Killeen'),
+  ('TXN_SEED', 'T-2002', 'SUBJ-002', 'CUSTOMER', 'CUST-002', 'Jane Smith',
+   '2026-01-31 10:30:00.000', 9200.00, 0.00, 'USD', 'BRANCH', 'Killeen'),
+  ('TXN_SEED', 'T-2003', 'SUBJ-002', 'CUSTOMER', 'CUST-002', 'Jane Smith',
+   '2026-02-01 14:00:00.000', 9800.00, 0.00, 'USD', 'BRANCH', 'Killeen');
 
--- M:N Event links (CTR <-> SAR): SAR 2 supports CTR 1; CTR 3 supports SAR 4
-INSERT INTO compliance_event_link (from_event_id, to_event_id, link_type, evidence_snapshot, linked_at) VALUES
-  (2, 1, 'SAR_SUPPORTS_CTR', '{"linkedBy":"investigator","reason":"SAR filed based on CTR pattern"}', '2025-01-16 10:00:00.000'),
-  (3, 4, 'CTR_SUPPORTS_SAR', '{"linkedBy":"analyst","reason":"CTR provides supporting transaction data"}', '2025-01-18 11:00:00.000') AS new_row
-ON DUPLICATE KEY UPDATE link_type = new_row.link_type;
+-- -------------------------
+-- C) Optional snapshots (only used if you want to attach suspect_snapshot_id)
+-- -------------------------
+INSERT INTO suspect_snapshot_at_time_of_event
+  (suspect_id, last_known_alias, last_known_address, suspect_minimal, captured_at)
+VALUES
+  (101, 'John Doe',
+   JSON_OBJECT('line1','1200 Main St','city','Austin','state','TX','postal_code','78701','country','US'),
+   JSON_OBJECT('primary_name','John Doe','risk_level','MEDIUM'),
+   CURRENT_TIMESTAMP(3) - INTERVAL 2 DAY
+  );
 
--- Audit actions (1:M with compliance_event) - MVP roles: Analyst, Compliance User
-INSERT INTO audit_action (audit_id, event_id, actor_user_id, actor_role, action, metadata, created_at) VALUES
-  (1, 1, '11111111-1111-1111-1111-111111111102', 'COMPLIANCE_USER', 'CTR_FILED', '{"amount":15000}', '2025-01-15 14:35:00.000'),
-  (2, 2, '11111111-1111-1111-1111-111111111102', 'COMPLIANCE_USER', 'SAR_SUBMITTED', '{"severity":75}', '2025-01-16 09:05:00.000'),
-  (3, 4, '11111111-1111-1111-1111-111111111101', 'ANALYST', 'SAR_REVIEWED', '{"approved":true}', '2025-01-18 10:30:00.000') AS new_row
-ON DUPLICATE KEY UPDATE action = new_row.action;
+-- -------------------------
+-- D) What the DB looks like AFTER your generator runs (example rows)
+-- NOTE: Your actual generator will create these.
+-- This section is optional: you can insert them manually for UI demos,
+-- or leave it empty and let the service populate it.
+-- -------------------------
+
+-- Example generated CTR event for SUBJ-001 on 2026-02-01
+INSERT INTO compliance_event
+  (event_type, source_system, source_entity_id, external_subject_key,
+   source_subject_type, source_subject_id, suspect_snapshot_id,
+   event_time, total_amount, status, severity_score,
+   correlation_id, idempotency_key)
+VALUES
+  ('CTR', 'AUTO_FROM_TXNS', 'AGGREGATION', 'SUBJ-001',
+   'CUSTOMER', 'CUST-001', (SELECT snapshot_id FROM suspect_snapshot_at_time_of_event LIMIT 1),
+   '2026-02-01 00:00:00.000', 11500.00, 'CREATED', NULL,
+   'corr-ctr-subj-001-2026-02-01', 'CTR:SUBJ-001:2026-02-01'
+  );
+
+INSERT INTO compliance_event_ctr_detail
+  (event_id, event_type, customer_name, transaction_time, ctr_form_data)
+VALUES
+  (
+    (SELECT event_id FROM compliance_event WHERE idempotency_key='CTR:SUBJ-001:2026-02-01'),
+    'CTR',
+    'John Doe',
+    '2026-02-01 09:00:00.000',
+    JSON_OBJECT(
+      'source','AUTO_FROM_TXNS',
+      'subjectKey','SUBJ-001',
+      'txnDay','2026-02-01',
+      'totalCashIn','11500.00',
+      'totalCashOut','0.00',
+      'totalCashAmount','11500.00',
+      'txnCount', 2,
+      'contributingTxnIds', JSON_ARRAY(
+        (SELECT txn_id FROM cash_transaction WHERE source_txn_id='T-1001' LIMIT 1),
+        (SELECT txn_id FROM cash_transaction WHERE source_txn_id='T-1002' LIMIT 1)
+      )
+    )
+  );
+
+-- Audit example for the generated CTR
+INSERT INTO audit_action
+  (event_id, actor_user_id, actor_role, action, metadata, correlation_id, idempotency_key)
+VALUES
+  (
+    (SELECT event_id FROM compliance_event WHERE idempotency_key='CTR:SUBJ-001:2026-02-01'),
+    '11111111-1111-1111-1111-111111111111', 'SYSTEM',
+    'CTR_CREATED',
+    JSON_OBJECT('notes','CTR created from cash_transaction daily aggregation'),
+    'corr-ctr-subj-001-2026-02-01',
+    'audit:CTR:SUBJ-001:2026-02-01:created'
+  );
