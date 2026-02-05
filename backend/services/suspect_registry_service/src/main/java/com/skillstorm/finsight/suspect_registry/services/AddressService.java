@@ -17,6 +17,9 @@ import com.skillstorm.finsight.suspect_registry.models.Address;
 import com.skillstorm.finsight.suspect_registry.repositories.AddressRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectAddressRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
+import com.skillstorm.finsight.suspect_registry.util.SecurityContextUtils;
+
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 public class AddressService {
@@ -49,8 +52,11 @@ public class AddressService {
 
   @Transactional
   public AddressResponse create(CreateAddressRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Creating address");
-    
+
     if (repo.findByAddressComponents(
         request.line1(),
         request.line2(),
@@ -102,6 +108,9 @@ public class AddressService {
 
   @Transactional
   public AddressResponse updateById(Long addressId, PatchAddressRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Patching address with ID: {}", addressId);
     Address address = repo.findById(addressId)
         .orElseThrow(() -> new ResourceNotFoundException("Address with ID " + addressId + " not found"));
@@ -138,6 +147,9 @@ public class AddressService {
 
   @Transactional
   public void deleteById(Long addressId) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Deleting address with ID: {}", addressId);
     if (!repo.existsById(addressId)) {
       throw new ResourceNotFoundException("Address with ID " + addressId + " not found");

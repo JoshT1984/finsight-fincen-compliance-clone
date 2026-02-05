@@ -1,4 +1,4 @@
-/* Landing page spacing only (keeps global styles in src/styles.css) */
+/* Signed-in dashboard / home (landing for authenticated users) */
 
 .hero {
   padding: 28px 22px 18px 22px;
@@ -29,7 +29,6 @@
   padding: 18px 0 28px;
 }
 
-/* Make cards clickable links */
 .grid .card {
   display: block;
   text-decoration: none;

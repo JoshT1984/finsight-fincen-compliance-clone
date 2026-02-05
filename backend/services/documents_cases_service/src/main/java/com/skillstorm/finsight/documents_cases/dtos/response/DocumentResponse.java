@@ -1,7 +1,8 @@
 package com.skillstorm.finsight.documents_cases.dtos.response;
 
-import com.skillstorm.finsight.documents_cases.models.DocumentType;
 import java.time.Instant;
+
+import com.skillstorm.finsight.documents_cases.models.DocumentType;
 
 public record DocumentResponse(
         Long documentId,
@@ -11,6 +12,7 @@ public record DocumentResponse(
         Instant uploadedAt,
         Long ctrId,
         Long sarId,
-        Long caseId
+        Long caseId,
+        String uploadedByUserId
 ) {
 }

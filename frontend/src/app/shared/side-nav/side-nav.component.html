@@ -12,9 +12,9 @@
   } @else {
     @for (item of navItems; track item.id) {
       <a
-        href="javascript:void(0)"
+        [href]="'#' + item.id"
         (click)="selectItem(item.id); $event.preventDefault()"
-        [class.active]="selectedItem === item.id"
+        [class.active]="(currentItemId ?? selectedItem) === item.id"
         class="side-nav-link">
         {{ item.label }}
       </a>

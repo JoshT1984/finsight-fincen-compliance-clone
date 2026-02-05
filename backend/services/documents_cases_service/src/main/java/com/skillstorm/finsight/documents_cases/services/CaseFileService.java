@@ -1,5 +1,11 @@
 package com.skillstorm.finsight.documents_cases.services;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,10 +20,8 @@ import com.skillstorm.finsight.documents_cases.exceptions.ResourceNotFoundExcept
 import com.skillstorm.finsight.documents_cases.models.CaseFile;
 import com.skillstorm.finsight.documents_cases.models.CaseStatus;
 import com.skillstorm.finsight.documents_cases.repositories.CaseFileRepository;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.skillstorm.finsight.documents_cases.repositories.DocumentRepository;
+import com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils;
 
 @Service
 public class CaseFileService {
@@ -25,10 +29,12 @@ public class CaseFileService {
     private static final Logger log = LoggerFactory.getLogger(CaseFileService.class);
     
     private final CaseFileRepository repo;
+    private final DocumentRepository documentRepo;
     private final AuditEventService auditEventService;
     
-    public CaseFileService(CaseFileRepository repo, AuditEventService auditEventService) {
+    public CaseFileService(CaseFileRepository repo, DocumentRepository documentRepo, AuditEventService auditEventService) {
     	this.repo = repo;
+    	this.documentRepo = documentRepo;
     	this.auditEventService = auditEventService;
     }
     
@@ -75,17 +81,34 @@ public class CaseFileService {
     
     public List<CaseFileResponse> findAll() {
     	log.debug("Retrieving all case files");
-    	return repo.findAll().stream()
-    			.map(this::toResponse)
-    			.collect(Collectors.toList());
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		return repo.findVisibleToLawEnforcement().stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		String userId = SecurityContextUtils.getCurrentUserId().map(UUID::toString).orElse(null);
+    		if (userId == null) return List.of();
+    		List<Long> caseIds = documentRepo.findDistinctCaseIdsByUploadedByUserId(userId);
+    		if (caseIds.isEmpty()) return List.of();
+    		return repo.findAllById(caseIds).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		return repo.findAll().stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	return List.of();
     }
     
     @Transactional
     public CaseFileResponse referById(Long caseId, ReferCaseRequest request) {
     	log.debug("Referring case file with ID: {} to agency: {}", caseId, request.referredToAgency());
-    	
     	CaseFile caseFile = repo.findById(caseId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
+    	enforceCaseAccess(caseId);
     	
     	if (request.referredToAgency() == null || request.referredToAgency().trim().isEmpty()) {
     		throw new IllegalArgumentException("Referred to agency is required");
@@ -111,9 +134,9 @@ public class CaseFileService {
     @Transactional
     public CaseFileResponse closeById(Long caseId) {
     	log.debug("Closing case file with ID: {}", caseId);
-    	
     	CaseFile caseFile = repo.findById(caseId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
+    	enforceCaseAccess(caseId);
     	
     	caseFile.setStatus(CaseStatus.CLOSED);
     	caseFile.setClosedAt(Instant.now());
@@ -131,21 +154,43 @@ public class CaseFileService {
     
     public CaseFileResponse findById(Long caseId) {
     	log.debug("Retrieving case file with ID: {}", caseId);
-    	
     	CaseFile caseFile = repo.findById(caseId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
-    	
+    	enforceCaseAccess(caseId);
     	return toResponse(caseFile);
+    }
+
+    private void enforceCaseAccess(Long caseId) {
+    	if (SecurityContextUtils.isLawEnforcement() && !visibleToLawEnforcementCaseIds().contains(caseId)) {
+    		throw new ResourceNotFoundException("Case file with ID " + caseId + " not found");
+    	}
+    	if (SecurityContextUtils.isComplianceUser() && !visibleToComplianceUserCaseIds().contains(caseId)) {
+    		throw new ResourceNotFoundException("Case file with ID " + caseId + " not found");
+    	}
+    	// ANALYST has full access; unknown roles denied by SecurityConfig
+    }
+
+    private Set<Long> visibleToLawEnforcementCaseIds() {
+    	return repo.findVisibleToLawEnforcement().stream()
+    			.map(CaseFile::getCaseId)
+    			.collect(Collectors.toSet());
+    }
+
+    private Set<Long> visibleToComplianceUserCaseIds() {
+    	String userId = SecurityContextUtils.getCurrentUserId().map(UUID::toString).orElse(null);
+    	if (userId == null) return Set.of();
+    	return documentRepo.findDistinctCaseIdsByUploadedByUserId(userId).stream()
+    			.collect(Collectors.toSet());
     }
     
     @Transactional
     public CaseFileResponse updateById(Long caseId, UpdateCaseFileRequest request) {
     	log.debug("Updating case file with ID: {}", caseId);
-    	log.debug("Update request - sarId: {}, status: {}, referredToAgency: {}", 
+    	log.debug("Update request - sarId: {}, status: {}, referredToAgency: {}",
     			request.sarId(), request.status(), request.referredToAgency());
-    	
     	CaseFile caseFile = repo.findById(caseId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
+    	enforceCaseAccess(caseId);
     	
     	// Create a copy of the old case file for audit comparison
     	CaseFile oldCaseFile = new CaseFile();
@@ -200,9 +245,9 @@ public class CaseFileService {
     @Transactional
     public void deleteById(Long caseId) {
     	log.debug("Deleting case file with ID: {}", caseId);
-    	
     	CaseFile caseFile = repo.findById(caseId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case file with ID " + caseId + " not found"));
+    	enforceCaseAccess(caseId);
     	
     	// Create audit event before deletion
     	auditEventService.auditDelete("CASE", String.valueOf(caseId), caseFile);

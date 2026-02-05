@@ -1,5 +1,11 @@
 package com.skillstorm.finsight.documents_cases.services;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,11 +16,10 @@ import com.skillstorm.finsight.documents_cases.dtos.request.UpdateCaseNoteReques
 import com.skillstorm.finsight.documents_cases.dtos.response.CaseNoteResponse;
 import com.skillstorm.finsight.documents_cases.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.documents_cases.models.CaseNote;
+import com.skillstorm.finsight.documents_cases.repositories.CaseFileRepository;
 import com.skillstorm.finsight.documents_cases.repositories.CaseNoteRepository;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.skillstorm.finsight.documents_cases.repositories.DocumentRepository;
+import com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils;
 
 @Service
 public class CaseNoteService {
@@ -22,10 +27,14 @@ public class CaseNoteService {
     private static final Logger log = LoggerFactory.getLogger(CaseNoteService.class);
     
     private final CaseNoteRepository repo;
+    private final CaseFileRepository caseFileRepo;
+    private final DocumentRepository documentRepo;
     private final AuditEventService auditEventService;
-    
-    public CaseNoteService(CaseNoteRepository repo, AuditEventService auditEventService) {
+
+    public CaseNoteService(CaseNoteRepository repo, CaseFileRepository caseFileRepo, DocumentRepository documentRepo, AuditEventService auditEventService) {
     	this.repo = repo;
+    	this.caseFileRepo = caseFileRepo;
+    	this.documentRepo = documentRepo;
     	this.auditEventService = auditEventService;
     }
     
@@ -42,7 +51,7 @@ public class CaseNoteService {
     @Transactional
     public CaseNoteResponse create(CreateCaseNoteRequest dto) {
     	log.debug("Creating case note for case ID: {}", dto.caseId());
-    	
+    	enforceCaseNoteAccess(dto.caseId());
     	CaseNote caseNote = new CaseNote();
     	caseNote.setCaseId(dto.caseId());
     	caseNote.setAuthorUserId(dto.authorUserId());
@@ -60,25 +69,63 @@ public class CaseNoteService {
     
     public List<CaseNoteResponse> findAll() {
     	log.debug("Retrieving all case notes");
-    	return repo.findAll().stream()
-    			.map(this::toResponse)
-    			.collect(Collectors.toList());
+    	if (SecurityContextUtils.isLawEnforcement()) {
+    		Set<Long> visibleCaseIds = visibleToLawEnforcementCaseIds();
+    		return repo.findByCaseIdIn(List.copyOf(visibleCaseIds)).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isComplianceUser()) {
+    		Set<Long> visibleCaseIds = visibleToComplianceUserCaseIds();
+    		if (visibleCaseIds.isEmpty()) return List.of();
+    		return repo.findByCaseIdIn(List.copyOf(visibleCaseIds)).stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	if (SecurityContextUtils.isAnalyst()) {
+    		return repo.findAll().stream()
+    				.map(this::toResponse)
+    				.collect(Collectors.toList());
+    	}
+    	return List.of();
     }
-    
+
     public List<CaseNoteResponse> findByCaseId(Long caseId) {
     	log.debug("Retrieving case notes for case ID: {}", caseId);
+    	enforceCaseNoteAccess(caseId);
     	return repo.findByCaseIdOrderByCreatedAtAsc(caseId).stream()
     			.map(this::toResponse)
     			.collect(Collectors.toList());
     }
-    
+
     public CaseNoteResponse findById(Long noteId) {
     	log.debug("Retrieving case note with ID: {}", noteId);
-    	
     	CaseNote caseNote = repo.findById(noteId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case note with ID " + noteId + " not found"));
-    	
+    	enforceCaseNoteAccess(caseNote.getCaseId());
     	return toResponse(caseNote);
+    }
+
+    private void enforceCaseNoteAccess(Long caseId) {
+    	if (SecurityContextUtils.isLawEnforcement() && !visibleToLawEnforcementCaseIds().contains(caseId)) {
+    		throw new ResourceNotFoundException("Case with ID " + caseId + " not found");
+    	}
+    	if (SecurityContextUtils.isComplianceUser() && !visibleToComplianceUserCaseIds().contains(caseId)) {
+    		throw new ResourceNotFoundException("Case with ID " + caseId + " not found");
+    	}
+    }
+
+    private Set<Long> visibleToLawEnforcementCaseIds() {
+    	return caseFileRepo.findVisibleToLawEnforcement().stream()
+    			.map(c -> c.getCaseId())
+    			.collect(Collectors.toSet());
+    }
+
+    private Set<Long> visibleToComplianceUserCaseIds() {
+    	String userId = SecurityContextUtils.getCurrentUserId().map(UUID::toString).orElse(null);
+    	if (userId == null) return Set.of();
+    	return documentRepo.findDistinctCaseIdsByUploadedByUserId(userId).stream()
+    			.collect(Collectors.toSet());
     }
     
     @Transactional
@@ -88,7 +135,7 @@ public class CaseNoteService {
     	
     	CaseNote caseNote = repo.findById(noteId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case note with ID " + noteId + " not found"));
-    	
+    	enforceCaseNoteAccess(caseNote.getCaseId());
     	// Create a copy of the old case note for audit comparison
     	CaseNote oldCaseNote = new CaseNote();
     	oldCaseNote.setNoteId(caseNote.getNoteId());
@@ -125,7 +172,7 @@ public class CaseNoteService {
     	
     	CaseNote caseNote = repo.findById(noteId)
     			.orElseThrow(() -> new ResourceNotFoundException("Case note with ID " + noteId + " not found"));
-    	
+    	enforceCaseNoteAccess(caseNote.getCaseId());
     	// Create audit event before deletion
     	auditEventService.auditDelete("CASE_NOTE", String.valueOf(noteId), caseNote);
     	

@@ -1,12 +1,54 @@
 -- ============================================================
--- MySQL 8.0+ (InnoDB) - Instant-friendly
--- TIMESTAMP(3) for millisecond precision
--- Trigger-free (JDBC-safe): uses composite FK guardrails instead
+-- compliance_event schema + cash_transaction (MVP)
+-- MySQL 8.0+ / InnoDB / TIMESTAMP(3)
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS compliance_event;
 USE compliance_event;
 
+-- -------------------------
+-- 0) CASH TRANSACTIONS (NEW)
+-- -------------------------
+CREATE TABLE IF NOT EXISTS cash_transaction (
+  txn_id BIGINT NOT NULL AUTO_INCREMENT,
+
+  source_system VARCHAR(64) NOT NULL DEFAULT 'TXN_SEED',
+  source_txn_id VARCHAR(64) NULL,
+
+  external_subject_key VARCHAR(128) NULL,
+  source_subject_type VARCHAR(32) NULL,
+  source_subject_id VARCHAR(128) NULL,
+  subject_name VARCHAR(256) NULL,
+
+  txn_time TIMESTAMP(3) NOT NULL,
+
+  cash_in DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  cash_out DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  currency CHAR(3) NOT NULL DEFAULT 'USD',
+
+  channel VARCHAR(32) NOT NULL DEFAULT 'BRANCH',
+  location VARCHAR(128) NULL,
+
+  created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+  PRIMARY KEY (txn_id),
+
+  CHECK (cash_in >= 0),
+  CHECK (cash_out >= 0)
+) ENGINE=InnoDB;
+
+CREATE INDEX IF NOT EXISTS idx_txn_subject_time
+  ON cash_transaction (source_subject_id, txn_time);
+
+CREATE INDEX IF NOT EXISTS idx_txn_ext_subject_time
+  ON cash_transaction (external_subject_key, txn_time);
+
+CREATE INDEX IF NOT EXISTS idx_txn_time
+  ON cash_transaction (txn_time);
+
+-- -------------------------
+-- 1) SUSPECT SNAPSHOT TABLE
+-- -------------------------
 CREATE TABLE IF NOT EXISTS suspect_snapshot_at_time_of_event (
   snapshot_id BIGINT NOT NULL AUTO_INCREMENT,
   suspect_id BIGINT NOT NULL,
@@ -18,6 +60,9 @@ CREATE TABLE IF NOT EXISTS suspect_snapshot_at_time_of_event (
   KEY idx_suspect_snapshot_suspect (suspect_id, captured_at)
 ) ENGINE=InnoDB;
 
+-- -------------------------
+-- 2) COMPLIANCE EVENT (CTR/SAR)
+-- -------------------------
 CREATE TABLE IF NOT EXISTS compliance_event (
   event_id BIGINT NOT NULL AUTO_INCREMENT,
 
@@ -87,6 +132,9 @@ CREATE TABLE IF NOT EXISTS compliance_event (
     )
 ) ENGINE=InnoDB;
 
+-- -------------------------
+-- 3) CTR DETAIL
+-- -------------------------
 CREATE TABLE IF NOT EXISTS compliance_event_ctr_detail (
   event_id BIGINT NOT NULL,
   event_type VARCHAR(16) NOT NULL DEFAULT 'CTR',
@@ -112,6 +160,9 @@ CREATE TABLE IF NOT EXISTS compliance_event_ctr_detail (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- -------------------------
+-- 4) SAR DETAIL
+-- -------------------------
 CREATE TABLE IF NOT EXISTS compliance_event_sar_detail (
   event_id BIGINT NOT NULL,
   event_type VARCHAR(16) NOT NULL DEFAULT 'SAR',
@@ -142,6 +193,9 @@ CREATE TABLE IF NOT EXISTS compliance_event_sar_detail (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- -------------------------
+-- 5) AUDIT ACTION
+-- -------------------------
 CREATE TABLE IF NOT EXISTS audit_action (
   audit_id BIGINT NOT NULL AUTO_INCREMENT,
 
@@ -172,6 +226,9 @@ CREATE TABLE IF NOT EXISTS audit_action (
     ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- -------------------------
+-- 6) EVENT LINKS
+-- -------------------------
 CREATE TABLE IF NOT EXISTS compliance_event_link (
   from_event_id BIGINT NOT NULL,
   to_event_id BIGINT NOT NULL,

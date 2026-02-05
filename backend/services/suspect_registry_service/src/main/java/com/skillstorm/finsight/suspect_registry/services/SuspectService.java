@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ import com.skillstorm.finsight.suspect_registry.repositories.OrganizationReposit
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectAddressRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectOrganizationRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
+import com.skillstorm.finsight.suspect_registry.util.SecurityContextUtils;
 import com.skillstorm.finsight.suspect_registry.util.SsnHashUtil;
 
 @Service
@@ -69,8 +71,11 @@ public class SuspectService {
 
   @Transactional
   public SuspectResponse create(CreateSuspectRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Creating suspect: {}", request.primaryName());
-    
+
     if (request.ssn() != null && !request.ssn().isBlank()) {
       SsnHashUtil.validateSsn(request.ssn());
       String ssnHash = SsnHashUtil.hash(request.ssn());
@@ -115,6 +120,9 @@ public class SuspectService {
 
   @Transactional
   public SuspectResponse updateById(Long suspectId, PatchSuspectRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Patching suspect with ID: {}", suspectId);
     Suspect suspect = repo.findById(suspectId)
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
@@ -151,6 +159,9 @@ public class SuspectService {
 
   @Transactional
   public SuspectResponse linkSuspectToOrganization(Long suspectId, LinkSuspectOrganizationRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Linking suspect {} to organization {}", suspectId, request.orgId());
     Suspect suspect = repo.findById(suspectId)
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
@@ -167,6 +178,9 @@ public class SuspectService {
 
   @Transactional
   public SuspectResponse linkAddressToSuspect(Long suspectId, LinkSuspectAddressRequest request) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Linking address {} to suspect {}", request.addressId(), suspectId);
     Suspect suspect = repo.findById(suspectId)
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
@@ -185,6 +199,9 @@ public class SuspectService {
 
   @Transactional
   public void deleteById(Long suspectId) {
+    if (SecurityContextUtils.isComplianceUser()) {
+      throw new AccessDeniedException("Compliance users have read-only access to the suspect registry");
+    }
     log.debug("Deleting suspect with ID: {}", suspectId);
     if (!repo.existsById(suspectId)) {
       throw new ResourceNotFoundException("Suspect with ID " + suspectId + " not found");

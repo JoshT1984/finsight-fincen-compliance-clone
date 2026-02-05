@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { LoginDialogService } from '../services/loginDialog.service';
 import { IdentityService } from '../services/identity.service';
 
@@ -18,6 +19,7 @@ export class LoginDialogComponent {
   constructor(
     private loginDialog: LoginDialogService,
     private identityService: IdentityService,
+    private router: Router,
   ) {}
 
   close() {
@@ -26,8 +28,10 @@ export class LoginDialogComponent {
 
   login() {
     this.loginDialog.login(this.email, this.password).subscribe({
-      next: (token: string) => {},
-      error: (error: any) => {
+      next: () => {
+        this.router.navigate(['/dashboard']);
+      },
+      error: (error: unknown) => {
         console.error('Login failed', error);
       },
     });
