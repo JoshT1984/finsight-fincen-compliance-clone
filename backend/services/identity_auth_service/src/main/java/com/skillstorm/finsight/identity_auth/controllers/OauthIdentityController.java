@@ -53,38 +53,30 @@ public class OauthIdentityController {
 
                 String userId = null;
 
-                if ("link".equals(mode)) {
-                        userId = authentication.getName(); // internal user ID
-                }
+                // if ("link".equals(mode)) {
+                // userId = authentication.getName(); // internal user ID
+                // }
 
-                String state = oauthStateService.createState(mode, userId);
+                // String state = oauthStateService.createState(mode, userId);
 
                 response.sendRedirect(
-                                "/oauth2/authorization/" + provider + "?state=" + state);
+                                "/oauth2/authorization/" + provider);
         }
-
-        // @GetMapping("/oauth/link/{provider}")
-        // public void startLinking(
-        // @PathVariable String provider,
-        // HttpServletResponse response) throws IOException {
-
-        // response.sendRedirect("/oauth2/authorize/" + provider + "?mode=link");
-        // }
 
         /**
          * Checks if the current user is connected with the specified provider.
          * Requires Authorization: Bearer <token> header.
          */
-        // @GetMapping("/oauth/linked/{provider}")
-        // public ResponseEntity<Boolean> isProviderLinked(
-        // @PathVariable String provider,
-        // Authentication authentication) {
-        // // Extract userId from authentication principal (assumes JWT subject is
-        // userId)
-        // String userId = authentication.getName();
-        // boolean linked = oauthIdentityService.isProviderLinked(userId, provider);
-        // return ResponseEntity.ok(linked);
-        // }
+        @GetMapping("/oauth/linked/{provider}")
+        public ResponseEntity<Boolean> isProviderLinked(
+                        @PathVariable String provider,
+                        Authentication authentication) {
+                // Extract userId from authentication principal (assumes JWT subject is
+                // userId)
+                String userId = authentication.getName();
+                boolean linked = oauthIdentityService.isProviderLinked(userId, provider);
+                return ResponseEntity.ok(linked);
+        }
 
         @PostMapping("/refresh")
         public ResponseEntity<LoginResponse> refresh(@CookieValue("refreshToken") String refreshToken) {

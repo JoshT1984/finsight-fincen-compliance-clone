@@ -14,6 +14,7 @@ import { ShellComponent } from './layout/shell/shell.component';
 import { UploadComponent } from './features/upload/upload.component';
 import { ProfileComponent } from './features/profile/profile.component';
 import { LinkAccountComponent } from './features/link-account/link-account.component';
+import { OauthCallbackComponent } from './features/oauth-callback/oauth-callback.component';
 
 export const routes: Routes = [
   {
@@ -40,6 +41,7 @@ export const routes: Routes = [
       { path: 'upload', component: UploadComponent },
       { path: 'profile', component: ProfileComponent },
       { path: 'linkAccount', component: LinkAccountComponent },
+      { path: 'oauth-callback', component: OauthCallbackComponent },
       {
         path: 'reset-password',
         loadComponent: () =>

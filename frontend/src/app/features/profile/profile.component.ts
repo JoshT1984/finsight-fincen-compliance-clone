@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ProfileModel } from '../../models/profile.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +14,10 @@ import { IdentityService } from '../../shared/services/identity.service';
 export class ProfileComponent implements OnInit {
   profile: ProfileModel | null = null;
 
-  constructor(private identityService: IdentityService) {}
+  constructor(
+    private identityService: IdentityService,
+    private cdr: ChangeDetectorRef, // inject ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     this.identityService.profile$.subscribe((profile) => {
@@ -74,8 +77,14 @@ export class ProfileComponent implements OnInit {
   }
 
   private updateProviderLinks() {
-    this.identityService.hasLinkedProvider('google').subscribe((val) => (this.googleLinked = val));
-    this.identityService.hasLinkedProvider('github').subscribe((val) => (this.githubLinked = val));
+    this.identityService.hasLinkedProvider('google').subscribe((val) => {
+      this.googleLinked = val;
+      this.cdr.detectChanges();
+    });
+    this.identityService.hasLinkedProvider('github').subscribe((val) => {
+      this.githubLinked = val;
+      this.cdr.detectChanges();
+    });
   }
 
   googleLinked = false;
@@ -87,7 +96,7 @@ export class ProfileComponent implements OnInit {
     if (params.has('linked')) {
       // Optionally, show a success message
       this.identityService.setCurrentUserProfile().subscribe(() => {
-        this.updateProviderLinks();
+        // this.updateProviderLinks();
       });
       // Remove the query param from the URL
       window.history.replaceState({}, document.title, window.location.pathname);

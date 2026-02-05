@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component } from '@angular/core';
 import { LoginDialogService } from '../services/loginDialog.service';
+import { IdentityService } from '../services/identity.service';
 
 @Component({
   selector: 'app-login-dialog',
@@ -14,7 +15,10 @@ export class LoginDialogComponent {
   email = '';
   password = '';
 
-  constructor(private loginDialog: LoginDialogService) {}
+  constructor(
+    private loginDialog: LoginDialogService,
+    private identityService: IdentityService,
+  ) {}
 
   close() {
     this.loginDialog.close();
@@ -27,6 +31,14 @@ export class LoginDialogComponent {
         console.error('Login failed', error);
       },
     });
+  }
+
+  loginWithGoogle() {
+    this.identityService.loginWithProvider('google');
+  }
+
+  loginWithGithub() {
+    this.identityService.loginWithProvider('github');
   }
 
   forgotPasswordEmail = '';

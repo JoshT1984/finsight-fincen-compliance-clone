@@ -147,8 +147,6 @@ export class IdentityService {
    * @param provider 'google' | 'github'
    */
   linkProvider(provider: 'google' | 'github') {
-    // The backend should provide an endpoint that starts the OAuth flow and redirects back to the frontend
-    // e.g., /auth/oauth2/authorize/google?redirect_uri=...
     if (provider === 'google') {
       const jwt = localStorage.getItem('jwt'); // your internal JWT
       if (jwt !== null) {
@@ -174,6 +172,14 @@ export class IdentityService {
     return this.http.get<boolean>(`${this.apiBaseUrl}/auth/oauth/linked/${provider}`, {
       withCredentials: true,
     });
+  }
+
+  /**
+   * Initiates OAuth login for a provider (Google, GitHub).
+   * Redirects the user to the backend endpoint to start the OAuth flow.
+   */
+  loginWithProvider(provider: 'google' | 'github'): void {
+    window.location.href = `${this.apiBaseUrl}/oauth2/authorization/${provider}?mode=login`;
   }
 
   linkAccount(): Observable<any> {

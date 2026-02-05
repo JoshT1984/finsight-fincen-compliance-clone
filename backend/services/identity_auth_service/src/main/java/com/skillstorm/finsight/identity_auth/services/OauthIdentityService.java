@@ -55,6 +55,11 @@ public class OauthIdentityService {
         }
     }
 
+    public AppUser getAppUserById(String userId) {
+        return appUserService.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+    }
+
     public LoginResponse loginWithRefresh(String email, String password) {
         AppUser user = appUserService.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));

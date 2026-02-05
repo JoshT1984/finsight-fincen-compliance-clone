@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,6 +83,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                                 .orElse("USER");
 
                 issueJwt(userId, role, response);
+                response.sendRedirect("http://localhost:4200/profile");
         }
 
         /*
@@ -90,7 +92,13 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
          * =========================================================
          */
         private void handleOAuthLogin(String appUserId, HttpServletResponse response) throws IOException {
-                issueJwt(appUserId, "USER", response);
+                // Fetch the user and their role
+                AppUser user = oauthIdentityService.getAppUserById(appUserId);
+                String role = user.getRole().getRoleName();
+                System.out.println("OAuth login successful for appUserId: " + appUserId);
+                System.out.println("Issuing JWT for user with role: " + role);
+                String token = issueJwt(appUserId, role);
+                response.sendRedirect("http://localhost:4200/oauth-callback?accessToken=" + token);
         }
 
         /*
@@ -120,6 +128,19 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                                   "accessToken": "%s"
                                 }
                                 """.formatted(token));
+        }
+
+        private String issueJwt(String userId, String role) {
+                Instant now = Instant.now();
+                JwtClaimsSet claims = JwtClaimsSet.builder()
+                                .issuer("identity-service")
+                                .issuedAt(now)
+                                .expiresAt(now.plus(1, ChronoUnit.HOURS))
+                                .subject(userId)
+                                .claim("role", role)
+                                .build();
+
+                return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
         }
 
         /*
