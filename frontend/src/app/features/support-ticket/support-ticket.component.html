@@ -1,0 +1,49 @@
+<div class="support-ticket-container">
+  <h1>Submit a support ticket</h1>
+  <p class="support-ticket-intro">Submit your request or question below.</p>
+
+  @if (submitted) {
+    <div class="support-ticket-success" role="status">
+      <p><strong>Thank you.</strong> Your support ticket has been submitted. A reference number will be sent to you by email. Our team will respond as soon as possible.</p>
+      <p><a routerLink="/">Return to home</a></p>
+    </div>
+  } @else {
+    <form (ngSubmit)="submit()">
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" name="category" [(ngModel)]="category">
+          @for (opt of categories; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="subject">Subject</label>
+        <input
+          id="subject"
+          type="text"
+          name="subject"
+          [(ngModel)]="subject"
+          placeholder="Brief summary of your request"
+          required />
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          [(ngModel)]="description"
+          rows="6"
+          placeholder="Please provide as much detail as possible."
+          required></textarea>
+      </div>
+      @if (error) {
+        <div class="form-error">{{ error }}</div>
+      }
+      <div class="form-actions">
+        <button type="submit">Submit ticket</button>
+        <a routerLink="/" class="cancel-link">Cancel</a>
+      </div>
+    </form>
+  }
+</div>
