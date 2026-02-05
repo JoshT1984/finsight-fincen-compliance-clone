@@ -13,7 +13,6 @@ import org.springframework.http.HttpHeaders;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
-import com.skillstorm.finsight.identity_auth.services.OauthStateService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,11 +22,9 @@ import jakarta.servlet.http.HttpServletResponse;
 public class OauthIdentityController {
 
         private OauthIdentityService oauthIdentityService;
-        private OauthStateService oauthStateService;
 
-        public OauthIdentityController(OauthIdentityService oauthIdentityService, OauthStateService oauthStateService) {
+        public OauthIdentityController(OauthIdentityService oauthIdentityService) {
                 this.oauthIdentityService = oauthIdentityService;
-                this.oauthStateService = oauthStateService;
         }
 
         @PostMapping("/login")
@@ -50,14 +47,6 @@ public class OauthIdentityController {
                         @RequestParam String mode,
                         Authentication authentication,
                         HttpServletResponse response) throws IOException {
-
-                String userId = null;
-
-                // if ("link".equals(mode)) {
-                // userId = authentication.getName(); // internal user ID
-                // }
-
-                // String state = oauthStateService.createState(mode, userId);
 
                 response.sendRedirect(
                                 "/oauth2/authorization/" + provider);
@@ -133,11 +122,9 @@ public class OauthIdentityController {
 
         @PostMapping("/oauth/link")
         public ResponseEntity<?> linkAccount(HttpServletRequest request, Authentication authentication) {
-                System.out.println("Linking account for user: " + authentication.getName() + " Session ID: "
-                                + request.getSession().getId());
+
                 OAuth2AuthenticationToken oauth = (OAuth2AuthenticationToken) request.getSession()
                                 .getAttribute("oauthToken");
-                System.out.println("OAuth token from session: " + oauth);
                 if (oauth == null) {
                         return ResponseEntity.badRequest().body("No OAuth info found in session.");
                 }

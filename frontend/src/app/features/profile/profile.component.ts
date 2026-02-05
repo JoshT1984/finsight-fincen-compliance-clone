@@ -18,7 +18,7 @@ export class ProfileComponent implements OnInit {
   constructor(
     private identityService: IdentityService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit() {

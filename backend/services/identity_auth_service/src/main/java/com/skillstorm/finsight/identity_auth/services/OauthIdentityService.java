@@ -155,7 +155,6 @@ public class OauthIdentityService {
                     + "\n\nThis link will expire in 15 minutes.");
             mailSender.send(message);
 
-            System.out.println("Password reset email sent to: " + user.getEmail() + " with token: " + resetToken);
             return true;
         } catch (Exception e) {
             // Log the exception to console for debugging

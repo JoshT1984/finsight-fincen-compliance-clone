@@ -46,16 +46,12 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
                         // 🔹 Check if provider is already linked
 
-                        System.out.println(provider + " user ID: " + providerUserId);
                         String appUserId = oauthIdentityService.findUserId(provider, providerUserId);
-                        System.out.println("OAuth login attempt: provider=" + provider + ", providerUserId="
-                                        + providerUserId + ", appUserId=" + appUserId);
 
                         if (appUserId != null) {
                                 // Existing provider → login
                                 handleOAuthLogin(appUserId, response);
                         } else {
-                                System.out.println("No linked account found for provider user ID: " + providerUserId);
                                 // New provider → redirect to link account page
                                 // Store the OAuth token in session so /linkAccount can access it
                                 request.getSession().setAttribute("oauthToken", oauth);
@@ -95,8 +91,6 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                 // Fetch the user and their role
                 AppUser user = oauthIdentityService.getAppUserById(appUserId);
                 String role = user.getRole().getRoleName();
-                System.out.println("OAuth login successful for appUserId: " + appUserId);
-                System.out.println("Issuing JWT for user with role: " + role);
                 String token = issueJwt(appUserId, role);
                 response.sendRedirect("http://localhost:4200/oauth-callback?accessToken=" + token);
         }
