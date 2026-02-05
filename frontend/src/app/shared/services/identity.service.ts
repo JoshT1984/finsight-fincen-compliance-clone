@@ -175,4 +175,8 @@ export class IdentityService {
       withCredentials: true,
     });
   }
+
+  linkAccount(): Observable<any> {
+    return this.http.post(this.apiBaseUrl + '/auth/oauth/link', {}, { withCredentials: true });
+  }
 }

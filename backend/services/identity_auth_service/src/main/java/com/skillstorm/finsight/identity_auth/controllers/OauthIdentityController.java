@@ -1,4 +1,3 @@
-
 package com.skillstorm.finsight.identity_auth.controllers;
 
 import java.io.IOException;
@@ -7,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.http.HttpHeaders;
@@ -15,6 +15,7 @@ import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
 import com.skillstorm.finsight.identity_auth.services.OauthStateService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
@@ -62,13 +63,13 @@ public class OauthIdentityController {
                                 "/oauth2/authorization/" + provider + "?state=" + state);
         }
 
-        @GetMapping("/oauth/link/{provider}")
-        public void startLinking(
-                        @PathVariable String provider,
-                        HttpServletResponse response) throws IOException {
+        // @GetMapping("/oauth/link/{provider}")
+        // public void startLinking(
+        // @PathVariable String provider,
+        // HttpServletResponse response) throws IOException {
 
-                response.sendRedirect("/oauth2/authorize/" + provider + "?mode=link");
-        }
+        // response.sendRedirect("/oauth2/authorize/" + provider + "?mode=link");
+        // }
 
         /**
          * Checks if the current user is connected with the specified provider.
@@ -136,5 +137,36 @@ public class OauthIdentityController {
                 } else {
                         return ResponseEntity.status(403).build(); // Invalid or expired token
                 }
+        }
+
+        @PostMapping("/oauth/link")
+        public ResponseEntity<?> linkAccount(HttpServletRequest request, Authentication authentication) {
+                System.out.println("Linking account for user: " + authentication.getName() + " Session ID: "
+                                + request.getSession().getId());
+                OAuth2AuthenticationToken oauth = (OAuth2AuthenticationToken) request.getSession()
+                                .getAttribute("oauthToken");
+                System.out.println("OAuth token from session: " + oauth);
+                if (oauth == null) {
+                        return ResponseEntity.badRequest().body("No OAuth info found in session.");
+                }
+
+                String provider = oauth.getAuthorizedClientRegistrationId();
+                Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
+                String providerUserId = extractProviderUserId(provider, attributes);
+                String providerEmail = (String) attributes.get("email");
+
+                String appUserId = authentication.getName();
+
+                oauthIdentityService.linkOAuthIdentity(appUserId, provider, providerUserId, providerEmail);
+
+                return ResponseEntity.ok().build();
+        }
+
+        private String extractProviderUserId(String provider, Map<String, Object> attributes) {
+                return switch (provider.toLowerCase()) {
+                        case "google" -> (String) attributes.get("sub");
+                        case "github" -> String.valueOf(attributes.get("id"));
+                        default -> throw new IllegalStateException("Unsupported OAuth provider: " + provider);
+                };
         }
 }

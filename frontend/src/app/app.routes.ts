@@ -13,6 +13,7 @@ import { SarsComponent } from './features/sars/sars.component';
 import { ShellComponent } from './layout/shell/shell.component';
 import { UploadComponent } from './features/upload/upload.component';
 import { ProfileComponent } from './features/profile/profile.component';
+import { LinkAccountComponent } from './features/link-account/link-account.component';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,7 @@ export const routes: Routes = [
       { path: 'documents', component: DocumentsComponent },
       { path: 'upload', component: UploadComponent },
       { path: 'profile', component: ProfileComponent },
+      { path: 'linkAccount', component: LinkAccountComponent },
       {
         path: 'reset-password',
         loadComponent: () =>
