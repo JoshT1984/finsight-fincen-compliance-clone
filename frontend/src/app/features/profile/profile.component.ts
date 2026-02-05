@@ -3,6 +3,7 @@ import { ProfileModel } from '../../models/profile.model';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IdentityService } from '../../shared/services/identity.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
@@ -16,13 +17,18 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private identityService: IdentityService,
-    private cdr: ChangeDetectorRef, // inject ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) {}
 
   ngOnInit() {
     this.identityService.profile$.subscribe((profile) => {
       this.profile = profile;
-      this.updateProviderLinks();
+      if (!profile) {
+        this.router.navigate(['/home']);
+      } else {
+        this.updateProviderLinks();
+      }
     });
   }
 
