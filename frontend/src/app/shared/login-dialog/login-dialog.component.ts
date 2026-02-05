@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginDialogService } from '../services/loginDialog.service';
+import { IdentityService } from '../services/identity.service';
 
 @Component({
   selector: 'app-login-dialog',
@@ -17,6 +18,7 @@ export class LoginDialogComponent {
 
   constructor(
     private loginDialog: LoginDialogService,
+    private identityService: IdentityService,
     private router: Router,
   ) {}
 
@@ -33,6 +35,14 @@ export class LoginDialogComponent {
         console.error('Login failed', error);
       },
     });
+  }
+
+  loginWithGoogle() {
+    this.identityService.loginWithProvider('google');
+  }
+
+  loginWithGithub() {
+    this.identityService.loginWithProvider('github');
   }
 
   forgotPasswordEmail = '';

@@ -54,7 +54,20 @@
 
   <div class="profile-oauth">
     <span>Link to account:</span>
-    <button class="btn oauth google" (click)="linkGoogle()">Google</button>
-    <button class="btn oauth github" (click)="linkGithub()">GitHub</button>
+    <ng-container>
+      <ng-container *ngIf="!googleLinked; else googleLinkedText">
+        <button class="btn oauth google" (click)="linkGoogle()">Link to Google</button>
+      </ng-container>
+      <ng-template #googleLinkedText>
+        <span class="linked-status google">Account linked with Google</span>
+      </ng-template>
+
+      <ng-container *ngIf="!githubLinked; else githubLinkedText">
+        <button class="btn oauth github" (click)="linkGithub()">Link to GitHub</button>
+      </ng-container>
+      <ng-template #githubLinkedText>
+        <span class="linked-status github">Account linked with GitHub</span>
+      </ng-template>
+    </ng-container>
   </div>
 </div>

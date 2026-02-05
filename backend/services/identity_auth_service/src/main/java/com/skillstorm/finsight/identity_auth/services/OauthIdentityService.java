@@ -55,6 +55,11 @@ public class OauthIdentityService {
         }
     }
 
+    public AppUser getAppUserById(String userId) {
+        return appUserService.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+    }
+
     public LoginResponse loginWithRefresh(String email, String password) {
         AppUser user = appUserService.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -89,7 +94,8 @@ public class OauthIdentityService {
     public void linkOAuthIdentity(
             String appUserId,
             String provider,
-            String providerUserId) {
+            String providerUserId,
+            String providerEmail) {
 
         AppUser user = appUserService.findById(appUserId)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
@@ -106,7 +112,7 @@ public class OauthIdentityService {
         identity.setProvider(provider);
         identity.setProviderUserId(providerUserId);
         identity.setUser(user);
-        identity.setEmailAtProvider(user.getEmail());
+        identity.setEmailAtProvider(providerEmail);
 
         oauthIdentityRepository.save(identity);
     }
@@ -149,7 +155,6 @@ public class OauthIdentityService {
                     + "\n\nThis link will expire in 15 minutes.");
             mailSender.send(message);
 
-            System.out.println("Password reset email sent to: " + user.getEmail() + " with token: " + resetToken);
             return true;
         } catch (Exception e) {
             // Log the exception to console for debugging
@@ -196,5 +201,22 @@ public class OauthIdentityService {
         appUserService.updateUserPassword(user.getUserId(), passwordDto);
         consumeResetToken(token);
         return true;
+    }
+
+    /**
+     * Checks if the given user is connected with the specified provider.
+     */
+    public boolean isProviderLinked(String userId, String provider) {
+        return oauthIdentityRepository.existsByUserUserIdAndProvider(userId, provider);
+    }
+
+    public String findUserId(String provider, String providerUserId) {
+        OauthIdentity identity = oauthIdentityRepository.findByProviderAndProviderUserId(provider, providerUserId);
+
+        if (identity == null || identity.getUser() == null) {
+            return null; // not linked yet
+        }
+
+        return identity.getUser().getUserId();
     }
 }

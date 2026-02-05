@@ -10,6 +10,9 @@
 -- SET NAMES utf8mb4;
 -- SET collation_connection = 'utf8mb4_0900_ai_ci';
 
+DROP TABLE oauth_identity cascade;
+DROP TABLE app_user cascade;
+
 CREATE TABLE IF NOT EXISTS role (
   role_id INT NOT NULL AUTO_INCREMENT,
   role_name VARCHAR(64) NOT NULL,

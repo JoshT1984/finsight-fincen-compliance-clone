@@ -1,3 +1,4 @@
+
 package com.skillstorm.finsight.identity_auth.repositories;
 
 import java.util.List;
@@ -11,4 +12,9 @@ public interface OauthIdentityRepository extends JpaRepository<OauthIdentity, Lo
     public List<OauthIdentity> findByEmailAtProvider(String email);
 
     public boolean existsByProviderAndProviderUserId(String provider, String providerUserId);
+
+    // Checks if a user is linked to a provider
+    public boolean existsByUserUserIdAndProvider(String userId, String provider);
+
+    public OauthIdentity findByProviderAndProviderUserId(String provider, String providerUserId);
 }

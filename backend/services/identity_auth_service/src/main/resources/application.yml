@@ -27,6 +27,8 @@ spring:
                 dialect: org.hibernate.dialect.MySQL8Dialect
                 jdbc:
                     time_zone: UTC
+    profiles:
+        active: dev
 
     servlet:
         multipart:
@@ -46,6 +48,39 @@ spring:
             mode: "${SQL_INIT_MODE:always}"
             platform: mysql
             continue-on-error: false
+    mail:
+        host: email-smtp.us-east-1.amazonaws.com
+        port: 587
+        username: ${SES_SMTP_USERNAME}
+        password: ${SES_SMTP_PASSWORD}
+
+    security:
+        oauth2:
+            client:
+                registration:
+                    google:
+                        client-id: "${GOOGLE_CLIENT_ID}"
+                        client-secret: "${GOOGLE_CLIENT_SECRET}"
+                        scope:
+                            - openid
+                            - profile
+                            - email
+                        redirect-uri: "${GOOGLE_REDIRECT_URI:http://localhost:8083/login/oauth2/code/google}"
+                    github:
+                        client-id: "${GITHUB_CLIENT_ID}"
+                        client-secret: "${GITHUB_CLIENT_SECRET}"
+                        scope:
+                            - user:email
+                        redirect-uri: "${GITHUB_REDIRECT_URI:http://localhost:8083/login/oauth2/code/github}"
+                provider:
+                    github:
+                        authorization-uri: https://github.com/login/oauth/authorize
+                        token-uri: https://github.com/login/oauth/access_token
+                        user-info-uri: https://api.github.com/user
+                    google:
+                        authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+                        token-uri: https://oauth2.googleapis.com/token
+                        user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
     mail:
         host: email-smtp.us-east-1.amazonaws.com
         port: 587

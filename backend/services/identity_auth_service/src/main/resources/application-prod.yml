@@ -99,19 +99,19 @@ spring:
             client:
                 registration:
                     google:
-                        client-id: ${GOOGLE_CLIENT_ID}
-                        client-secret: ${GOOGLE_CLIENT_SECRET}
+                        client-id: "${GOOGLE_CLIENT_ID}"
+                        client-secret: "${GOOGLE_CLIENT_SECRET}"
                         scope:
                             - openid
                             - profile
                             - email
-                        redirect-uri: http://localhost:8080/login/oauth2/code/google
+                        redirect-uri: "${GOOGLE_REDIRECT_URI:http://localhost:8083/login/oauth2/code/google}"
                     github:
-                        client-id: ${GITHUB_CLIENT_ID}
-                        client-secret: ${GITHUB_CLIENT_SECRET}
+                        client-id: "${GITHUB_CLIENT_ID}"
+                        client-secret: "${GITHUB_CLIENT_SECRET}"
                         scope:
                             - user:email
-                        redirect-uri: http://localhost:8080/login/oauth2/code/github
+                        redirect-uri: "${GITHUB_REDIRECT_URI:http://localhost:8083/login/oauth2/code/github}"
                 provider:
                     github:
                         authorization-uri: https://github.com/login/oauth/authorize
