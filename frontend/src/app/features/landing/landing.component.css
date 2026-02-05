@@ -1,4 +1,13 @@
-/* Signed-in dashboard / home (landing for authenticated users) */
+/* Increase height of Compliance workflow container */
+.hero {
+  min-height: 25vh;
+}
+
+/* Increase height of CTRS, SARS, CASES containers */
+.card {
+  min-height: 130%;
+}
+/* Landing page spacing only (keeps global styles in src/styles.css) */
 
 .hero {
   padding: 28px 22px 18px 22px;
@@ -34,7 +43,9 @@
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .grid .card:hover {

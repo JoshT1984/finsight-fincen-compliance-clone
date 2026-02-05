@@ -53,6 +53,8 @@ pnpm-debug.log*
 # Maven
 target/
 !.mvn/wrapper/maven-wrapper.jar
+bin/
+*.class
 
 # Gradle (if ever used)
 .gradle/

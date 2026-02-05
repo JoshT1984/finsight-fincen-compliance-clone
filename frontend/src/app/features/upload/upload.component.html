@@ -1,141 +1,89 @@
-<div class="container upload-container">
-  <div id="upload-header">
-    <h1>Document Upload</h1>
-  </div>
+<div class="container">
+  <section class="hero" aria-label="Upload intro">
+    <h2>Document Upload</h2>
+    <p>
+      Upload a CTR, SAR, or Case document. The original file is stored immutably and key fields are
+      extracted for review.
+    </p>
+  </section>
 
-  @if (success) {
-    <div class="success-message">
-      <span class="success-icon" aria-hidden="true">✓</span>
-      <div class="success-content">
-        <strong>Upload successful</strong>
-        <p>{{ success.fileName }} has been uploaded.</p>
-        <span class="success-detail">Document ID: {{ success.documentId }} · Type: {{ success.documentType }}</span>
-      </div>
-    </div>
-  }
-
-  <div class="upload-form">
-    <div class="form-group">
-      <label for="document-type">Document Type</label>
-      <select id="document-type" name="documentType" [(ngModel)]="documentType" (ngModelChange)="onDocumentTypeChange($event)">
-        <option value="CTR">CTR</option>
-        <option value="SAR">SAR</option>
-        <option value="CASE">Case</option>
-      </select>
-    </div>
-
-    @if (documentType === 'CTR') {
-      <div class="form-group">
-        <label>CTR</label>
-        <div class="radio-group">
-          <label class="radio-option">
-            <input type="radio" name="ctrMode" value="new" [(ngModel)]="ctrMode" (ngModelChange)="ctrId = null" />
-            Create new CTR
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="ctrMode" value="existing" [(ngModel)]="ctrMode" />
-            Select CTR
-          </label>
+  <section class="content" aria-label="Upload content">
+    @if (success) {
+      <div class="notice notice-success" role="status" aria-live="polite">
+        <span class="notice-icon" aria-hidden="true">✓</span>
+        <div class="notice-content">
+          <div class="notice-title">Upload successful</div>
+          <div class="notice-body">{{ success.fileName }} has been uploaded.</div>
+          <div class="notice-meta">
+            Document ID: {{ success.documentId }} · Type: {{ success.documentType }}
+          </div>
         </div>
-        @if (ctrMode === 'existing') {
-          @if (loadingOptions) {
-            <p class="options-loading">Loading CTRs...</p>
-          } @else {
-            <select
-              id="ctr-select"
-              name="ctrId"
-              [(ngModel)]="ctrId"
-              class="descriptive-select ctr-dropdown">
-              <option [ngValue]="null" disabled>— Select a CTR —</option>
-              @for (opt of ctrOptions; track opt.id) {
-                <option [ngValue]="opt.id">{{ opt.label }}</option>
-              }
-            </select>
-          }
-        }
       </div>
     }
-    @if (documentType === 'SAR') {
-      <div class="form-group">
-        <label>SAR</label>
-        <div class="radio-group">
-          <label class="radio-option">
-            <input type="radio" name="sarMode" value="new" [(ngModel)]="sarMode" (ngModelChange)="sarId = null" />
-            Create new SAR
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="sarMode" value="existing" [(ngModel)]="sarMode" />
-            Select SAR
-          </label>
+
+    <div class="upload-card">
+      <div class="upload-grid">
+        <!-- Left: form -->
+        <div class="upload-form">
+          <div class="form-group">
+            <label for="docType">Document type <span class="required">(required)</span></label>
+            <select
+              id="docType"
+              [value]="docType"
+              (change)="onDocTypeChange($any($event.target).value)"
+            >
+              <option value="CTR">CTR</option>
+              <option value="SAR">SAR</option>
+              <option value="CASE">CASE</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="file">Select file <span class="required">(required)</span></label>
+            <input id="file" type="file" (change)="onFileSelected($event)" />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn primary" type="button" [disabled]="isUploading" (click)="upload()">
+              @if (isUploading) {
+                Uploading...
+              } @else {
+                Upload
+              }
+            </button>
+            <button class="btn ghost" type="button" [disabled]="isUploading" (click)="reset()">
+              Reset
+            </button>
+          </div>
+
+          @if (error) {
+            <div class="notice notice-error" role="alert">
+              <span class="notice-icon" aria-hidden="true">!</span>
+              <div class="notice-content">
+                <div class="notice-title">Upload failed</div>
+                <div class="notice-body">{{ error }}</div>
+              </div>
+            </div>
+          }
         </div>
-        @if (sarMode === 'existing') {
-          @if (loadingOptions) {
-            <p class="options-loading">Loading SARs...</p>
-          } @else {
-            <select
-              id="sar-select"
-              name="sarId"
-              [(ngModel)]="sarId"
-              class="descriptive-select ctr-dropdown">
-              <option [ngValue]="null" disabled>— Select a SAR —</option>
-              @for (opt of sarOptions; track opt.id) {
-                <option [ngValue]="opt.id">{{ opt.label }}</option>
-              }
-            </select>
-          }
-        }
+
+        <!-- Right: info -->
+        <div class="upload-info">
+          <strong>What happens next</strong>
+          <div class="info-block">
+            <div class="info-label">Storage</div>
+            <div class="muted">File is stored immutably for audit.</div>
+          </div>
+          <div class="info-block">
+            <div class="info-label">Extraction</div>
+            <div class="muted">Key fields are extracted to support routing and review.</div>
+          </div>
+          <div class="info-block">
+            <div class="info-label">Review</div>
+            <div class="muted">Navigate to CTRs, SARs, or Cases to see the processed record.</div>
+          </div>
+        </div>
       </div>
-    }
-    @if (documentType === 'CASE') {
-      <div class="form-group">
-        <label for="case-select">Case <span class="required">(required)</span></label>
-        @if (loadingOptions) {
-          <p class="options-loading">Loading cases...</p>
-        } @else {
-          <select
-            id="case-select"
-            name="caseId"
-            [(ngModel)]="caseId"
-            required
-            class="descriptive-select">
-            <option [ngValue]="null" disabled>— Select a case —</option>
-            @for (opt of caseOptions; track opt.id) {
-              <option [ngValue]="opt.id">{{ opt.label }}</option>
-            }
-          </select>
-        }
-      </div>
-    }
-
-    @if (optionsError) {
-      <p class="options-error">{{ optionsError }}</p>
-    }
-
-    <div class="form-group">
-      <label for="file-input">File</label>
-      <input
-        #fileInput
-        type="file"
-        id="file-input"
-        name="file"
-        accept=".pdf,.doc,.docx"
-        (change)="onFileSelected($event)" />
-      @if (selectedFile) {
-        <p class="file-name">{{ selectedFile.name }}</p>
-      }
     </div>
-
-    <div class="form-actions">
-      <button type="button" class="btn-upload" (click)="upload(fileInput)" [disabled]="loading || !selectedFile">
-        {{ loading ? 'Uploading...' : 'Upload' }}
-      </button>
-      @if (selectedFile || success || error) {
-        <button type="button" class="btn-reset" (click)="reset(fileInput)">Reset</button>
-      }
-    </div>
-
-    @if (error) {
-      <p class="error">{{ error }}</p>
-    }
-  </div>
+  </section>
 </div>

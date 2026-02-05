@@ -1,89 +1,93 @@
 server:
-    port: "${PORT:8083}"
+  port: 8083
 
 cors:
-    allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:4200}"
+  allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:4200}"
 
 spring:
-    application:
-        name: identity-auth-service
+  application:
+    name: identity-auth-service
 
-    datasource:
-        url: "${DB_URL:jdbc:mysql://localhost:3306/finsight}"
-        username: "${DB_USER:root}"
-        password: "${DB_PASS:password}"
-        driver-class-name: com.mysql.cj.jdbc.Driver
+  datasource:
+    url: "${DB_URL:jdbc:mysql://127.0.0.1:13306/identity?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
+    username: "${DB_USER:admin}"
+    password: "${DB_PASS:swordfish$fincen1117}"
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
-    web:
-        resources:
-            add-mappings: false
+  web:
+    resources:
+      add-mappings: false
 
-    jpa:
-        hibernate:
-            ddl-auto: none
-        open-in-view: false
-        properties:
-            hibernate:
-                dialect: org.hibernate.dialect.MySQL8Dialect
-                jdbc:
-                    time_zone: UTC
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
 
-    servlet:
-        multipart:
-            max-file-size: "${MAX_FILE_SIZE:25MB}"
-            max-request-size: "${MAX_REQUEST_SIZE:25MB}"
+  servlet:
+    multipart:
+      max-file-size: "${MAX_FILE_SIZE:25MB}"
+      max-request-size: "${MAX_REQUEST_SIZE:25MB}"
 
-    rabbitmq:
-        host: "${RABBITMQ_HOST:localhost}"
-        port: "${RABBITMQ_PORT:5672}"
-        username: "${RABBITMQ_USERNAME:guest}"
-        password: "${RABBITMQ_PASSWORD:guest}"
-        virtual-host: "${RABBITMQ_VIRTUAL_HOST:/}"
-        connection-timeout: 30000
+  rabbitmq:
+    host: 127.0.0.1
+    port: "${RABBITMQ_PORT:5672}"
+    username: "${RABBITMQ_USERNAME:guest}"
+    password: "${RABBITMQ_PASSWORD:guest}"
+    virtual-host: "${RABBITMQ_VIRTUAL_HOST:/}"
+    connection-timeout: 30000
 
-    sql:
-        init:
-            mode: "${SQL_INIT_MODE:always}"
-            platform: mysql
-            continue-on-error: false
-    mail:
-        host: email-smtp.us-east-1.amazonaws.com
-        port: 587
-        username: ${SES_SMTP_USERNAME}
-        password: ${SES_SMTP_PASSWORD}
+  sql:
+    init:
+      mode: "${SQL_INIT_MODE:never}"
+      platform: mysql
+      continue-on-error: false
+
+  mail:
+    host: email-smtp.us-east-1.amazonaws.com
+    port: 587
+    username: "${SES_SMTP_USERNAME:}"
+    password: "${SES_SMTP_PASSWORD:}"
 
 jwt:
-    private-key: "${JWT_PRIVATE_KEY:}"
-    public-key: "${JWT_PUBLIC_KEY:}"
+  public-key: ${JWT_PUBLIC_KEY:file:/Users/xxblackhawkdevxx/Downloads/secrets/jwt_public.pem}
+  private-key: ${JWT_PRIVATE_KEY:file:/Users/xxblackhawkdevxx/Downloads/secrets/jwt_private.pem}
 
 finsight:
-    rabbitmq:
-        queues:
-            auth-events: "${AUTH_EVENTS_QUEUE:finsight.auth.events}"
+  rabbitmq:
+    queues:
+      auth-events: "${AUTH_EVENTS_QUEUE:finsight.auth.events}"
 
 aws:
-    region: "${AWS_REGION:us-east-1}"
-    dynamodb:
-        endpoint: "${DDB_ENDPOINT:}"
-    s3:
-        bucket: "${DOCS_BUCKET:finsight-documents-2026}"
+  region: "${AWS_REGION:us-east-1}"
+  dynamodb:
+    endpoint: "${DDB_ENDPOINT:}"
+  s3:
+    bucket: "${DOCS_BUCKET:finsight-documents-2026}"
 
 eureka:
-    client:
-        service-url:
-            defaultZone: "${EUREKA_SERVER_URL:http://localhost:8761/eureka/}"
+  client:
+    service-url:
+      defaultZone: "${EUREKA_SERVER_URL:http://localhost:8761/eureka/}"
 
 management:
-    endpoints:
-        web:
-            exposure:
-                include: health,info
-    endpoint:
-        health:
-            probes:
-                enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,env,configprops
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
 
 logging:
-    level:
-        root: INFO
-        com.finsight: INFO
+  level:
+    com.zaxxer.hikari: DEBUG
+    org.springframework.jdbc.datasource: DEBUG
+    root: INFO
+    com.finsight: INFO

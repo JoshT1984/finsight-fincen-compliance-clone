@@ -1,4 +1,91 @@
 <div class="container">
-  <h1>CTRs</h1>
-  <p>This is the CTRs (Currency Transaction Reports) page placeholder.</p>
+  <section class="hero" aria-label="CTRs intro">
+    <h2>CTRs</h2>
+    <p>
+      Create and review Currency Transaction Reports. Start by adding a transaction or reviewing
+      existing work.
+    </p>
+
+    <div class="ctaRow">
+      <button class="btn primary" (click)="openTransactionForm()">Add Cash Transaction</button>
+      <button class="btn ghost" type="button" (click)="goToUploadCtr()">Upload CTR PDF</button>
+      <button class="btn ghost" type="button" (click)="refreshCtrs()">Refresh</button>
+    </div>
+
+    <p *ngIf="submitSuccess" class="notice notice--success">Transaction added successfully.</p>
+    <p *ngIf="submitError" class="notice notice--error">{{ submitError }}</p>
+  </section>
+
+  <section class="content" aria-label="CTRs content">
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Generated</div>
+          <h3>Currency Transaction Reports</h3>
+          <p class="muted">
+            CTRs are created automatically when daily cash totals exceed the reporting threshold.
+            CTRs are treated as immutable after creation.
+          </p>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>CTR ID</th>
+              <th>Account</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let ctr of ctrs">
+              <td class="mono">{{ ctr.ctrId }}</td>
+              <td>{{ ctr.accountNumber }}</td>
+              <td>{{ ctr.filingDate | date: 'mediumDate' }}</td>
+              <td>{{ ctr.transactionAmount | currency }}</td>
+              <td>
+                <span class="badge badge--good">{{ ctr.status }}</span>
+              </td>
+              <td>
+                <button class="btn ghost" type="button" (click)="downloadCtr(ctr.ctrId)">
+                  Download
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="!ctrs || ctrs.length === 0">
+              <td colspan="6" class="empty">No CTRs found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal overlay for Add Transaction -->
+    <div
+      *ngIf="showTransactionForm"
+      class="modalBackdrop"
+      role="presentation"
+      (click)="closeTransactionForm()"
+    ></div>
+
+    <div
+      *ngIf="showTransactionForm"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add cash transaction"
+      (click)="$event.stopPropagation()"
+    >
+      <app-transaction-form
+        (cancel)="closeTransactionForm()"
+        (submitted)="handleTransactionSubmit($event)"
+      ></app-transaction-form>
+    </div>
+  </section>
 </div>

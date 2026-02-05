@@ -13,33 +13,38 @@
   <div class="siteHeader__banner">
     <div class="container">
       <div class="brand">
-        <div class="seal" aria-hidden="true"></div>
-        <div class="brand__text">
-          <h1 class="brand__title">FinSight</h1>
-          <div class="brand__sub">FINCEN-inspired CTR / SAR Case Management (MVP Demo)</div>
+        <div class="brand__left">
+          <div class="seal" aria-hidden="true"></div>
+          <div class="brand__text">
+            <h1 class="brand__title">FinSight</h1>
+            <div class="brand__sub">FINCEN-inspired CTR / SAR Case Management (MVP Demo)</div>
+          </div>
         </div>
-        <button
-          class="btn primary brand__btn"
-          *ngIf="!(identityService.isLoggedIn$ | async)"
-          (click)="login()"
-        >
-          Login
-        </button>
-        <button
-          class="btn primary brand__btn"
-          *ngIf="identityService.isLoggedIn$ | async"
-          (click)="logout()"
-        >
-          Logout
-        </button>
-        <button
-          class="btn primary brand__btn"
-          *ngIf="identityService.isLoggedIn$ | async"
-          (click)="openProfile()"
-        >
-          Profile
-        </button>
-        <app-login-dialog *ngIf="loginDialog.loginOpen"></app-login-dialog>
+        <div class="brand__right">
+          <button
+            class="btn primary brand__btn"
+            *ngIf="!(identityService.isLoggedIn$ | async)"
+            (click)="login()"
+          >
+            Login
+          </button>
+          <button
+            class="btn primary brand__btn"
+            *ngIf="identityService.isLoggedIn$ | async"
+            (click)="logout()"
+          >
+            Logout
+          </button>
+          <button
+            class="btn primary brand__btn"
+            *ngIf="identityService.isLoggedIn$ | async"
+            (click)="openProfile()"
+          >
+            Profile
+          </button>
+          <img src="images/fincen-logo.png" alt="FinCEN Logo" class="fincen-logo" />
+          <app-login-dialog *ngIf="loginDialog.loginOpen"></app-login-dialog>
+        </div>
       </div>
     </div>
   </div>
