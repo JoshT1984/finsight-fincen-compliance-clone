@@ -27,15 +27,15 @@ SELECT role_id, role_name FROM role;
 INSERT INTO app_user
   (user_id, email, password_hash, first_name, last_name, phone, is_active, deleted, deleted_at, role_id)
 VALUES
-  ('11111111-1111-1111-1111-111111111111', 'analyst1@fincen.local',  '$2a$10$mockhashAnalyst', 'Alex',  'Analyst',  '555-0101', TRUE, 0, NULL,
+  ('11111111-1111-1111-1111-111111111111', 'analyst1@fincen.local',  '$2a$10$mockhashAnalyst', 'Alex',  'Analyst',  '555-0101', TRUE, FALSE, NULL,
     (SELECT role_id FROM role WHERE role_name='ANALYST')),
-  ('22222222-2222-2222-2222-222222222222', 'comp1@fincen.local',     '$2a$10$mockhashComp',    'Casey', 'Compliance','555-0102', TRUE, 0, NULL,
+  ('22222222-2222-2222-2222-222222222222', 'comp1@fincen.local',     '$2a$10$mockhashComp',    'Casey', 'Compliance','555-0102', TRUE, FALSE, NULL,
     (SELECT role_id FROM role WHERE role_name='COMPLIANCE_USER')),
-  ('33333333-3333-3333-3333-333333333333', 'leo1@fincen.local',      '$2a$10$mockhashLEO',                     'Taylor','LEO',       '555-0103', TRUE, 0, NULL,
+  ('33333333-3333-3333-3333-333333333333', 'leo1@fincen.local',      NULL,                     'Taylor','LEO',       '555-0103', TRUE, FALSE, NULL,
     (SELECT role_id FROM role WHERE role_name='LAW_ENFORCEMENT_USER'));
 
 -- OAuth identities
 INSERT INTO oauth_identity
   (user_id, provider, provider_user_id, email_at_provider, created_at, revoked, revoked_at)
 VALUES
-  ('33333333-3333-3333-3333-333333333333', 'google', 'google-oauth2|leo1', 'leo1@fincen.local', NOW() - INTERVAL 20 DAY, 0, NULL);
+  ('33333333-3333-3333-3333-333333333333', 'google', 'google-oauth2|leo1', 'leo1@fincen.local', NOW() - INTERVAL 20 DAY, FALSE, NULL);

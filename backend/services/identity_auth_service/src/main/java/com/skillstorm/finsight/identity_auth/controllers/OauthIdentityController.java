@@ -1,6 +1,6 @@
+
 package com.skillstorm.finsight.identity_auth.controllers;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.springframework.http.ResponseCookie;
@@ -13,9 +13,6 @@ import org.springframework.http.HttpHeaders;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/auth")
@@ -41,30 +38,20 @@ public class OauthIdentityController {
                                 .body(response);
         }
 
-        @GetMapping("/oauth2/authorize/{provider}")
-        public void startOAuth(
+        @PostMapping("/oauth/link/{provider}")
+        public ResponseEntity<Void> linkAccount(
                         @PathVariable String provider,
-                        @RequestParam String mode,
-                        Authentication authentication,
-                        HttpServletResponse response) throws IOException {
+                        OAuth2AuthenticationToken auth,
+                        Authentication internalAuth) {
+                String appUserId = internalAuth.getName();
 
-                response.sendRedirect(
-                                "/oauth2/authorization/" + provider);
-        }
+                String providerUserId = auth.getPrincipal().getAttribute("sub");
 
-        /**
-         * Checks if the current user is connected with the specified provider.
-         * Requires Authorization: Bearer <token> header.
-         */
-        @GetMapping("/oauth/linked/{provider}")
-        public ResponseEntity<Boolean> isProviderLinked(
-                        @PathVariable String provider,
-                        Authentication authentication) {
-                // Extract userId from authentication principal (assumes JWT subject is
-                // userId)
-                String userId = authentication.getName();
-                boolean linked = oauthIdentityService.isProviderLinked(userId, provider);
-                return ResponseEntity.ok(linked);
+                oauthIdentityService.linkOAuthIdentity(
+                                appUserId,
+                                provider,
+                                providerUserId);
+                return ResponseEntity.noContent().build();
         }
 
         @PostMapping("/refresh")
@@ -118,34 +105,5 @@ public class OauthIdentityController {
                 } else {
                         return ResponseEntity.status(403).build(); // Invalid or expired token
                 }
-        }
-
-        @PostMapping("/oauth/link")
-        public ResponseEntity<?> linkAccount(HttpServletRequest request, Authentication authentication) {
-
-                OAuth2AuthenticationToken oauth = (OAuth2AuthenticationToken) request.getSession()
-                                .getAttribute("oauthToken");
-                if (oauth == null) {
-                        return ResponseEntity.badRequest().body("No OAuth info found in session.");
-                }
-
-                String provider = oauth.getAuthorizedClientRegistrationId();
-                Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
-                String providerUserId = extractProviderUserId(provider, attributes);
-                String providerEmail = (String) attributes.get("email");
-
-                String appUserId = authentication.getName();
-
-                oauthIdentityService.linkOAuthIdentity(appUserId, provider, providerUserId, providerEmail);
-
-                return ResponseEntity.ok().build();
-        }
-
-        private String extractProviderUserId(String provider, Map<String, Object> attributes) {
-                return switch (provider.toLowerCase()) {
-                        case "google" -> (String) attributes.get("sub");
-                        case "github" -> String.valueOf(attributes.get("id"));
-                        default -> throw new IllegalStateException("Unsupported OAuth provider: " + provider);
-                };
         }
 }

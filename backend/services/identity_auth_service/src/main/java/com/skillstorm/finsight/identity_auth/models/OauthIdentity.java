@@ -25,7 +25,7 @@ public class OauthIdentity {
     @Column(name = "email_at_provider", length = 320)
     private String emailAtProvider;
 
-    @Column(name = "created_at", updatable = false, insertable = false)
+    @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
     @Column(name = "revoked", nullable = false)

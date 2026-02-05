@@ -14,8 +14,6 @@ import { SarsComponent } from './features/sars/sars.component';
 import { ShellComponent } from './layout/shell/shell.component';
 import { UploadComponent } from './features/upload/upload.component';
 import { ProfileComponent } from './features/profile/profile.component';
-import { LinkAccountComponent } from './features/link-account/link-account.component';
-import { OauthCallbackComponent } from './features/oauth-callback/oauth-callback.component';
 import { SupportTicketComponent } from './features/support-ticket/support-ticket.component';
 import { authGuard } from './shared/guards/auth.guard';
 import { publicLandingGuard } from './shared/guards/public-landing.guard';
@@ -81,12 +79,6 @@ export const routes: Routes = [
       {
         path: 'support',
         component: SupportTicketComponent,
-      },
-      { 
-        path: 'linkAccount', component: LinkAccountComponent 
-      },
-      { 
-        path: 'oauth-callback', component: OauthCallbackComponent 
       },
       {
         path: 'reset-password',

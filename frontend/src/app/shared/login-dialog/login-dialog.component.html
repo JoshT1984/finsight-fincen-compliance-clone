@@ -19,11 +19,11 @@
       </form>
       <div *ngIf="forgotPasswordMessage" class="forgot-message">{{ forgotPasswordMessage }}</div>
     </ng-container>
-    <div class="login-dialog__oauth">
+    <!-- <div class="login-dialog__oauth">
       <span>or login with:</span>
       <button class="btn oauth google" (click)="loginWithGoogle()">Google</button>
       <button class="btn oauth github" (click)="loginWithGithub()">GitHub</button>
-    </div>
+    </div> -->
     <button class="login-dialog__close" (click)="close()">×</button>
   </div>
 </div>
