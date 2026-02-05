@@ -3,7 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { DocumentsService, DocumentResponse, CaseFileResponse } from '../../shared/services/documents.service';
+import {
+  DocumentsService,
+  DocumentResponse,
+  CaseFileResponse,
+} from '../../shared/services/documents.service';
 import { ComplianceService, ComplianceEventOption } from '../../shared/services/compliance.service';
 
 export interface CaseOption {
@@ -20,6 +24,7 @@ export interface CaseOption {
 })
 export class UploadComponent implements OnInit, OnDestroy {
   documentType: 'CTR' | 'SAR' | 'CASE' = 'CTR';
+  docType: string = 'CTR'; // For template compatibility
   /** 'new' = create new CTR, 'existing' = select from dropdown */
   ctrMode: 'new' | 'existing' = 'new';
   /** 'new' = create new SAR, 'existing' = select from dropdown */
@@ -40,6 +45,8 @@ export class UploadComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
+  isUploading: boolean = false;
+
   constructor(
     private documentsService: DocumentsService,
     private complianceService: ComplianceService,
@@ -55,7 +62,9 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  onDocumentTypeChange(_newType?: 'CTR' | 'SAR' | 'CASE'): void {
+  onDocTypeChange(newType: string): void {
+    this.docType = newType;
+    this.documentType = (newType as 'CTR' | 'SAR' | 'CASE') ?? 'CTR';
     this.ctrMode = 'new';
     this.sarMode = 'new';
     this.ctrId = null;
@@ -64,6 +73,11 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.error = null;
     this.optionsError = null; // Clear so error disappears when changing document type
     this.loadOptions();
+  }
+
+  // For template compatibility
+  onDocumentTypeChange(newType?: 'CTR' | 'SAR' | 'CASE'): void {
+    this.onDocTypeChange(newType ?? 'CTR');
   }
 
   loadOptions(): void {
@@ -76,15 +90,16 @@ export class UploadComponent implements OnInit, OnDestroy {
         .getCtrOptions()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (opts) => {
+          next: (opts: ComplianceEventOption[]) => {
             if (this.documentType !== forType) return;
             this.ctrOptions = opts;
             this.loadingOptions = false;
             this.cdr.detectChanges();
           },
-          error: (err) => {
+          error: (err: any) => {
             if (this.documentType !== forType) return;
-            this.optionsError = 'Could not load CTR list. Select "Create new CTR" to upload without linking.';
+            this.optionsError =
+              'Could not load CTR list. Select "Create new CTR" to upload without linking.';
             this.ctrOptions = [];
             this.loadingOptions = false;
             this.cdr.detectChanges();
@@ -95,15 +110,16 @@ export class UploadComponent implements OnInit, OnDestroy {
         .getSarOptions()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (opts) => {
+          next: (opts: ComplianceEventOption[]) => {
             if (this.documentType !== forType) return;
             this.sarOptions = opts;
             this.loadingOptions = false;
             this.cdr.detectChanges();
           },
-          error: (err) => {
+          error: (err: any) => {
             if (this.documentType !== forType) return;
-            this.optionsError = 'Could not load SAR list. Select "Create new SAR" to upload without linking.';
+            this.optionsError =
+              'Could not load SAR list. Select "Create new SAR" to upload without linking.';
             this.sarOptions = [];
             this.loadingOptions = false;
             this.cdr.detectChanges();
@@ -114,13 +130,13 @@ export class UploadComponent implements OnInit, OnDestroy {
         .getCases()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (cases) => {
+          next: (cases: CaseFileResponse[]) => {
             if (this.documentType !== forType) return;
-            this.caseOptions = cases.map((c) => this.toCaseOption(c));
+            this.caseOptions = cases.map((c: CaseFileResponse) => this.toCaseOption(c));
             this.loadingOptions = false;
             this.cdr.detectChanges();
           },
-          error: (err) => {
+          error: (err: any) => {
             if (this.documentType !== forType) return;
             this.optionsError = 'Could not load cases. Please try again.';
             this.caseOptions = [];
@@ -172,13 +188,13 @@ export class UploadComponent implements OnInit, OnDestroy {
         this.caseId ?? undefined,
       )
       .subscribe({
-        next: (response) => {
+        next: (response: DocumentResponse) => {
           this.success = response;
           this.resetFormOnly(fileInput);
           this.loading = false;
           this.cdr.detectChanges();
         },
-        error: (err) => {
+        error: (err: any) => {
           this.error = err?.error?.message || err?.message || 'Upload failed. Please try again.';
           this.loading = false;
           this.cdr.detectChanges();
@@ -199,6 +215,13 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.selectedFile = null;
     this.error = null;
     this.success = null;
+
+    this.ctrMode = 'new';
+    this.sarMode = 'new';
+    this.ctrId = null;
+    this.sarId = null;
+    this.caseId = null;
+
     if (fileInput) fileInput.value = '';
   }
 }

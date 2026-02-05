@@ -6,21 +6,28 @@ spring:
     name: mq-gateway-service
 
   rabbitmq:
-    host: ${RABBITMQ_HOST:}
-    port: ${RABBITMQ_PORT:5671}
-    username: ${RABBITMQ_USERNAME:}
-    password: ${RABBITMQ_PASSWORD:}
-    virtual-host: /
+    # Force IPv4 to avoid localhost -> ::1 issues on macOS
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: "/"
     ssl:
-      enabled: true
+      enabled: false
+      connection-timeout: 30000
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: "${EUREKA_SERVER_URL:http://localhost:8761/eureka/}"
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true

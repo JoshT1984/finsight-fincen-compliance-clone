@@ -17,6 +17,11 @@ export interface ComplianceEventResponse {
   status: EventStatus;
   severityScore: number | null;
   createdAt: string;
+  // Template compatibility for SARs
+  sarId?: number; // alias for eventId
+  subjectName?: string;
+  suspicionScore?: number | null; // alias for severityScore
+  updatedAt?: string; // alias for eventTime or createdAt
 }
 
 export interface ComplianceEventOption {
@@ -32,29 +37,30 @@ export class ComplianceService {
 
   constructor(private http: HttpClient) {
     const base = environment.complianceApiBaseUrl || '';
-    this.apiUrl = base ? `${base.replace(/\/$/, '')}/api/compliance-events` : '/api/compliance-events';
+    this.apiUrl = base
+      ? `${base.replace(/\/$/, '')}/api/compliance-events`
+      : '/api/compliance-events';
+  }
+
+  /** Fetch compliance events (CTR or SAR) for table pages */
+  getEvents(eventType: EventType, page = 0, size = 20): Observable<ComplianceEventResponse[]> {
+    const params = new HttpParams().set('eventType', eventType).set('page', page).set('size', size);
+
+    return this.http
+      .get<
+        { content?: ComplianceEventResponse[] } | ComplianceEventResponse[]
+      >(this.apiUrl, { params })
+      .pipe(map((res) => (Array.isArray(res) ? res : (res?.content ?? []))));
   }
 
   /** Fetch CTR events for dropdown options */
   getCtrOptions(): Observable<ComplianceEventOption[]> {
-    const params = new HttpParams().set('eventType', 'CTR').set('size', '100');
-    return this.http.get<{ content?: ComplianceEventResponse[] } | ComplianceEventResponse[]>(this.apiUrl, { params }).pipe(
-      map((res) => {
-        const list = Array.isArray(res) ? res : (res?.content ?? []);
-        return list.map((e) => this.toCtrOption(e));
-      }),
-    );
+    return this.getEvents('CTR', 0, 100).pipe(map((list) => list.map((e) => this.toCtrOption(e))));
   }
 
   /** Fetch SAR events for dropdown options */
   getSarOptions(): Observable<ComplianceEventOption[]> {
-    const params = new HttpParams().set('eventType', 'SAR').set('size', '100');
-    return this.http.get<{ content?: ComplianceEventResponse[] } | ComplianceEventResponse[]>(this.apiUrl, { params }).pipe(
-      map((res) => {
-        const list = Array.isArray(res) ? res : (res?.content ?? []);
-        return list.map((e) => this.toSarOption(e));
-      }),
-    );
+    return this.getEvents('SAR', 0, 100).pipe(map((list) => list.map((e) => this.toSarOption(e))));
   }
 
   private toCtrOption(e: ComplianceEventResponse): ComplianceEventOption {

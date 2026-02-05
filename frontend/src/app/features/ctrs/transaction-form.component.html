@@ -1,0 +1,99 @@
+<div class="formCard" (click)="$event.stopPropagation()">
+  <div class="formHeader">
+    <div>
+      <h3>Add Cash Transaction</h3>
+      <p class="muted">
+        Use the dropdowns for consistent values. Unique IDs can be regenerated automatically.
+      </p>
+    </div>
+
+    <div class="headerActions">
+      <button class="btn ghost" type="button" (click)="regenerateIds()">Regenerate IDs</button>
+      <button class="btn ghost" type="button" (click)="onCancel()">Close</button>
+    </div>
+  </div>
+
+  <form class="formGrid" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="field">
+      <label for="sourceSystem">Source system</label>
+      <select id="sourceSystem" formControlName="sourceSystem">
+        <option value="" disabled>Select…</option>
+        <option *ngFor="let o of sourceSystems" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="sourceTxnId">Source transaction ID</label>
+      <input id="sourceTxnId" type="text" formControlName="sourceTxnId" />
+    </div>
+
+    <div class="field">
+      <label for="externalSubjectKey">External subject key</label>
+      <input id="externalSubjectKey" type="text" formControlName="externalSubjectKey" />
+    </div>
+
+    <div class="field">
+      <label for="sourceSubjectType">Source subject type</label>
+      <select id="sourceSubjectType" formControlName="sourceSubjectType">
+        <option value="" disabled>Select…</option>
+        <option *ngFor="let o of subjectTypes" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="sourceSubjectId">Source subject ID</label>
+      <input id="sourceSubjectId" type="text" formControlName="sourceSubjectId" />
+    </div>
+
+    <div class="field">
+      <label for="subjectName">Subject name</label>
+      <input id="subjectName" type="text" formControlName="subjectName" />
+    </div>
+
+    <div class="field">
+      <label for="txnTime">Transaction time</label>
+      <input id="txnTime" type="datetime-local" formControlName="txnTime" />
+    </div>
+
+    <div class="field">
+      <label for="cashIn">Cash in</label>
+      <input id="cashIn" type="number" inputmode="decimal" formControlName="cashIn" />
+    </div>
+
+    <div class="field">
+      <label for="cashOut">Cash out</label>
+      <input id="cashOut" type="number" inputmode="decimal" formControlName="cashOut" />
+    </div>
+
+    <div class="field">
+      <label for="currency">Currency</label>
+      <select id="currency" formControlName="currency">
+        <option value="" disabled>Select…</option>
+        <option *ngFor="let o of currencies" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="channel">Channel</label>
+      <select id="channel" formControlName="channel">
+        <option value="" disabled>Select…</option>
+        <option *ngFor="let o of channels" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="location">Location</label>
+      <select id="location" formControlName="location">
+        <option value="" disabled>Select…</option>
+        <option *ngFor="let o of locations" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Submit Transaction</button>
+      <button class="btn ghost" type="button" (click)="onCancel()">Cancel</button>
+    </div>
+
+    <p *ngIf="form.invalid && form.touched" class="error">Please complete all required fields.</p>
+  </form>
+</div>

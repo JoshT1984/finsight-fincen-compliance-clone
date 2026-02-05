@@ -1,3 +1,79 @@
 <div class="container">
-  <h1>SARs</h1>
-  <p>This is the SARs (Suspicious Activity Reports) page placeholder.</p>
+  <section class="hero" aria-label="SARs intro">
+    <h2>SARs</h2>
+    <p>
+      Suspicious Activity Reports are generated from deterministic detection rules. Drafts can be
+      reviewed and refined before submission and case creation.
+    </p>
+
+    <div class="ctaRow">
+      <button class="btn primary" type="button" (click)="goToCases()">Go to Case Queue</button>
+      <button class="btn ghost" type="button" (click)="goToUploadSar()">Upload SAR PDF</button>
+      <button class="btn ghost" type="button" (click)="refresh()">Refresh</button>
+    </div>
+  </section>
+
+  <section class="content" aria-label="SARs content">
+    <div class="card noteCard">
+      <div class="card__header">
+        <div>
+          <div class="tag">Workflow</div>
+          <h3>Auto generate with an editable draft</h3>
+          <p class="muted">
+            Best fit for the MVP: generate SARs automatically when the suspicion score crosses the
+            threshold, set status to DRAFT, and let analysts revise the narrative before marking
+            SUBMITTED, which creates a case.
+          </p>
+        </div>
+
+        <div class="card__tools">
+          <label class="search">
+            <span class="search__label">Search</span>
+            <input
+              class="search__input"
+              type="search"
+              [value]="query"
+              (input)="onQuery($any($event.target).value)"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>SAR ID</th>
+              <th>Subject</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let sar of filteredSars()">
+              <td class="mono">{{ sar.sarId }}</td>
+              <td>{{ sar.subjectName }}</td>
+              <td>
+                <span class="badge badge--warn">{{ sar.suspicionScore }}</span>
+              </td>
+              <td>
+                <span class="badge">{{ sar.status }}</span>
+              </td>
+              <td>{{ sar.updatedAt | date: 'medium' }}</td>
+              <td>
+                <button class="btn ghost" type="button" (click)="openSar(sar.sarId)">Open</button>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredSars().length === 0">
+              <td colspan="6" class="empty">No SARs found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
