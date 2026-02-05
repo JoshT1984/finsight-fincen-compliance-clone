@@ -46,6 +46,11 @@ spring:
             mode: "${SQL_INIT_MODE:always}"
             platform: mysql
             continue-on-error: false
+    mail:
+        host: email-smtp.us-east-1.amazonaws.com
+        port: 587
+        username: ${SES_SMTP_USERNAME}
+        password: ${SES_SMTP_PASSWORD}
 
 jwt:
     private-key: "${JWT_PRIVATE_KEY:}"

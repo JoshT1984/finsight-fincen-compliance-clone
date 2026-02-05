@@ -51,6 +51,9 @@ management:
       exposure:
         include: health,info
 
+jwt:
+  public-key: "${JWT_PUBLIC_KEY:}"
+
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET}

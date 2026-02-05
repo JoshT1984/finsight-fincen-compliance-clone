@@ -1,4 +1,4 @@
-package com.skillstorm.finsight.documents_cases.utils;
+package com.skillstorm.finsight.suspect_registry.util;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -12,35 +12,30 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 /**
  * Utility class for extracting user information from Spring Security context.
- * 
- * <p>This class works without requiring the identity-auth-service to be fully set up.
- * If Spring Security is not configured or no user is authenticated, it returns
- * Optional.empty(), allowing audit events to be created with null actorUserId.
- * 
- * <p>When the identity-auth-service is ready and Spring Security is configured,
- * this utility will automatically start extracting user IDs from the security context.
+ *
+ * <p>When the identity-auth-service is configured and Spring Security is set up,
+ * this utility extracts user IDs and roles from the JWT in the security context.
  */
 public class SecurityContextUtils {
-    
+
     private static final Logger log = LoggerFactory.getLogger(SecurityContextUtils.class);
-    
+
     /**
      * Extracts the current user ID from Spring Security context.
-     * 
+     *
      * @return Optional containing the user ID if available, empty otherwise
      */
     public static Optional<UUID> getCurrentUserId() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            
+
             if (authentication == null || !authentication.isAuthenticated()) {
                 log.debug("No authenticated user found in security context");
                 return Optional.empty();
             }
-            
+
             Object principal = authentication.getPrincipal();
-            
-            // Handle different principal types
+
             if (principal instanceof Jwt) {
                 String subject = ((Jwt) principal).getSubject();
                 try {
@@ -59,7 +54,6 @@ public class SecurityContextUtils {
                     return Optional.empty();
                 }
             } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
-                // If using UserDetails, try to extract UUID from username
                 String username = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
                 try {
                     return Optional.of(UUID.fromString(username));
@@ -72,8 +66,7 @@ public class SecurityContextUtils {
                 return Optional.empty();
             }
         } catch (Exception e) {
-            // If Spring Security is not available, SecurityContextHolder may throw an exception
-            log.debug("Could not extract user ID from security context (Spring Security may not be configured): {}", e.getMessage());
+            log.debug("Could not extract user ID from security context: {}", e.getMessage());
             return Optional.empty();
         }
     }

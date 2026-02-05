@@ -1,10 +1,7 @@
 package com.skillstorm.finsight.compliance_event.repositories;
 
 import java.time.Instant;
-
-import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
-import com.skillstorm.finsight.compliance_event.models.EventStatus;
-import com.skillstorm.finsight.compliance_event.models.EventType;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
+import com.skillstorm.finsight.compliance_event.models.EventStatus;
+import com.skillstorm.finsight.compliance_event.models.EventType;
 
 @Repository
 public interface ComplianceEventRepository extends JpaRepository<ComplianceEvent, Long> {
@@ -40,5 +41,7 @@ public interface ComplianceEventRepository extends JpaRepository<ComplianceEvent
       @Param("sourceSystem") String sourceSystem,
       @Param("from") Instant from,
       @Param("to") Instant to,
-      Pageable pageable);
+          Pageable pageable);
+      
+          Optional<ComplianceEvent> findByIdempotencyKey(String idempotencyKey);
 }

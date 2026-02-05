@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS document (
   file_name VARCHAR(256) NOT NULL,
   storage_path VARCHAR(512) NOT NULL,
   uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  uploaded_by_user_id VARCHAR(36) NULL,
 
   -- Link target is external IDs (ctr_id, sar_id) or internal (case_id).
   -- Validation rules:
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS document (
 
 CREATE INDEX idx_document_type_uploaded ON document(document_type, uploaded_at);
 CREATE INDEX idx_document_case ON document(case_id);
+CREATE INDEX idx_document_uploaded_by ON document(uploaded_by_user_id);
 
 CREATE TABLE IF NOT EXISTS audit_event (
   audit_id BIGINT AUTO_INCREMENT PRIMARY KEY,
