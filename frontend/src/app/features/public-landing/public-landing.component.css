@@ -1,0 +1,88 @@
+/* Public landing page (home for users who are not signed in) */
+
+.public-landing {
+  min-height: 40vh;
+}
+
+/* Match header/navbar container alignment (same as documents/cases) */
+.public-landing-container {
+  margin-left: 51px !important;
+  margin-right: 51px !important;
+  max-width: 1440px !important;
+}
+
+#public-landing-header {
+  margin-bottom: 1.5rem;
+}
+
+.public-landing-tagline {
+  margin-top: 0.5rem;
+  color: var(--muted, #4b5563);
+  max-width: 60ch;
+}
+
+.public-landing-content h2,
+.public-landing-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.public-landing-content ul {
+  margin: 0.5rem 0 1rem 1.25rem;
+}
+
+.public-landing-content li {
+  margin-bottom: 0.5rem;
+}
+
+.public-landing-cta {
+  color: var(--navy-800, #093c6f);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.public-landing-cta:hover {
+  text-decoration: underline;
+}
+
+.public-landing-page {
+  display: flex;
+}
+
+.public-landing-content {
+  flex: 1;
+  padding: 0rem 2rem 0rem 2rem;
+}
+
+.public-landing-contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.public-landing-contact-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.public-landing-contact-list li:last-child {
+  margin-bottom: 0;
+}
+
+.public-landing-contact-key {
+  font-weight: 600;
+  color: var(--muted, #4b5563);
+  min-width: 3.5rem;
+}
+
+.public-landing-contact-link {
+  color: var(--navy-800, #093c6f);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.public-landing-contact-link:hover {
+  text-decoration: underline;
+}

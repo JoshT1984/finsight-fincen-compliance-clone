@@ -1,6 +1,8 @@
 <div class="page">
   <app-header></app-header>
-  <app-nav></app-nav>
+  @if (isLoggedIn()) {
+    <app-nav></app-nav>
+  }
 
   <main class="main">
     <router-outlet></router-outlet>

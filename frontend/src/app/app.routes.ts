@@ -9,22 +9,40 @@ import { caseResolver } from './features/cases/case.resolver';
 import { CtrsComponent } from './features/ctrs/ctrs.component';
 import { DocumentsComponent } from './features/documents/documents.component';
 import { LandingComponent } from './features/landing/landing.component';
+import { PublicLandingComponent } from './features/public-landing/public-landing.component';
 import { SarsComponent } from './features/sars/sars.component';
 import { ShellComponent } from './layout/shell/shell.component';
 import { UploadComponent } from './features/upload/upload.component';
 import { ProfileComponent } from './features/profile/profile.component';
+import { SupportTicketComponent } from './features/support-ticket/support-ticket.component';
+import { authGuard } from './shared/guards/auth.guard';
+import { publicLandingGuard } from './shared/guards/public-landing.guard';
 
 export const routes: Routes = [
   {
     path: '',
     component: ShellComponent,
     children: [
-      { path: '', component: LandingComponent },
-      { path: 'cases', component: CasesComponent },
+      {
+        path: '',
+        component: PublicLandingComponent,
+        canActivate: [publicLandingGuard],
+      },
+      {
+        path: 'dashboard',
+        component: LandingComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'cases',
+        component: CasesComponent,
+        canActivate: [authGuard],
+      },
       {
         path: 'cases/:id',
         component: CaseDetailComponent,
         resolve: { case: caseResolver },
+        canActivate: [authGuard],
         children: [
           { path: '', redirectTo: 'overview', pathMatch: 'full' },
           { path: 'overview', component: CaseDetailOverviewComponent },
@@ -33,11 +51,35 @@ export const routes: Routes = [
           { path: 'documents', component: CaseDetailDocumentsComponent },
         ],
       },
-      { path: 'sars', component: SarsComponent },
-      { path: 'ctrs', component: CtrsComponent },
-      { path: 'documents', component: DocumentsComponent },
-      { path: 'upload', component: UploadComponent },
-      { path: 'profile', component: ProfileComponent },
+      {
+        path: 'sars',
+        component: SarsComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'ctrs',
+        component: CtrsComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'documents',
+        component: DocumentsComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'upload',
+        component: UploadComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'profile',
+        component: ProfileComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'support',
+        component: SupportTicketComponent,
+      },
       {
         path: 'reset-password',
         loadComponent: () =>
