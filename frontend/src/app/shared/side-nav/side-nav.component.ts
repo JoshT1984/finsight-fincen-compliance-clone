@@ -19,6 +19,8 @@ export class SideNavComponent {
   @Input() initialSelectedItem?: string;
   /** When set, nav items are rendered as router links to linkBasePath + '/' + item.id (e.g. /cases/123/overview). */
   @Input() linkBasePath?: string;
+  /** When set, this id is used for the active class (e.g. for URL fragment–driven section selection). */
+  @Input() currentItemId?: string;
 
   @Output() itemSelected = new EventEmitter<string>();
 

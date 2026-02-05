@@ -1,0 +1,71 @@
+<div class="public-landing">
+  <div class="container public-landing-container">
+    <div id="public-landing-header">
+      <h1>Welcome to Finsight</h1>
+    </div>
+    <div class="public-landing-page">
+      <app-side-nav
+        [navItems]="navItems"
+        [initialSelectedItem]="'about'"
+        [currentItemId]="selectedSection"
+        (itemSelected)="onSectionSelected($event)">
+      </app-side-nav>
+
+      <div class="public-landing-content">
+        @if (selectedSection === 'about') {
+          <section id="about">
+          <h2>About Finsight</h2>
+          <p>Finsight is a platform for managing Currency Transaction Reports (CTRs) and Suspicious Activity Reports (SARs). It supports BSA/AML workflows and helps compliance teams and law enforcement coordinate on cases from intake through referral and closure.</p>
+          <p>Key capabilities include:</p>
+          <ul>
+            <li><strong>Case management</strong> — Work a queue of cases with notes, status tracking, and referral actions.</li>
+            <li><strong>CTR & SAR workflows</strong> — Browse and manage CTR and SAR data with clear linkages to cases.</li>
+            <li><strong>Document handling</strong> — Upload and view documents tied to CTRs, SARs, and cases.</li>
+            <li><strong>Audit trail</strong> — Full history of changes and actions for compliance and review.</li>
+          </ul>
+          </section>
+        }
+        @if (selectedSection === 'forms') {
+          <section id="forms">
+          <h2>CTR & SAR Forms</h2>
+          <p>Official FinCEN forms are available from the IRS. Use the links below to open the PDFs in a new tab.</p>
+          <ul class="public-landing-forms-list">
+            <li>
+              <a href="https://www.irs.gov/pub/irs-tege/fin104_ctr.pdf" target="_blank" rel="noopener noreferrer" class="public-landing-cta">FinCEN Form 104 (CTR) — Currency Transaction Report</a>
+            </li>
+            <li>
+              <a href="https://www.irs.gov/pub/irs-tege/fin109_sarmsb.pdf" target="_blank" rel="noopener noreferrer" class="public-landing-cta">FinCEN Form 109 (SAR) — Suspicious Activity Report</a>
+            </li>
+          </ul>
+          </section>
+        }
+        @if (selectedSection === 'accessing') {
+          <section id="accessing">
+          <h2>Accessing Finsight</h2>
+          <p>Finsight is available to authorized users at participating financial institutions and law enforcement agencies. Access is managed by your organization’s administrator.</p>
+          <p>If you have an account, use the <strong>Login</strong> button in the header to sign in. If you believe you should have access or need to request an account, contact your administrator or use the <a routerLink="/support">Support</a> page to submit a request.</p>
+          </section>
+        }
+        @if (selectedSection === 'support') {
+          <section id="support">
+          <h2>Contact & Support</h2>
+          <p>For technical issues, access requests, or general questions, submit a support ticket. Our team will respond as soon as possible.</p>
+          <p><a routerLink="/support" class="public-landing-cta">Submit a support ticket</a></p>
+
+          <h3>Finsight Contact Information</h3>
+          <ul class="public-landing-contact-list">
+            <li>
+              <span class="public-landing-contact-key">Phone</span>
+              <a href="tel:+18885555555" class="public-landing-contact-link">888-555-5555</a>
+            </li>
+            <li>
+              <span class="public-landing-contact-key">Email</span>
+              <a href="mailto:info@finsight.com" class="public-landing-contact-link">info&#64;finsight.com</a>
+            </li>
+          </ul>
+          </section>
+        }
+      </div>
+    </div>
+  </div>
+</div>
