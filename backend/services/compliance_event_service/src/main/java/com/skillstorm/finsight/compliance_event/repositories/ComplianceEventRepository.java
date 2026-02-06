@@ -44,4 +44,19 @@ public interface ComplianceEventRepository extends JpaRepository<ComplianceEvent
           Pageable pageable);
       
           Optional<ComplianceEvent> findByIdempotencyKey(String idempotencyKey);
+
+  /** Find compliance events (CTRs, SARs) linked to a suspect via suspect snapshot. */
+  Page<ComplianceEvent> findBySuspectSnapshot_SuspectId(Long suspectId, Pageable pageable);
+
+  /** Find events of given type that are either unlinked or linked to a different suspect (for "link to suspect" dropdown). */
+  @Query("""
+      SELECT e FROM ComplianceEvent e
+      WHERE e.eventType = :eventType
+        AND (e.suspectSnapshot IS NULL OR e.suspectSnapshot.suspectId <> :excludeSuspectId)
+      ORDER BY e.eventTime DESC
+      """)
+  Page<ComplianceEvent> findLinkableByEventType(
+      @Param("eventType") EventType eventType,
+      @Param("excludeSuspectId") Long excludeSuspectId,
+      Pageable pageable);
 }

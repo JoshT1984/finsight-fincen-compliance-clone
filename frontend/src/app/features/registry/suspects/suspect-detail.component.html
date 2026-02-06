@@ -1,0 +1,449 @@
+<div class="container suspect-detail-container">
+  <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
+  <div class="suspect-detail-header">
+    <h1>Suspect details</h1>
+    <div class="header-actions">
+      <a routerLink="/registry/suspects" class="back-link">Back to Suspects</a>
+      @if (suspect) {
+        <a [routerLink]="['/registry/suspects', suspect.suspectId, 'edit']" class="btn-secondary">Edit</a>
+        <button type="button" class="btn-danger" (click)="openDeleteConfirm()" [disabled]="deleting">
+          {{ deleting ? 'Deleting...' : 'Delete' }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <p class="loading">Loading...</p>
+  } @else if (error && !suspect) {
+    <p class="error">{{ error }}</p>
+  } @else if (suspect) {
+    @if (error) {
+      <p class="error">{{ error }}</p>
+    }
+    <section class="detail-section" aria-labelledby="overview-heading">
+      <h2 id="overview-heading">Overview</h2>
+      <dl class="detail-list">
+        <dt>ID</dt>
+        <dd>{{ suspect.suspectId }}</dd>
+        <dt>Primary name</dt>
+        <dd>{{ suspect.primaryName }}</dd>
+        <dt>Date of birth</dt>
+        <dd>{{ suspect.dob ?? '-' }}</dd>
+        <dt>SSN</dt>
+        <dd>{{ suspect.ssn ?? '-' }}</dd>
+        <dt>Risk level</dt>
+        <dd>
+          <span class="risk risk-{{ suspect.riskLevel | lowercase }}">{{ suspect.riskLevel | properCase }}</span>
+        </dd>
+        <dt>Created</dt>
+        <dd>{{ formatDate(suspect.createdAt) }}</dd>
+        <dt>Updated</dt>
+        <dd>{{ formatDate(suspect.updatedAt) }}</dd>
+      </dl>
+    </section>
+
+    @if (loadingRelated) {
+      <p class="loading">Loading addresses, aliases, and linked activity...</p>
+    } @else {
+      @if (unlinkError) {
+        <p class="link-error">{{ unlinkError }}</p>
+      }
+      <section class="detail-section" aria-labelledby="addresses-heading">
+        <h2 id="addresses-heading">Addresses</h2>
+        @if (addresses.length === 0) {
+          <p class="empty-section">No addresses linked to this suspect.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Address</th>
+                  <th>Current</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of addresses; track a.addressId) {
+                  <tr>
+                    <td>{{ a.addressType | properCase }}</td>
+                    <td>{{ formatAddress(a) }}</td>
+                    <td>{{ a.isCurrent ? 'Yes' : 'No' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="link-form">
+          <h3 class="link-form-heading">Link address</h3>
+          @if (linkAddressError) {
+            <p class="link-error">{{ linkAddressError }}</p>
+          }
+          <div class="link-form-row">
+            <label for="linkAddress">Address</label>
+            <select id="linkAddress" [(ngModel)]="linkAddressId" name="linkAddressId">
+              <option [ngValue]="''">Select an address</option>
+              @for (a of availableAddresses; track a.addressId) {
+                <option [ngValue]="a.addressId">{{ formatAddress(a) }}</option>
+              }
+            </select>
+            @if (allAddresses.length > 0 && availableAddresses.length === 0) {
+              <p class="link-form-hint">All addresses are already linked to this suspect.</p>
+            }
+          </div>
+          <div class="link-form-row">
+            <label for="linkAddressType">Type</label>
+            <select id="linkAddressType" [(ngModel)]="linkAddressType" name="linkAddressType">
+              @for (t of addressTypes; track t) {
+                <option [value]="t">{{ t | properCase }}</option>
+              }
+            </select>
+          </div>
+          <div class="link-form-row link-form-checkbox">
+            <input type="checkbox" id="linkAddressCurrent" [(ngModel)]="linkAddressIsCurrent" name="linkAddressIsCurrent" />
+            <label for="linkAddressCurrent">Current address</label>
+          </div>
+          <button type="button" class="btn-link" (click)="linkAddress()" [disabled]="linkAddressId === '' || linkingAddr">
+            {{ linkingAddr ? 'Linking...' : 'Link address' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="organizations-heading">
+        <h2 id="organizations-heading">Organizations</h2>
+        @if (organizationsLoadError) {
+          <p class="error">Unable to load organizations: {{ organizationsLoadError }}</p>
+        }
+        @if (organizations.length === 0 && !organizationsLoadError) {
+          <p class="empty-section">No organizations linked to this suspect.</p>
+        }
+        @if (organizations.length > 0) {
+          <div class="table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Role</th>
+                  <th>Linked</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of organizations; track o.orgId) {
+                  <tr>
+                    <td>{{ o.name }}</td>
+                    <td>{{ o.type | properCase }}</td>
+                    <td>{{ o.role ?? '-' }}</td>
+                    <td>{{ formatDate(o.linkedAt) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="link-form">
+          <h3 class="link-form-heading">Link organization</h3>
+          @if (linkOrgError) {
+            <p class="link-error">{{ linkOrgError }}</p>
+          }
+          <div class="link-form-row">
+            <label for="linkOrg">Organization</label>
+            <select id="linkOrg" [(ngModel)]="linkOrgId" name="linkOrgId">
+              <option [ngValue]="''">Select an organization</option>
+              @for (o of availableOrganizations; track o.orgId) {
+                <option [ngValue]="o.orgId">{{ o.name }} ({{ o.type | properCase }})</option>
+              }
+            </select>
+            @if (allOrganizations.length > 0 && availableOrganizations.length === 0) {
+              <p class="link-form-hint">All organizations are already linked to this suspect.</p>
+            }
+          </div>
+          <div class="link-form-row">
+            <label for="linkOrgRole">Role (optional)</label>
+            <input id="linkOrgRole" type="text" [(ngModel)]="linkOrgRole" name="linkOrgRole" maxlength="64" placeholder="e.g. member" />
+          </div>
+          <button type="button" class="btn-link" (click)="linkOrganization()" [disabled]="linkOrgId === '' || linkingOrg">
+            {{ linkingOrg ? 'Linking...' : 'Link organization' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="aliases-heading">
+        <h2 id="aliases-heading">Aliases</h2>
+        @if (linkAliasError) {
+          <p class="link-error">{{ linkAliasError }}</p>
+        }
+        @if (aliases.length === 0) {
+          <p class="empty-section">No aliases on file.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Primary</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (al of aliases; track al.aliasId) {
+                  @if (editingAliasId === al.aliasId) {
+                    <tr class="edit-row">
+                      <td>
+                        <input type="text" [(ngModel)]="editAliasName" name="editAliasName" maxlength="256" class="edit-input" />
+                      </td>
+                      <td>
+                        <select [(ngModel)]="editAliasType" name="editAliasType" class="edit-select">
+                          @for (t of aliasTypes; track t) {
+                            <option [value]="t">{{ t | properCase }}</option>
+                          }
+                        </select>
+                      </td>
+                      <td>
+                        <input type="checkbox" [(ngModel)]="editAliasIsPrimary" name="editAliasIsPrimary" />
+                      </td>
+                      <td>
+                        <button type="button" class="btn-link btn-small" (click)="saveEditAlias()">Save</button>
+                        <button type="button" class="btn-unlink btn-small" (click)="cancelEditAlias()">Cancel</button>
+                      </td>
+                    </tr>
+                  } @else {
+                    <tr>
+                      <td>{{ al.aliasName }}</td>
+                      <td>{{ al.aliasType | properCase }}</td>
+                      <td>{{ al.isPrimary ? 'Yes' : 'No' }}</td>
+                      <td>
+                        <button type="button" class="btn-unlink" (click)="startEditAlias(al)" [attr.aria-label]="'Edit alias ' + al.aliasName">Edit</button>
+                        <button type="button" class="btn-unlink" (click)="openDeleteAliasConfirm(al.aliasId)" [disabled]="deletingAlias" [attr.aria-label]="'Delete alias ' + al.aliasName">Delete</button>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="link-form">
+          <h3 class="link-form-heading">Add alias</h3>
+          <div class="link-form-row">
+            <label for="linkAliasName">Alias name</label>
+            <input id="linkAliasName" type="text" [(ngModel)]="linkAliasName" name="linkAliasName" maxlength="256" placeholder="e.g. Johnny Doe" />
+          </div>
+          <div class="link-form-row">
+            <label for="linkAliasType">Type</label>
+            <select id="linkAliasType" [(ngModel)]="linkAliasType" name="linkAliasType">
+              @for (t of aliasTypes; track t) {
+                <option [value]="t">{{ t | properCase }}</option>
+              }
+            </select>
+          </div>
+          <div class="link-form-row link-form-checkbox">
+            <input type="checkbox" id="linkAliasPrimary" [(ngModel)]="linkAliasIsPrimary" name="linkAliasIsPrimary" />
+            <label for="linkAliasPrimary">Primary alias</label>
+          </div>
+          <button type="button" class="btn-link" (click)="addAlias()" [disabled]="!linkAliasName?.trim() || linkingAlias">
+            {{ linkingAlias ? 'Adding...' : 'Add alias' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="ctrs-heading">
+        <h2 id="ctrs-heading">Currency Transaction Reports</h2>
+        @if (ctrs.length === 0) {
+          <p class="empty-section">No CTRs linked to this suspect.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Event ID</th>
+                  <th>Status</th>
+                  <th>Event time</th>
+                  <th>Amount</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of ctrs; track e.eventId) {
+                  <tr>
+                    <td>{{ e.eventId }}</td>
+                    <td>{{ e.status ?? '-' }}</td>
+                    <td>{{ formatDate(e.eventTime) }}</td>
+                    <td>{{ e.totalAmount != null ? (e.totalAmount | number) : '-' }}</td>
+                    <td>
+                      <button type="button" class="btn-unlink" (click)="unlinkCtr(e.eventId)" [disabled]="unlinkingCtrEventId === e.eventId" [attr.aria-label]="'Unlink CTR ' + e.eventId">
+                        {{ unlinkingCtrEventId === e.eventId ? 'Unlinking...' : 'Unlink' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="link-form">
+          <h3 class="link-form-heading">Link CTR</h3>
+          @if (linkCtrError) {
+            <p class="link-error">{{ linkCtrError }}</p>
+          }
+          <div class="link-form-row">
+            <label for="linkCtr">CTR (event)</label>
+            <select id="linkCtr" [(ngModel)]="linkCtrEventId" name="linkCtrEventId">
+              <option [ngValue]="''">Select a CTR</option>
+              @for (e of linkableCtrs; track e.eventId) {
+                <option [ngValue]="e.eventId">Event {{ e.eventId }} – {{ formatDate(e.eventTime) }} – {{ e.totalAmount != null ? (e.totalAmount | number) : '-' }}</option>
+              }
+            </select>
+            @if (linkableCtrs.length === 0) {
+              <p class="link-form-hint">No unlinked CTRs available to link.</p>
+            }
+          </div>
+          <button type="button" class="btn-link" (click)="linkCtr()" [disabled]="linkCtrEventId === '' || linkingCtr">
+            {{ linkingCtr ? 'Linking...' : 'Link CTR' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="sars-heading">
+        <h2 id="sars-heading">Suspicious Activity Reports</h2>
+        @if (sars.length === 0) {
+          <p class="empty-section">No SARs linked to this suspect.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Event ID</th>
+                  <th>Status</th>
+                  <th>Event time</th>
+                  <th>Severity</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of sars; track e.eventId) {
+                  <tr>
+                    <td>{{ e.eventId }}</td>
+                    <td>{{ e.status ?? '-' }}</td>
+                    <td>{{ formatDate(e.eventTime) }}</td>
+                    <td>{{ e.severityScore != null ? e.severityScore : '-' }}</td>
+                    <td>
+                      <button type="button" class="btn-unlink" (click)="unlinkSar(e.eventId)" [disabled]="unlinkingSarEventId === e.eventId" [attr.aria-label]="'Unlink SAR ' + e.eventId">
+                        {{ unlinkingSarEventId === e.eventId ? 'Unlinking...' : 'Unlink' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="link-form">
+          <h3 class="link-form-heading">Link SAR</h3>
+          @if (linkSarError) {
+            <p class="link-error">{{ linkSarError }}</p>
+          }
+          <div class="link-form-row">
+            <label for="linkSar">SAR (event)</label>
+            <select id="linkSar" [(ngModel)]="linkSarEventId" name="linkSarEventId">
+              <option [ngValue]="''">Select a SAR</option>
+              @for (e of linkableSars; track e.eventId) {
+                <option [ngValue]="e.eventId">Event {{ e.eventId }} – {{ formatDate(e.eventTime) }} – {{ e.severityScore != null ? e.severityScore : '-' }}</option>
+              }
+            </select>
+            @if (linkableSars.length === 0) {
+              <p class="link-form-hint">No unlinked SARs available to link.</p>
+            }
+          </div>
+          <button type="button" class="btn-link" (click)="linkSar()" [disabled]="linkSarEventId === '' || linkingSar">
+            {{ linkingSar ? 'Linking...' : 'Link SAR' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="cases-heading">
+        <h2 id="cases-heading">Cases</h2>
+        @if (cases.length === 0) {
+          <p class="empty-section">No cases linked to this suspect.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>SAR ID</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of cases; track c.caseId) {
+                  <tr>
+                    <td>{{ c.caseId }}</td>
+                    <td>{{ c.sarId ?? '-' }}</td>
+                    <td>
+                      <span class="case-status case-status-{{ c.status | lowercase }}">{{ c.status }}</span>
+                    </td>
+                    <td>{{ formatDate(c.createdAt) }}</td>
+                    <td>
+                      <a [routerLink]="['/cases', c.caseId]" class="view-link">View case</a>
+                      @if (c.sarId != null) {
+                        <button type="button" class="btn-unlink" (click)="unlinkCase(c)" [disabled]="unlinkingCaseId === c.caseId" [attr.aria-label]="'Unlink case ' + c.caseId">
+                          {{ unlinkingCaseId === c.caseId ? 'Unlinking...' : 'Unlink' }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="link-form">
+          <h3 class="link-form-heading">Link case</h3>
+          @if (linkCaseError) {
+            <p class="link-error">{{ linkCaseError }}</p>
+          }
+          <div class="link-form-row">
+            <label for="linkCase">Case</label>
+            <select id="linkCase" [(ngModel)]="linkCaseId" name="linkCaseId">
+              <option [ngValue]="''">Select a case</option>
+              @for (c of linkableCases; track c.caseId) {
+                <option [ngValue]="c.caseId">Case {{ c.caseId }} – SAR {{ c.sarId ?? '-' }} – {{ c.status }}</option>
+              }
+            </select>
+            @if (linkableCases.length === 0) {
+              <p class="link-form-hint">No cases available to link (all cases are already linked to this suspect).</p>
+            }
+          </div>
+          <button type="button" class="btn-link" (click)="linkCase()" [disabled]="linkCaseId === '' || linkingCase">
+            {{ linkingCase ? 'Linking...' : 'Link case' }}
+          </button>
+        </div>
+      </section>
+    }
+  }
+
+  @if (showDeleteConfirm) {
+    <app-confirm-dialog
+      title="Delete suspect"
+      message="Are you sure you want to delete this suspect? This action cannot be undone."
+      confirmText="Delete"
+      cancelText="Cancel"
+      (confirm)="onConfirmDelete()"
+      (cancel)="onCancelDelete()" />
+  }
+
+  @if (showDeleteAliasConfirm) {
+    <app-confirm-dialog
+      title="Delete alias"
+      message="Are you sure you want to delete this alias? This action cannot be undone."
+      confirmText="Delete"
+      cancelText="Cancel"
+      (confirm)="onConfirmDeleteAlias()"
+      (cancel)="onCancelDeleteAlias()" />
+  }
+</div>

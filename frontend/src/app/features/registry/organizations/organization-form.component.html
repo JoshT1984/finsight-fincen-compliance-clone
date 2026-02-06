@@ -1,0 +1,43 @@
+<div class="container form-container">
+  <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
+  <div class="form-header">
+    <h1>{{ isEditMode ? 'Edit organization' : 'New organization' }}</h1>
+    <a routerLink="/registry/organizations" class="back-link">Cancel</a>
+  </div>
+
+  @if (loading) {
+    <p class="loading">Loading...</p>
+  } @else if (loadError) {
+    <p class="error">{{ loadError }}</p>
+  } @else {
+    @if (submitError) {
+      <p class="error">{{ submitError }}</p>
+    }
+    <form (ngSubmit)="onSubmit()" class="registry-form">
+      <div class="form-group">
+        <label for="name">Name <span class="required">*</span></label>
+        <input
+          id="name"
+          type="text"
+          [(ngModel)]="name"
+          name="name"
+          maxlength="256"
+          required />
+      </div>
+      <div class="form-group">
+        <label for="type">Type</label>
+        <select id="type" [(ngModel)]="type" name="type">
+          @for (t of organizationTypes; track t) {
+            <option [value]="t">{{ t | properCase }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving || !name.trim()">
+          {{ saving ? 'Saving...' : (isEditMode ? 'Update' : 'Create') }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

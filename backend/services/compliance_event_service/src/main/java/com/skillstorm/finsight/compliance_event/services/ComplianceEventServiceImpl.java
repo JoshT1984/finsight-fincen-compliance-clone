@@ -17,6 +17,8 @@ import com.skillstorm.finsight.compliance_event.models.EventType;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventCtrDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventSarDetailRepository;
+import com.skillstorm.finsight.compliance_event.repositories.SuspectSnapshotAtTimeOfEventRepository;
+import com.skillstorm.finsight.compliance_event.models.SuspectSnapshotAtTimeOfEvent;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -31,17 +33,20 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     private final ComplianceEventRepository complianceEventRepository;
     private final ComplianceEventSarDetailRepository sarDetailRepository;
     private final ComplianceEventCtrDetailRepository ctrDetailRepository;
+    private final SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository;
     private final ComplianceEventMapper mapper;
 
     public ComplianceEventServiceImpl(
             ComplianceEventRepository complianceEventRepository,
             ComplianceEventSarDetailRepository sarDetailRepository,
             ComplianceEventCtrDetailRepository ctrDetailRepository,
+            SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository,
             ComplianceEventMapper mapper) {
 
         this.complianceEventRepository = complianceEventRepository;
         this.sarDetailRepository = sarDetailRepository;
         this.ctrDetailRepository = ctrDetailRepository;
+        this.suspectSnapshotRepository = suspectSnapshotRepository;
         this.mapper = mapper;
     }
 
@@ -133,6 +138,49 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         return complianceEventRepository
                 .search(eventType, status, sourceSystem, from, to, pageable)
                 .map(mapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ComplianceEventResponse> findBySuspectId(Long suspectId, Pageable pageable) {
+        return complianceEventRepository
+                .findBySuspectSnapshot_SuspectId(suspectId, pageable)
+                .map(mapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ComplianceEventResponse> findLinkableByEventType(EventType eventType, Long excludeSuspectId, Pageable pageable) {
+        return complianceEventRepository
+                .findLinkableByEventType(eventType, excludeSuspectId, pageable)
+                .map(mapper::toResponse);
+    }
+
+    @Override
+    @Transactional
+    public ComplianceEventResponse linkEventToSuspect(Long eventId, Long suspectId) {
+        ComplianceEvent event = complianceEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + eventId));
+
+        SuspectSnapshotAtTimeOfEvent snapshot = suspectSnapshotRepository.findLatestForSuspect(suspectId);
+        if (snapshot == null) {
+            snapshot = new SuspectSnapshotAtTimeOfEvent(suspectId);
+            snapshot = suspectSnapshotRepository.save(snapshot);
+        }
+
+        event.setSuspectSnapshot(snapshot);
+        complianceEventRepository.save(event);
+        return mapper.toResponse(event);
+    }
+
+    @Override
+    @Transactional
+    public ComplianceEventResponse unlinkEventFromSuspect(Long eventId) {
+        ComplianceEvent event = complianceEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + eventId));
+        event.setSuspectSnapshot(null);
+        complianceEventRepository.save(event);
+        return mapper.toResponse(event);
     }
 
     private void assertNoDuplicateSource(String sourceSystem, String sourceEntityId) {

@@ -14,6 +14,7 @@ import com.skillstorm.finsight.suspect_registry.dtos.request.CreateSuspectReques
 import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectOrganizationRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchSuspectRequest;
+import com.skillstorm.finsight.suspect_registry.dtos.response.LinkedOrganizationResponse;
 import com.skillstorm.finsight.suspect_registry.dtos.response.SuspectResponse;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
@@ -115,6 +116,24 @@ public class SuspectService {
     log.debug("Retrieving suspects by organization ID: {}", orgId);
     return repo.findByOrganizationsOrganizationId(orgId).stream()
         .map(this::toResponse)
+        .collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  public List<LinkedOrganizationResponse> findOrganizationsBySuspectId(Long suspectId) {
+    log.debug("Retrieving organizations for suspect ID: {}", suspectId);
+    repo.findById(suspectId)
+        .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
+    return suspectOrgRepo.findBySuspectIdOrderByLinkedAtDesc(suspectId).stream()
+        .map(so -> {
+          Organization o = so.getOrganization();
+          return new LinkedOrganizationResponse(
+              o.getId(),
+              o.getName(),
+              o.getType(),
+              so.getRole(),
+              so.getLinkedAt());
+        })
         .collect(Collectors.toList());
   }
 

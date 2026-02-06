@@ -1,0 +1,64 @@
+<div class="container suspects-container">
+  <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
+  <div class="suspects-header">
+    <h1>Suspects</h1>
+    <div class="header-actions">
+      <a routerLink="/registry" class="back-link">Back to Registry</a>
+      <a routerLink="/registry/suspects/new" class="btn-primary">Add suspect</a>
+    </div>
+  </div>
+
+  @if (loading) {
+    <p class="loading">Loading suspects...</p>
+  } @else if (error) {
+    <p class="error">{{ error }}</p>
+  } @else {
+    @if (suspects.length === 0) {
+      <p class="empty">No suspects found.</p>
+    } @else {
+      <div class="suspects-table-wrapper">
+        <table class="suspects-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Primary name</th>
+              <th>DOB</th>
+              <th>Risk level</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of suspects; track s.suspectId) {
+              <tr
+                class="suspects-table-row-link"
+                (click)="navigateToSuspect(s.suspectId)"
+                role="button"
+                tabindex="0"
+                (keydown.enter)="navigateToSuspect(s.suspectId)"
+                (keydown.space)="navigateToSuspect(s.suspectId); $event.preventDefault()">
+                <td>{{ s.suspectId }}</td>
+                <td>{{ s.primaryName }}</td>
+                <td>{{ s.dob ?? '-' }}</td>
+                <td>
+                  <span class="risk risk-{{ s.riskLevel | lowercase }}">{{ s.riskLevel | properCase }}</span>
+                </td>
+                <td>{{ formatDate(s.createdAt) }}</td>
+                <td class="actions-cell">
+                  <a
+                    [routerLink]="['/registry/suspects', s.suspectId]"
+                    class="view-link"
+                    (click)="$event.stopPropagation()">View</a>
+                  <a
+                    [routerLink]="['/registry/suspects', s.suspectId, 'edit']"
+                    class="edit-link"
+                    (click)="$event.stopPropagation()">Edit</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
