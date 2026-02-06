@@ -8,6 +8,10 @@ RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests package
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 ENV JAVA_OPTS=""
+
 COPY --from=build /app/target/*.jar /app/app.jar
+COPY docker/entrypoint.sh /app/entrypoint.sh
+
 EXPOSE 8080
-ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]
+
+ENTRYPOINT ["/app/entrypoint.sh"]
