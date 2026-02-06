@@ -4,11 +4,9 @@
   min-height: 40vh;
 }
 
-/* Match header/navbar container alignment (same as documents/cases) */
-.public-landing-container {
-  margin-left: 51px !important;
-  margin-right: 51px !important;
-  max-width: 1440px !important;
+/* Use same padding as .container (1.5rem vertical) + hero horizontal (22px) so main content lines up with hero */
+.public-landing-container.container {
+  padding: 1.5rem 22px;
 }
 
 #public-landing-header {

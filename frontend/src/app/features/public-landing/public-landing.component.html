@@ -6,7 +6,7 @@
     <div class="public-landing-page">
       <app-side-nav
         [navItems]="navItems"
-        [initialSelectedItem]="'about'"
+        [initialSelectedItem]="selectedSection"
         [currentItemId]="selectedSection"
         (itemSelected)="onSectionSelected($event)">
       </app-side-nav>

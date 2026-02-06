@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import {
@@ -18,13 +19,12 @@ export interface CaseOption {
 @Component({
   selector: 'app-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './upload.component.html',
   styleUrls: ['./upload.component.css'],
 })
 export class UploadComponent implements OnInit, OnDestroy {
   documentType: 'CTR' | 'SAR' | 'CASE' = 'CTR';
-  docType: string = 'CTR'; // For template compatibility
   /** 'new' = create new CTR, 'existing' = select from dropdown */
   ctrMode: 'new' | 'existing' = 'new';
   /** 'new' = create new SAR, 'existing' = select from dropdown */
@@ -45,8 +45,6 @@ export class UploadComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  isUploading: boolean = false;
-
   constructor(
     private documentsService: DocumentsService,
     private complianceService: ComplianceService,
@@ -62,22 +60,15 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  onDocTypeChange(newType: string): void {
-    this.docType = newType;
-    this.documentType = (newType as 'CTR' | 'SAR' | 'CASE') ?? 'CTR';
+  onDocumentTypeChange(_newType?: 'CTR' | 'SAR' | 'CASE'): void {
     this.ctrMode = 'new';
     this.sarMode = 'new';
     this.ctrId = null;
     this.sarId = null;
     this.caseId = null;
     this.error = null;
-    this.optionsError = null; // Clear so error disappears when changing document type
+    this.optionsError = null;
     this.loadOptions();
-  }
-
-  // For template compatibility
-  onDocumentTypeChange(newType?: 'CTR' | 'SAR' | 'CASE'): void {
-    this.onDocTypeChange(newType ?? 'CTR');
   }
 
   loadOptions(): void {
