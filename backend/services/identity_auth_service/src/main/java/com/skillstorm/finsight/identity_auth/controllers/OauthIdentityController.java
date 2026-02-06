@@ -1,32 +1,25 @@
 package com.skillstorm.finsight.identity_auth.controllers;
 
+import java.io.IOException;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.HttpHeaders;
 import com.skillstorm.finsight.identity_auth.requestDtos.LoginRequest;
 import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 @RestController
 @RequestMapping("/auth")
 public class OauthIdentityController {
-
-        // 🔍 TEMP DEBUG: controller-level logger
-        private static final Logger log =
-                        LoggerFactory.getLogger(OauthIdentityController.class);
 
         private OauthIdentityService oauthIdentityService;
 
@@ -35,104 +28,75 @@ public class OauthIdentityController {
         }
 
         @PostMapping("/login")
-        public ResponseEntity<LoginResponse> login(
-                        @RequestBody LoginRequest loginRequest) {
-
-                // 🔍 TEMP DEBUG: confirm controller is hit
-                log.info("LOGIN attempt received for email={}", loginRequest.email());
-
-                try {
-                        // Existing logic (unchanged)
-                        LoginResponse response =
-                                        oauthIdentityService.loginWithRefresh(
-                                                        loginRequest.email(),
-                                                        loginRequest.password());
-
-                        ResponseCookie refreshCookie =
-                                        ResponseCookie.from("refreshToken", response.refreshToken())
-                                                        .httpOnly(true)
-                                                        .path("/")
-                                                        .maxAge(60 * 60 * 4) // 4 hours
-                                                        .build();
-
-                        return ResponseEntity.ok()
-                                        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                                        .body(response);
-
-                } catch (Exception ex) {
-                        // 🔥 CRITICAL: force stack trace to console
-                        // This is what will finally reveal the 500 root cause
-                        log.error("LOGIN failed for email={}", loginRequest.email(), ex);
-
-                        // Re-throw so existing error handling behavior stays intact
-                        throw ex;
-                }
+        public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+                LoginResponse response = oauthIdentityService.loginWithRefresh(loginRequest.email(),
+                                loginRequest.password());
+                ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
+                                .httpOnly(true)
+                                .path("/")
+                                .maxAge(60 * 60 * 4) // 4 hours
+                                .build();
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                                .body(response);
         }
 
-        @PostMapping("/oauth/link/{provider}")
-        public ResponseEntity<Void> linkAccount(
+        @GetMapping("/oauth2/authorize/{provider}")
+        public void startOAuth(
                         @PathVariable String provider,
-                        OAuth2AuthenticationToken auth,
-                        Authentication internalAuth) {
+                        @RequestParam String mode,
+                        Authentication authentication,
+                        HttpServletResponse response) throws IOException {
 
-                String appUserId = internalAuth.getName();
-                String providerUserId = auth.getPrincipal().getAttribute("sub");
+                response.sendRedirect(
+                                "/oauth2/authorization/" + provider);
+        }
 
-                oauthIdentityService.linkOAuthIdentity(
-                                appUserId,
-                                provider,
-                                providerUserId);
-
-                return ResponseEntity.noContent().build();
+        /**
+         * Checks if the current user is connected with the specified provider.
+         * Requires Authorization: Bearer <token> header.
+         */
+        @GetMapping("/oauth/linked/{provider}")
+        public ResponseEntity<Boolean> isProviderLinked(
+                        @PathVariable String provider,
+                        Authentication authentication) {
+                // Extract userId from authentication principal (assumes JWT subject is
+                // userId)
+                String userId = authentication.getName();
+                boolean linked = oauthIdentityService.isProviderLinked(userId, provider);
+                return ResponseEntity.ok(linked);
         }
 
         @PostMapping("/refresh")
-        public ResponseEntity<LoginResponse> refresh(
-                        @CookieValue("refreshToken") String refreshToken) {
-
-                LoginResponse response =
-                                oauthIdentityService.refreshAccessToken(refreshToken);
-
-                ResponseCookie refreshCookie =
-                                ResponseCookie.from("refreshToken", response.refreshToken())
-                                                .httpOnly(true)
-                                                .path("/")
-                                                .maxAge(60 * 60 * 4) // 4 hours
-                                                .build();
-
+        public ResponseEntity<LoginResponse> refresh(@CookieValue("refreshToken") String refreshToken) {
+                LoginResponse response = oauthIdentityService.refreshAccessToken(refreshToken);
+                ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
+                                .httpOnly(true)
+                                .path("/")
+                                .maxAge(60 * 60 * 4) // 4 hours
+                                .build();
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                                 .body(response);
         }
 
         @PostMapping("/logout")
-        public ResponseEntity<Void> logout(
-                        @CookieValue("refreshToken") String refreshToken) {
-
+        public ResponseEntity<Void> logout(@CookieValue("refreshToken") String refreshToken) {
                 oauthIdentityService.revokeRefreshToken(refreshToken);
-
-                ResponseCookie cookie =
-                                ResponseCookie.from("refreshToken", "")
-                                                .maxAge(0)
-                                                .httpOnly(true)
-                                                .path("/")
-                                                .build();
-
+                ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+                                .maxAge(0)
+                                .httpOnly(true)
+                                .path("/")
+                                .build();
                 return ResponseEntity.noContent()
                                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                                 .build();
         }
 
         @PostMapping("/forgot-password")
-        public ResponseEntity<Void> forgotPassword(
-                        @RequestBody Map<String, String> payload) {
-
+        public ResponseEntity<Void> forgotPassword(@RequestBody Map<String, String> payload) {
                 String email = payload.get("email");
-
-                // Existing behavior preserved
-                boolean sent =
-                                oauthIdentityService.sendPasswordResetEmail(email);
-
+                boolean sent = oauthIdentityService.sendPasswordResetEmail(email);
                 // Always return 200 OK with generic message for security
                 return ResponseEntity.ok().build();
         }
@@ -142,23 +106,46 @@ public class OauthIdentityController {
          * Expects JSON: { "token": "...", "newPassword": "..." }
          */
         @PostMapping("/reset-password")
-        public ResponseEntity<Void> resetPassword(
-                        @RequestBody Map<String, String> payload) {
-
+        public ResponseEntity<Void> resetPassword(@RequestBody Map<String, String> payload) {
                 String token = payload.get("token");
                 String newPassword = payload.get("newPassword");
-
                 if (token == null || newPassword == null) {
                         return ResponseEntity.badRequest().build();
                 }
-
-                boolean success =
-                                oauthIdentityService.resetPassword(token, newPassword);
-
+                boolean success = oauthIdentityService.resetPassword(token, newPassword);
                 if (success) {
                         return ResponseEntity.ok().build();
                 } else {
                         return ResponseEntity.status(403).build(); // Invalid or expired token
                 }
+        }
+
+        @PostMapping("/oauth/link")
+        public ResponseEntity<?> linkAccount(HttpServletRequest request, Authentication authentication) {
+
+                OAuth2AuthenticationToken oauth = (OAuth2AuthenticationToken) request.getSession()
+                                .getAttribute("oauthToken");
+                if (oauth == null) {
+                        return ResponseEntity.badRequest().body("No OAuth info found in session.");
+                }
+
+                String provider = oauth.getAuthorizedClientRegistrationId();
+                Map<String, Object> attributes = oauth.getPrincipal().getAttributes();
+                String providerUserId = extractProviderUserId(provider, attributes);
+                String providerEmail = (String) attributes.get("email");
+
+                String appUserId = authentication.getName();
+
+                oauthIdentityService.linkOAuthIdentity(appUserId, provider, providerUserId, providerEmail);
+
+                return ResponseEntity.ok().build();
+        }
+
+        private String extractProviderUserId(String provider, Map<String, Object> attributes) {
+                return switch (provider.toLowerCase()) {
+                        case "google" -> (String) attributes.get("sub");
+                        case "github" -> String.valueOf(attributes.get("id"));
+                        default -> throw new IllegalStateException("Unsupported OAuth provider: " + provider);
+                };
         }
 }
