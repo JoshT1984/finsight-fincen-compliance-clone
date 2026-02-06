@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Component } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { LoginDialogService } from '../services/loginDialog.service';
 import { IdentityService } from '../services/identity.service';
 
 @Component({
   selector: 'app-login-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './login-dialog.component.html',
   styleUrls: ['./login-dialog.component.css'],
 })
@@ -18,6 +19,7 @@ export class LoginDialogComponent {
   constructor(
     private loginDialog: LoginDialogService,
     private identityService: IdentityService,
+    private router: Router,
   ) {}
 
   close() {
@@ -26,7 +28,9 @@ export class LoginDialogComponent {
 
   login() {
     this.loginDialog.login(this.email, this.password).subscribe({
-      next: (token: string) => {},
+      next: (token: string) => {
+        this.router.navigate(['/dashboard']);
+      },
       error: (error: any) => {
         console.error('Login failed', error);
       },
@@ -34,10 +38,12 @@ export class LoginDialogComponent {
   }
 
   loginWithGoogle() {
+    localStorage.setItem('postLoginRedirect', '/dashboard');
     this.identityService.loginWithProvider('google');
   }
 
   loginWithGithub() {
+    localStorage.setItem('postLoginRedirect', '/dashboard');
     this.identityService.loginWithProvider('github');
   }
 

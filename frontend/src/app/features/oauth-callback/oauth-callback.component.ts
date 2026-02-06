@@ -20,10 +20,10 @@ export class OauthCallbackComponent implements OnInit {
     if (token) {
       localStorage.setItem('authToken', token);
       this.identityService.setCurrentUserProfile().subscribe(() => {
-        this.router.navigate(['/profile']);
+        this.router.navigate(['/dashboard']);
       });
     } else {
-      this.router.navigate(['/login']);
+      this.router.navigate(['/']);
     }
   }
 }

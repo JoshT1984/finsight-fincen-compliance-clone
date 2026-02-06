@@ -4,11 +4,11 @@
     <h2>{{ forgotPasswordMode ? 'Reset Password' : 'Login' }}</h2>
     <form *ngIf="!forgotPasswordMode" (ngSubmit)="login()">
       <div class="form__div">
-        <label>Email</label>
+        <label>Email:</label>
         <input type="email" [(ngModel)]="email" name="email" required />
       </div>
       <div class="form__div">
-        <label>Password</label>
+        <label>Password:</label>
         <input type="password" [(ngModel)]="password" name="password" required />
       </div>
       <button type="submit" class="btn primary">Login</button>
@@ -18,8 +18,15 @@
     </form>
     <ng-container *ngIf="forgotPasswordMode">
       <form *ngIf="!forgotPasswordMessage" (ngSubmit)="requestPasswordReset()">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="forgotPasswordEmail" name="forgotPasswordEmail" required />
+        <div class="form__div">
+          <label>Email:</label>
+          <input
+            type="email"
+            [(ngModel)]="forgotPasswordEmail"
+            name="forgotPasswordEmail"
+            required
+          />
+        </div>
         <button type="submit" class="btn primary">Send Reset Email</button>
         <button type="button" class="btn" (click)="closeForgotPassword()">Cancel</button>
       </form>
