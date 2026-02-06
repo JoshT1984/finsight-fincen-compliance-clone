@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 
 import com.skillstorm.finsight.identity_auth.models.AppUser;
@@ -23,6 +24,9 @@ import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 
 @Service
 public class OauthIdentityService {
+
+    @Value("${frontend.frontend_url}")
+    private String frontendUrl;
 
     private final OauthIdentityRepository oauthIdentityRepository;
     private final JwtEncoder jwtEncoder;
@@ -149,7 +153,7 @@ public class OauthIdentityService {
             resetTokenStore.put(resetToken, new ResetTokenInfo(user.getUserId(), expiresAt));
 
             // Send email with real reset link (replace with your frontend URL)
-            String resetUrl = "http://localhost:4200/reset-password?token=" + resetToken;
+            String resetUrl = frontendUrl + "/reset-password?token=" + resetToken;
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(user.getEmail());
             message.setFrom("matthew.wright9630@gmail.com");

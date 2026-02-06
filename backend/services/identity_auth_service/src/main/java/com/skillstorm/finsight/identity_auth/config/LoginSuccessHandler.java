@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -22,6 +23,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
+
+        @Value("${frontend.frontend_url}")
+        private String frontendUrl;
 
         private final JwtEncoder jwtEncoder;
         private final OauthIdentityService oauthIdentityService;
@@ -55,7 +59,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                                 // New provider → redirect to link account page
                                 // Store the OAuth token in session so /linkAccount can access it
                                 request.getSession().setAttribute("oauthToken", oauth);
-                                response.sendRedirect("http://localhost:4200/linkAccount");
+                                response.sendRedirect(frontendUrl + "/linkAccount");
                         }
                         return;
                 }
@@ -79,7 +83,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                                 .orElse("USER");
 
                 issueJwt(userId, role, response);
-                response.sendRedirect("http://localhost:4200/profile");
+                response.sendRedirect(frontendUrl + "/profile");
         }
 
         /*
@@ -92,7 +96,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                 AppUser user = oauthIdentityService.getAppUserById(appUserId);
                 String role = user.getRole().getRoleName();
                 String token = issueJwt(appUserId, role);
-                response.sendRedirect("http://localhost:4200/oauth-callback?accessToken=" + token);
+                response.sendRedirect(frontendUrl + "/oauth-callback?accessToken=" + token);
         }
 
         /*

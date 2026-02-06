@@ -13,12 +13,10 @@ export class IdentityService {
   profile$ = this.profileSubject.asObservable();
 
   private readonly apiBaseUrl: string;
-  private readonly REDIRECT_URI: string;
 
   constructor(private http: HttpClient) {
     const base = environment.identityApiBaseUrl || '';
     this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
-    this.REDIRECT_URI = '<cloudfront-url>/login/oauth2/code/google';
   }
 
   setProfile(profile: ProfileModel) {
