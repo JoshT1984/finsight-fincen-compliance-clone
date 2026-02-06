@@ -16,11 +16,9 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    private LoginSuccessHandler loginSuccessHandler;
     private final JwtConfig jwtConfig;
 
-    public SecurityConfig(LoginSuccessHandler loginSuccessHandler, JwtConfig jwtConfig) {
-        this.loginSuccessHandler = loginSuccessHandler;
+    public SecurityConfig(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
     }
 
@@ -30,7 +28,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter,
+            LoginSuccessHandler loginSuccessHandler)
             throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -39,11 +38,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/auth/oauth/link/**").authenticated()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error/**").permitAll()
                         .anyRequest().permitAll())
-                // .oauth2Login(oauth2 -> oauth2.successHandler(loginSuccessHandler)) // OAuth
+                .oauth2Login(oauth2 -> oauth2.successHandler(loginSuccessHandler)) // OAuth
                 // login
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
@@ -51,6 +51,13 @@ public class SecurityConfig {
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter)));
 
         return http.build();
+    }
+
+    @Bean
+    public LoginSuccessHandler loginSuccessHandler(
+            org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder,
+            com.skillstorm.finsight.identity_auth.services.OauthIdentityService oauthIdentityService) {
+        return new LoginSuccessHandler(jwtEncoder, oauthIdentityService);
     }
 
     @Bean

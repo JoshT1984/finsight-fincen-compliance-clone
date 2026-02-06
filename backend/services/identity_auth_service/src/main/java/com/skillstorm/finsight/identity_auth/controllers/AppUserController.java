@@ -66,7 +66,6 @@ public class AppUserController {
             Authentication authentication,
             @RequestBody ChangePasswordDto passwordDto) {
         String userId = authentication.getName();
-        System.out.println(passwordDto);
         Optional<AppUser> userOpt = appUserService.findById(userId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
