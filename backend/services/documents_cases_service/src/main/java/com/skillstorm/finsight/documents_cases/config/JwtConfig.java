@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -32,11 +34,16 @@ import com.nimbusds.jose.proc.SecurityContext;
 @Configuration
 public class JwtConfig {
 
+    private static final String PEM_BEGIN_PUBLIC = "-----BEGIN PUBLIC KEY-----";
+    private static final String PEM_BEGIN_PRIVATE = "-----BEGIN ";
+
     @Value("${jwt.public-key}")
-    private Resource publicKeyResource;
+    private String publicKeyLocationOrPem;
 
     @Value("${jwt.private-key}")
-    private Resource privateKeyResource;
+    private String privateKeyLocationOrPem;
+
+    private final ResourceLoader resourceLoader = new DefaultResourceLoader();
 
     // ❌ DO NOT CALL @Bean METHODS FROM @PostConstruct IN @Configuration
     // @PostConstruct
@@ -70,15 +77,28 @@ public class JwtConfig {
 
     @Bean
     public RSAPublicKey jwtPublicKey() {
-        return parsePublicKey(readPem(publicKeyResource));
+        return parsePublicKey(resolvePemContent(publicKeyLocationOrPem, "jwt.public-key"));
     }
 
     @Bean
     RSAPrivateKey jwtPrivateKey() {
-        return parsePrivateKey(readPem(privateKeyResource));
+        return parsePrivateKey(resolvePemContent(privateKeyLocationOrPem, "jwt.private-key"));
     }
 
-    private String readPem(Resource resource) {
+    /**
+     * Resolves PEM content from either inline PEM (value starts with -----BEGIN)
+     * or a resource path (file:..., classpath:..., or plain path).
+     */
+    private String resolvePemContent(String locationOrPem, String configKey) {
+        if (locationOrPem == null || locationOrPem.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT key not configured: " + configKey + " must be set to inline PEM or a resource path (e.g. file:path/to/key.pem)");
+        }
+        String trimmed = locationOrPem.trim();
+        if (trimmed.startsWith(PEM_BEGIN_PUBLIC) || trimmed.startsWith(PEM_BEGIN_PRIVATE)) {
+            return trimmed;
+        }
+        Resource resource = resourceLoader.getResource(trimmed);
         try {
             return StreamUtils.copyToString(
                     resource.getInputStream(),
@@ -86,7 +106,7 @@ public class JwtConfig {
             );
         } catch (IOException e) {
             throw new IllegalStateException(
-                    "Unable to read JWT key resource: " + resource,
+                    "Unable to read JWT key resource: " + resource + " (" + configKey + ")",
                     e
             );
         }
