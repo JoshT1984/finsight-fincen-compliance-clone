@@ -103,6 +103,10 @@ eureka:
         lease-renewal-interval-in-seconds: 10
         lease-expiration-duration-in-seconds: 30
 
+jwt:
+    public-key: file:${JWT_PUBLIC_KEY:/Users/xxblackhawkdevxx/Downloads/secrets/jwt_public.pem}
+    private-key: file:${JWT_PRIVATE_KEY:/Users/xxblackhawkdevxx/Downloads/secrets/jwt_private.pem}
+
 logging:
     level:
         root: INFO
