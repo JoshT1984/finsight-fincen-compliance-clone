@@ -1,4 +1,4 @@
-package com.skillstorm.finsight.compliance_event.config;
+package com.skillstorm.finsight.identity_auth.config;
 
 import java.util.Arrays;
 

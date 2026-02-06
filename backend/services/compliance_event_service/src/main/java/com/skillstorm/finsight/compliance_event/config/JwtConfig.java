@@ -1,4 +1,4 @@
-package com.skillstorm.finsight.documents_cases.config;
+package com.skillstorm.finsight.compliance_event.config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
