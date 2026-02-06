@@ -1,10 +1,4 @@
-/* Exact same layout and typography as main Cases page */
-.cases-container {
-  margin-left: 51px !important;
-  margin-right: 51px !important;
-  max-width: 1440px !important;
-}
-
+/* No padding/margin overrides — inherits from .container only */
 #cases-header {
   margin-bottom: 1.5rem;
 }
@@ -15,8 +9,8 @@
 
 .cases-content {
   flex: 1;
-  padding: 0rem 2rem 0rem 2rem;
   min-width: 0;
+  padding-left: 1.5rem;
 }
 
 .error {
