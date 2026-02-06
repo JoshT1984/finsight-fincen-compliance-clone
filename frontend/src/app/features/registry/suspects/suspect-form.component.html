@@ -1,0 +1,53 @@
+<div class="container form-container">
+  <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
+  <div class="form-header">
+    <h1>{{ isEditMode ? 'Edit suspect' : 'New suspect' }}</h1>
+    <a [routerLink]="isEditMode ? ['/registry/suspects', suspectId] : ['/registry/suspects']" class="back-link">
+      Cancel
+    </a>
+  </div>
+
+  @if (loading) {
+    <p class="loading">Loading...</p>
+  } @else if (loadError) {
+    <p class="error">{{ loadError }}</p>
+  } @else {
+    @if (submitError) {
+      <p class="error">{{ submitError }}</p>
+    }
+    <form (ngSubmit)="onSubmit()" class="registry-form">
+      <div class="form-group">
+        <label for="primaryName">Primary name <span class="required">*</span></label>
+        <input
+          id="primaryName"
+          type="text"
+          [(ngModel)]="primaryName"
+          name="primaryName"
+          maxlength="256"
+          required />
+      </div>
+      <div class="form-group">
+        <label for="dob">Date of birth</label>
+        <input id="dob" type="date" [(ngModel)]="dob" name="dob" />
+      </div>
+      <div class="form-group">
+        <label for="ssn">SSN</label>
+        <input id="ssn" type="text" [(ngModel)]="ssn" name="ssn" maxlength="11" placeholder="123-45-6789" />
+      </div>
+      <div class="form-group">
+        <label for="riskLevel">Risk level</label>
+        <select id="riskLevel" [(ngModel)]="riskLevel" name="riskLevel">
+          @for (r of riskLevels; track r) {
+            <option [value]="r">{{ r | properCase }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn-primary" [disabled]="saving || !primaryName.trim()">
+          {{ saving ? 'Saving...' : (isEditMode ? 'Update' : 'Create') }}
+        </button>
+      </div>
+    </form>
+  }
+</div>

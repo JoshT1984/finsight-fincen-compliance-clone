@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.AddressResponse;
+import com.skillstorm.finsight.suspect_registry.dtos.response.LinkedAddressResponse;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.suspect_registry.models.Address;
+import com.skillstorm.finsight.suspect_registry.models.SuspectAddress;
 import com.skillstorm.finsight.suspect_registry.repositories.AddressRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectAddressRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectRepository;
@@ -95,15 +97,30 @@ public class AddressService {
     return toResponse(address);
   }
 
-  public List<AddressResponse> findBySuspectId(Long suspectId) {
+  public List<LinkedAddressResponse> findBySuspectId(Long suspectId) {
     log.debug("Retrieving addresses for suspect ID: {}", suspectId);
     suspectRepo.findById(suspectId)
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
     return suspectAddressRepo.findBySuspectIdOrderByLinkedAtDesc(suspectId).stream()
-        .map(sa -> sa.getAddress())
-        .filter(a -> a != null)
-        .map(this::toResponse)
+        .filter(sa -> sa.getAddress() != null)
+        .map(this::toLinkedResponse)
         .collect(Collectors.toList());
+  }
+
+  private LinkedAddressResponse toLinkedResponse(SuspectAddress sa) {
+    Address a = sa.getAddress();
+    return new LinkedAddressResponse(
+        a.getId(),
+        a.getLine1(),
+        a.getLine2(),
+        a.getCity(),
+        a.getState(),
+        a.getPostalCode(),
+        a.getCountry(),
+        a.getCreatedAt(),
+        sa.getAddressType(),
+        sa.isCurrent()
+    );
   }
 
   @Transactional

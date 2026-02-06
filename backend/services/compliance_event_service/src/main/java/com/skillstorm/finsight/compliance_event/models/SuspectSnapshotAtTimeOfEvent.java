@@ -44,6 +44,11 @@ public class SuspectSnapshotAtTimeOfEvent {
     protected SuspectSnapshotAtTimeOfEvent() {
     }
 
+    /** Constructor for creating a new snapshot when linking an event to a suspect. */
+    public SuspectSnapshotAtTimeOfEvent(Long suspectId) {
+        this.suspectId = suspectId;
+    }
+
     @PrePersist
     void prePersist() {
         if (lastKnownAddress == null) {

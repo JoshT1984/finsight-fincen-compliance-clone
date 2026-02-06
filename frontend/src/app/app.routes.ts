@@ -14,6 +14,14 @@ import { SarsComponent } from './features/sars/sars.component';
 import { ShellComponent } from './layout/shell/shell.component';
 import { UploadComponent } from './features/upload/upload.component';
 import { ProfileComponent } from './features/profile/profile.component';
+import { RegistryComponent } from './features/registry/registry.component';
+import { SuspectsListComponent } from './features/registry/suspects/suspects-list.component';
+import { SuspectDetailComponent } from './features/registry/suspects/suspect-detail.component';
+import { SuspectFormComponent } from './features/registry/suspects/suspect-form.component';
+import { OrganizationsComponent } from './features/registry/organizations/organizations.component';
+import { OrganizationFormComponent } from './features/registry/organizations/organization-form.component';
+import { AddressesComponent } from './features/registry/addresses/addresses.component';
+import { AddressFormComponent } from './features/registry/addresses/address-form.component';
 import { SupportTicketComponent } from './features/support-ticket/support-ticket.component';
 import { authGuard } from './shared/guards/auth.guard';
 import { publicLandingGuard } from './shared/guards/public-landing.guard';
@@ -76,6 +84,61 @@ export const routes: Routes = [
       {
         path: 'profile',
         component: ProfileComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry',
+        component: RegistryComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/suspects',
+        component: SuspectsListComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/suspects/new',
+        component: SuspectFormComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/suspects/:id/edit',
+        component: SuspectFormComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/suspects/:id',
+        component: SuspectDetailComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/organizations',
+        component: OrganizationsComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/organizations/new',
+        component: OrganizationFormComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/organizations/:id/edit',
+        component: OrganizationFormComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/addresses',
+        component: AddressesComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/addresses/new',
+        component: AddressFormComponent,
+        canActivate: [authGuard],
+      },
+      {
+        path: 'registry/addresses/:id/edit',
+        component: AddressFormComponent,
         canActivate: [authGuard],
       },
       {
