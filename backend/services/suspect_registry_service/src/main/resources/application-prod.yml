@@ -2,11 +2,16 @@ server:
   port: ${PORT:8080}
 
 spring:
+  profiles:
+    active: prod
+
   application:
-    name: suspect_registry-service
+    name: suspect-registry-service
 
   datasource:
-    url: ${DB_URL}
+    # Use DB_URL if provided, otherwise build from parts.
+    # For this service, DB_NAME should usually be: suspect_registry
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:suspect_registry}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DB_USER}
     password: ${DB_PASS}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,16 +22,15 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         jdbc:
           time_zone: UTC
 
   rabbitmq:
     host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
+    port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
-    virtual-host: /
+    virtual-host: ${RABBITMQ_VHOST:/}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
 
@@ -37,9 +41,9 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
   instance:
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:suspect_registry}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:suspect-registry}
     prefer-ip-address: false
-    instance-id: ${EUREKA_INSTANCE_HOSTNAME:suspect_registry}:${PORT:8080}
+    instance-id: ${EUREKA_INSTANCE_HOSTNAME:suspect-registry}:${PORT:8080}
 
 management:
   endpoint:
@@ -51,8 +55,9 @@ management:
       exposure:
         include: health,info
 
+# FIX: don’t default to empty in prod. Your earlier crash was caused by a missing jwt.public-key.
 jwt:
-  public-key: "${JWT_PUBLIC_KEY:}"
+  public-key: ${JWT_PUBLIC_KEY}
 
 aws:
   s3:
