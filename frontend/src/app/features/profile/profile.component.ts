@@ -34,14 +34,23 @@ export class ProfileComponent implements OnInit {
 
   editMode = false;
   editPasswordMode = false;
+  savingProfile = false;
+  savingPassword = false;
 
   startEdit() {
     this.editMode = true;
   }
 
   saveEdit() {
-    this.identityService.saveProfileUpdates(this.profile!).subscribe(() => {
-      this.editMode = false;
+    this.savingProfile = true;
+    this.identityService.saveProfileUpdates(this.profile!).subscribe({
+      next: () => {
+        this.editMode = false;
+        this.savingProfile = false;
+      },
+      error: () => {
+        this.savingProfile = false;
+      },
     });
   }
 
@@ -62,11 +71,21 @@ export class ProfileComponent implements OnInit {
       // Optionally show error message
       return;
     }
-    this.identityService.changePassword(this.currentPassword, this.newPassword).subscribe(() => {
-      this.editPasswordMode = false;
-      this.currentPassword = '';
-      this.newPassword = '';
-      this.confirmPassword = '';
+    this.savingPassword = true;
+    this.identityService.changePassword(this.currentPassword, this.newPassword).subscribe({
+      next: () => {
+        console.log('Password changed successfully');
+        this.editPasswordMode = false;
+        this.editMode = false;
+        this.currentPassword = '';
+        this.newPassword = '';
+        this.confirmPassword = '';
+        this.savingPassword = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.savingPassword = false;
+      },
     });
   }
 
