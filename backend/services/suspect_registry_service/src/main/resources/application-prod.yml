@@ -2,9 +2,6 @@ server:
   port: ${PORT:8080}
 
 spring:
-  profiles:
-    active: prod
-
   application:
     name: suspect-registry-service
 
@@ -55,7 +52,6 @@ management:
       exposure:
         include: health,info
 
-# FIX: don’t default to empty in prod. Your earlier crash was caused by a missing jwt.public-key.
 jwt:
   public-key: ${JWT_PUBLIC_KEY}
 

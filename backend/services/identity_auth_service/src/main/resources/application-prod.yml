@@ -4,9 +4,6 @@ server:
   forward-headers-strategy: framework
 
 spring:
-  profiles:
-    active: prod
-
   application:
     name: identity-auth-service
 

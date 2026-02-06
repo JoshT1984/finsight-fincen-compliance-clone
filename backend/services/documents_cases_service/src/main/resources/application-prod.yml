@@ -2,9 +2,6 @@ server:
   port: ${PORT:8080}
 
 spring:
-  profiles:
-    active: prod
-
   application:
     name: documents-cases-service
 
