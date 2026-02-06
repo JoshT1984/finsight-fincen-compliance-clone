@@ -3,6 +3,7 @@ import { Injectable, signal } from '@angular/core';
 import { map, Observable, tap, switchMap } from 'rxjs';
 import { IdentityService } from './identity.service';
 import { environment } from '../../../environment/environment';
+import { Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class LoginDialogService {
@@ -18,6 +19,7 @@ export class LoginDialogService {
   constructor(
     private http: HttpClient,
     private identityService: IdentityService,
+    private router: Router,
   ) {
     const base = environment.identityApiBaseUrl || '';
     this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
@@ -57,6 +59,7 @@ export class LoginDialogService {
   logout() {
     localStorage.removeItem('authToken');
     this.identityService.clearProfile();
+    this.router.navigate(['/']);
     // IdentityService will update isLoggedIn$ accordingly
   }
 
