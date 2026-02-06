@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
+
 import { TransactionFormComponent } from './transaction-form.component';
 import {
   TransactionService,
@@ -22,14 +24,19 @@ import {
 export class CtrsComponent {
   showTransactionForm = false;
   submitting = false;
+
   submitSuccess = false;
   submitError: string | null = null;
 
-  ctrs: any[] = []; // Use any[] to avoid property errors in template
+  // ✅ small UI state: flip the main button label to "Submitted" briefly
+  justSubmittedLabel = false;
+
+  ctrs: any[] = [];
   loadingCtrs = false;
   ctrsError: string | null = null;
 
   search = '';
+
   // Stubs for template compatibility
   downloadCtr(_id: any): void {}
 
@@ -37,6 +44,7 @@ export class CtrsComponent {
     private transactionService: TransactionService,
     private complianceService: ComplianceService,
     private router: Router,
+    private snackBar: MatSnackBar,
   ) {
     this.refreshCtrs();
   }
@@ -72,6 +80,8 @@ export class CtrsComponent {
   }
 
   handleTransactionSubmit(data: CreateTransactionRequest): void {
+    if (this.submitting) return;
+
     this.submitting = true;
     this.submitSuccess = false;
     this.submitError = null;
@@ -81,11 +91,28 @@ export class CtrsComponent {
         this.submitting = false;
         this.submitSuccess = true;
         this.showTransactionForm = false;
+
+        // ✅ toast
+        this.snackBar.open('Transaction submitted successfully', 'Close', {
+          duration: 3000,
+        });
+
+        // ✅ optional: flip button label to "Submitted" briefly
+        this.justSubmittedLabel = true;
+        setTimeout(() => (this.justSubmittedLabel = false), 2500);
+
         this.refreshCtrs();
       },
       error: (err) => {
         this.submitting = false;
-        this.submitError = err?.error?.message || 'Failed to add transaction.';
+
+        const msg = err?.error?.message || 'Failed to add transaction.';
+        this.submitError = msg;
+
+        // ✅ toast
+        this.snackBar.open(msg, 'Close', {
+          duration: 5000,
+        });
       },
     });
   }
@@ -94,19 +121,10 @@ export class CtrsComponent {
     this.router.navigate(['/upload'], { queryParams: { documentType: 'CTR' } });
   }
 
-  /**
-   * Used by the normalized CTR template button.
-   * Replace with real routing or modal if you have it.
-   */
   openEvent(event: ComplianceEventResponse): void {
     console.log('Open CTR event', event);
-    // Example if you have a details route:
-    // this.router.navigate(['/ctrs', event.eventId]);
   }
 
-  /**
-   * Optional but recommended in templates: trackBy for ngFor stability.
-   */
   trackByEventId(_: number, e: ComplianceEventResponse): string {
     return String(e.eventId);
   }

@@ -30,6 +30,7 @@ export class TransactionService {
   }
 
   createTransaction(req: CreateTransactionRequest): Observable<any> {
-    return this.http.post<any>(this.apiUrl, req);
+    const isoTxnTime = new Date(req.txnTime).toISOString();
+    return this.http.post<any>(this.apiUrl, { ...req, txnTime: isoTxnTime });
   }
 }

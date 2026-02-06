@@ -3,6 +3,9 @@
 echo "🧹 Clearing environment variables..."
 
 unset SPRING_PROFILES_ACTIVE
+unset SPRING_DATASOURCE_URL
+unset SPRING_DATASOURCE_USERNAME
+unset SPRING_DATASOURCE_PASSWORD
 
 unset DB_URL
 unset DB_USER
@@ -13,19 +16,14 @@ unset RABBITMQ_PORT
 unset RABBITMQ_USERNAME
 unset RABBITMQ_PASSWORD
 
-# ✅ IMPORTANT: actually set dev profile
+# --- REQUIRED: dev profile + DB connection ---
 export SPRING_PROFILES_ACTIVE=dev
-
-# ✅ DB settings used by application-dev.yml
-export DB_USER="admin"
-export DB_PASS="swordfish$fincen1117"
-export DB_URL="jdbc:mysql://127.0.0.1:13306/suspect_registry?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
-
-# ✅ If JwtConfig uses jwt.public-key, make sure these exist too (or rely on the defaults in YAML)
-export JWT_PUBLIC_KEY="file:/Users/xxblackhawkdevxx/Downloads/secrets/jwt_public.pem"
-export JWT_PRIVATE_KEY="file:/Users/xxblackhawkdevxx/Downloads/secrets/jwt_private.pem"
-
-export EUREKA_SERVER_URL="http://localhost:8761/eureka/"
+export SPRING_DATASOURCE_URL="jdbc:mysql://127.0.0.1:13306/suspect_registry?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+export SPRING_DATASOURCE_USERNAME="admin"
+export SPRING_DATASOURCE_PASSWORD='swordfish$fincen1117'
 
 echo "✅ Environment set"
-echo "Active profile: ${SPRING_PROFILES_ACTIVE}"
+echo "PROFILE=$SPRING_PROFILES_ACTIVE"
+echo "URL=$SPRING_DATASOURCE_URL"
+echo "USER=$SPRING_DATASOURCE_USERNAME"
+echo "PASS_SET=$([ -n "$SPRING_DATASOURCE_PASSWORD" ] && echo yes || echo no)"

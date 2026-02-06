@@ -1,22 +1,33 @@
 <div class="formCard" (click)="$event.stopPropagation()">
   <div class="formHeader">
     <div>
-      <h3>Add Cash Transaction</h3>
+      <div class="titleRow">
+        <h3>Add Cash Transaction</h3>
+
+        <span *ngIf="submitState === 'success'" class="statusBadge success">Submitted</span>
+        <span *ngIf="submitState === 'submitting'" class="statusBadge neutral">Submitting…</span>
+        <span *ngIf="submitState === 'error'" class="statusBadge error">Error</span>
+      </div>
+
       <p class="muted">
         Use the dropdowns for consistent values. Unique IDs can be regenerated automatically.
       </p>
     </div>
 
     <div class="headerActions">
-      <button class="btn ghost" type="button" (click)="regenerateIds()">Regenerate IDs</button>
-      <button class="btn ghost" type="button" (click)="onCancel()">Close</button>
+      <button class="btn ghost" type="button" (click)="regenerateIds()" [disabled]="isSubmitting">
+        Regenerate IDs
+      </button>
+      <button class="btn ghost" type="button" (click)="onCancel()" [disabled]="isSubmitting">
+        Close
+      </button>
     </div>
   </div>
 
   <form class="formGrid" [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="field">
       <label for="sourceSystem">Source system</label>
-      <select id="sourceSystem" formControlName="sourceSystem">
+      <select id="sourceSystem" formControlName="sourceSystem" [disabled]="isSubmitting">
         <option value="" disabled>Select…</option>
         <option *ngFor="let o of sourceSystems" [value]="o.value">{{ o.label }}</option>
       </select>
@@ -24,17 +35,17 @@
 
     <div class="field">
       <label for="sourceTxnId">Source transaction ID</label>
-      <input id="sourceTxnId" type="text" formControlName="sourceTxnId" />
+      <input id="sourceTxnId" type="text" formControlName="sourceTxnId" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="externalSubjectKey">External subject key</label>
-      <input id="externalSubjectKey" type="text" formControlName="externalSubjectKey" />
+      <input id="externalSubjectKey" type="text" formControlName="externalSubjectKey" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="sourceSubjectType">Source subject type</label>
-      <select id="sourceSubjectType" formControlName="sourceSubjectType">
+      <select id="sourceSubjectType" formControlName="sourceSubjectType" [disabled]="isSubmitting">
         <option value="" disabled>Select…</option>
         <option *ngFor="let o of subjectTypes" [value]="o.value">{{ o.label }}</option>
       </select>
@@ -42,32 +53,32 @@
 
     <div class="field">
       <label for="sourceSubjectId">Source subject ID</label>
-      <input id="sourceSubjectId" type="text" formControlName="sourceSubjectId" />
+      <input id="sourceSubjectId" type="text" formControlName="sourceSubjectId" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="subjectName">Subject name</label>
-      <input id="subjectName" type="text" formControlName="subjectName" />
+      <input id="subjectName" type="text" formControlName="subjectName" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="txnTime">Transaction time</label>
-      <input id="txnTime" type="datetime-local" formControlName="txnTime" />
+      <input id="txnTime" type="datetime-local" formControlName="txnTime" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="cashIn">Cash in</label>
-      <input id="cashIn" type="number" inputmode="decimal" formControlName="cashIn" />
+      <input id="cashIn" type="number" inputmode="decimal" formControlName="cashIn" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="cashOut">Cash out</label>
-      <input id="cashOut" type="number" inputmode="decimal" formControlName="cashOut" />
+      <input id="cashOut" type="number" inputmode="decimal" formControlName="cashOut" [disabled]="isSubmitting" />
     </div>
 
     <div class="field">
       <label for="currency">Currency</label>
-      <select id="currency" formControlName="currency">
+      <select id="currency" formControlName="currency" [disabled]="isSubmitting">
         <option value="" disabled>Select…</option>
         <option *ngFor="let o of currencies" [value]="o.value">{{ o.label }}</option>
       </select>
@@ -75,7 +86,7 @@
 
     <div class="field">
       <label for="channel">Channel</label>
-      <select id="channel" formControlName="channel">
+      <select id="channel" formControlName="channel" [disabled]="isSubmitting">
         <option value="" disabled>Select…</option>
         <option *ngFor="let o of channels" [value]="o.value">{{ o.label }}</option>
       </select>
@@ -83,15 +94,19 @@
 
     <div class="field">
       <label for="location">Location</label>
-      <select id="location" formControlName="location">
+      <select id="location" formControlName="location" [disabled]="isSubmitting">
         <option value="" disabled>Select…</option>
         <option *ngFor="let o of locations" [value]="o.value">{{ o.label }}</option>
       </select>
     </div>
 
     <div class="actions">
-      <button class="btn primary" type="submit">Submit Transaction</button>
-      <button class="btn ghost" type="button" (click)="onCancel()">Cancel</button>
+      <button class="btn primary" type="submit" [disabled]="isSubmitting">
+        {{ submitLabel }}
+      </button>
+      <button class="btn ghost" type="button" (click)="onCancel()" [disabled]="isSubmitting">
+        Cancel
+      </button>
     </div>
 
     <p *ngIf="form.invalid && form.touched" class="error">Please complete all required fields.</p>

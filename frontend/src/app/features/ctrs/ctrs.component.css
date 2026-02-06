@@ -58,6 +58,12 @@
   color: var(--navy-900);
 }
 
+/* ✅ Nice UX for disabled CTA buttons */
+button[disabled] {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 /* Modal overlay */
 .modalBackdrop {
   position: fixed;

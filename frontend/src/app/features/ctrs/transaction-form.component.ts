@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, Input } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { CreateTransactionRequest } from '../../shared/services/transaction.service';
 
 type Option<T extends string = string> = { value: T; label: string };
+type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
 
 @Component({
   selector: 'app-transaction-form',
@@ -16,9 +17,11 @@ export class TransactionFormComponent {
   @Output() cancel = new EventEmitter<void>();
   @Output() submitted = new EventEmitter<CreateTransactionRequest>();
 
+  // Parent controls this so UI can show Submitting / Submitted
+  @Input() submitState: SubmitState = 'idle';
+
   form: FormGroup;
 
-  // Dropdown options
   sourceSystems: Option[] = [
     { value: 'CORE_BANKING', label: 'Core Banking' },
     { value: 'TELLER_APP', label: 'Teller App' },
@@ -46,7 +49,6 @@ export class TransactionFormComponent {
     { value: 'TELLER', label: 'Teller' },
   ];
 
-  // Optional: preset demo locations
   locations: Option[] = [
     { value: 'Austin TX', label: 'Austin TX' },
     { value: 'Dallas TX', label: 'Dallas TX' },
@@ -74,10 +76,20 @@ export class TransactionFormComponent {
     this.setupDerivedFields();
   }
 
+  get isSubmitting(): boolean {
+    return this.submitState === 'submitting';
+  }
+
+  get submitLabel(): string {
+    if (this.submitState === 'submitting') return 'Submitting…';
+    if (this.submitState === 'success') return 'Submitted';
+    if (this.submitState === 'error') return 'Retry Submit';
+    return 'Submit Transaction';
+  }
+
   private applyDefaults(): void {
     const now = this.toDatetimeLocal(new Date());
 
-    // create reasonable demo defaults
     this.form.patchValue({
       sourceSystem: 'CORE_BANKING',
       sourceSubjectType: 'INDIVIDUAL',
@@ -90,16 +102,13 @@ export class TransactionFormComponent {
       subjectName: 'John Doe',
       sourceTxnId: this.generateTxnId(),
       externalSubjectKey: this.generateCustomerKey(),
-      sourceSubjectId: this.extractNumericId(this.generateCustomerKey()),
     });
 
-    // Keep subject id consistent with external key (use current patched value)
     const ext = String(this.form.get('externalSubjectKey')?.value || '');
     this.form.patchValue({ sourceSubjectId: this.extractNumericId(ext) });
   }
 
   private setupDerivedFields(): void {
-    // When externalSubjectKey changes, keep sourceSubjectId in sync
     this.form.get('externalSubjectKey')?.valueChanges.subscribe((val) => {
       const ext = String(val || '');
       const id = this.extractNumericId(ext);
@@ -107,7 +116,6 @@ export class TransactionFormComponent {
     });
   }
 
-  // Button helper: regenerate unique IDs quickly
   regenerateIds(): void {
     const ext = this.generateCustomerKey();
     this.form.patchValue({
@@ -119,6 +127,8 @@ export class TransactionFormComponent {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting) return;
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -133,7 +143,6 @@ export class TransactionFormComponent {
   }
 
   private generateTxnId(): string {
-    // TXN-YYYYMMDD-HHMMSS-RAND
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const date = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
@@ -153,7 +162,6 @@ export class TransactionFormComponent {
   }
 
   private toDatetimeLocal(date: Date): string {
-    // YYYY-MM-DDTHH:mm for <input type="datetime-local">
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
       date.getHours(),

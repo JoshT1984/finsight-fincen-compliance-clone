@@ -7,7 +7,15 @@
     </p>
 
     <div class="ctaRow">
-      <button class="btn primary" (click)="openTransactionForm()">Add Cash Transaction</button>
+      <button
+        class="btn primary"
+        type="button"
+        (click)="openTransactionForm()"
+        [disabled]="submitting"
+      >
+        {{ justSubmittedLabel ? 'Submitted' : 'Add Cash Transaction' }}
+      </button>
+
       <button class="btn ghost" type="button" (click)="goToUploadCtr()">Upload CTR PDF</button>
       <button class="btn ghost" type="button" (click)="refreshCtrs()">Refresh</button>
     </div>

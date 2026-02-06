@@ -62,7 +62,7 @@ public class CashTransaction {
   @Column(name = "location", length = 128)
   private String location;
 
-  @Column(name = "created_at", nullable = false)
+  @Column(name = "created_at", nullable = false, updatable=false, insertable=false, columnDefinition = "TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3) ")
   private Instant createdAt;
 
     public CashTransaction() {

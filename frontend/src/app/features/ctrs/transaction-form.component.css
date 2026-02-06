@@ -100,6 +100,36 @@ select:focus {
   box-shadow: 0 0 0 4px rgba(5, 150, 215, 0.12);
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusBadge {
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 38, 76, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.statusBadge.success {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.statusBadge.neutral {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.statusBadge.error {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+}
+
 @media (max-width: 720px) {
   .formGrid {
     grid-template-columns: 1fr;
