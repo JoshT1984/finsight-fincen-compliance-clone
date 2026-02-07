@@ -6,10 +6,6 @@ spring:
     name: documents-cases-service
 
   datasource:
-    # Use either DB_URL (full JDBC) OR build it from parts.
-    # Recommended env vars:
-    #   DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS
-    # For this service DB_NAME should usually be: documents_cases
     url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:documents_cases}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DB_USER}
     password: ${DB_PASS}
@@ -54,10 +50,12 @@ management:
       exposure:
         include: health,info
 
-# Add this if the service has JwtConfig / resource server validation like compliance-event-service.
-# If it truly does NOT use JWT validation, you can remove this block.
+# FIX: this is the missing property that crashed JwtConfig in your logs.
+# Provide it via a secret/env var in prod.
+# If you store the PEM with literal "\n", Spring can still handle it if your JwtConfig normalizes newlines.
 jwt:
-  public-key: ${JWT_PUBLIC_KEY}
+  public-key: ${JWT_PUBLIC_KEY_PATH:file:/run/secrets/jwt_public.pem}
+  private-key: ${JWT_PRIVATE_KEY_PATH:file:/run/secrets/jwt_private.pem}
 
 aws:
   s3:

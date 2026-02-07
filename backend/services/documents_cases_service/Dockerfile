@@ -10,8 +10,7 @@ WORKDIR /app
 ENV JAVA_OPTS=""
 
 COPY --from=build /app/target/*.jar /app/app.jar
-COPY docker/entrypoint.sh /app/entrypoint.sh
-
-EXPOSE 8080
-
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
+EXPOSE 8080

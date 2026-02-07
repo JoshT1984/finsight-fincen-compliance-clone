@@ -6,8 +6,6 @@ spring:
     name: suspect-registry-service
 
   datasource:
-    # Use DB_URL if provided, otherwise build from parts.
-    # For this service, DB_NAME should usually be: suspect_registry
     url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:suspect_registry}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DB_USER}
     password: ${DB_PASS}
@@ -52,8 +50,12 @@ management:
       exposure:
         include: health,info
 
+# FIX: this is the missing property that crashed JwtConfig in your logs.
+# Provide it via a secret/env var in prod.
+# If you store the PEM with literal "\n", Spring can still handle it if your JwtConfig normalizes newlines.
 jwt:
-  public-key: ${JWT_PUBLIC_KEY}
+  public-key: ${JWT_PUBLIC_KEY_PATH:file:/run/secrets/jwt_public.pem}
+  private-key: ${JWT_PRIVATE_KEY_PATH:file:/run/secrets/jwt_private.pem}
 
 aws:
   s3:
