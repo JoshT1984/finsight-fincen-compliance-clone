@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
   imports: [CommonModule, FormsModule],
 })
 export class ProfileComponent implements OnInit {
+  profileError: string | null = null;
   profile: ProfileModel | null = null;
 
   constructor(
@@ -43,13 +44,23 @@ export class ProfileComponent implements OnInit {
 
   saveEdit() {
     this.savingProfile = true;
+    console.log('Saving profile:', this.profile);
+    this.profileError = null;
     this.identityService.saveProfileUpdates(this.profile!).subscribe({
       next: () => {
         this.editMode = false;
         this.savingProfile = false;
+        this.profileError = null;
       },
-      error: () => {
+      error: (err) => {
+        console.log('Error saving profile:', err);
         this.savingProfile = false;
+        if (err && err.error && err.error.message) {
+          this.profileError = err.error.message;
+        } else {
+          this.profileError = 'Failed to update profile.';
+        }
+        this.cdr.detectChanges();
       },
     });
   }
@@ -66,25 +77,34 @@ export class ProfileComponent implements OnInit {
   newPassword = '';
   confirmPassword = '';
 
+  passwordError: string | null = null;
+
   saveEditPassword() {
+    this.passwordError = null;
     if (this.newPassword !== this.confirmPassword) {
-      // Optionally show error message
+      this.passwordError = 'Passwords do not match.';
       return;
     }
     this.savingPassword = true;
     this.identityService.changePassword(this.currentPassword, this.newPassword).subscribe({
       next: () => {
-        console.log('Password changed successfully');
         this.editPasswordMode = false;
         this.editMode = false;
         this.currentPassword = '';
         this.newPassword = '';
         this.confirmPassword = '';
         this.savingPassword = false;
+        this.passwordError = null;
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.savingPassword = false;
+        if (err && err.error && err.error.message) {
+          this.passwordError = err.error.message;
+        } else {
+          this.passwordError = 'Failed to change password.';
+        }
+        this.cdr.detectChanges();
       },
     });
   }

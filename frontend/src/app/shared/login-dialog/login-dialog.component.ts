@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LoginDialogService } from '../services/loginDialog.service';
 import { IdentityService } from '../services/identity.service';
@@ -13,12 +13,14 @@ import { IdentityService } from '../services/identity.service';
   styleUrls: ['./login-dialog.component.css'],
 })
 export class LoginDialogComponent {
+  loginError: string | null = null;
   email = '';
   password = '';
 
   constructor(
     private loginDialog: LoginDialogService,
     private identityService: IdentityService,
+    private cdr: ChangeDetectorRef,
     private router: Router,
   ) {}
 
@@ -27,12 +29,18 @@ export class LoginDialogComponent {
   }
 
   login() {
+    this.loginError = null;
     this.loginDialog.login(this.email, this.password).subscribe({
       next: (token: string) => {
         this.router.navigate(['/dashboard']);
       },
       error: (error: any) => {
-        console.error('Login failed', error);
+        if (error && error.error && error.error.message) {
+          this.loginError = error.error.message;
+        } else {
+          this.loginError = 'Login failed. Please check your credentials.';
+        }
+        this.cdr.detectChanges();
       },
     });
   }

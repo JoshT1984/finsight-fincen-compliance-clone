@@ -31,7 +31,7 @@ export class LinkAccountComponent {
   }
 
   routeToHome() {
-    this.router.navigate(['/']);
+    this.router.navigate(['/profile']);
   }
 
   get isLoggedIn() {
