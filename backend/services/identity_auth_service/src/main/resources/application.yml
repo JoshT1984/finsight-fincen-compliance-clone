@@ -81,6 +81,9 @@ spring:
         username: "${SES_SMTP_USERNAME}"
         password: "${SES_SMTP_PASSWORD}"
 
+    profiles:
+        active: dev
+
 frontend:
     frontend_url: "${FRONTEND_URL:http://localhost:4200}"
 
@@ -118,7 +121,7 @@ management:
 
 logging:
     level:
-        com.zaxxer.hikari: DEBUG
-        org.springframework.jdbc.datasource: DEBUG
-        root: INFO
-        com.finsight: INFO
+        com.zaxxer.hikari: ERROR
+        org.springframework.jdbc.datasource: ERROR
+        root: ERROR
+        com.finsight: ERROR

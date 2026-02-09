@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.skillstorm.finsight.identity_auth.exceptions.EmailAlreadyExistsException;
+import com.skillstorm.finsight.identity_auth.exceptions.PasswordNotStrongEnoughException;
 import com.skillstorm.finsight.identity_auth.exceptions.UserNotFoundException;
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.models.Role;
@@ -19,6 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import java.util.regex.Pattern;
+
 @Service
 public class AppUserService {
 
@@ -30,6 +33,25 @@ public class AppUserService {
         this.appUserRepository = appUserRepository;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    // Password strength regex: at least 8 chars, 1 upper, 1 lower, 1 digit, 1
+    // special char
+    private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile(
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,}$");
+
+    private void validatePasswordStrength(String password) {
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be empty");
+        }
+        if (!STRONG_PASSWORD_PATTERN.matcher(password).matches()) {
+            StringBuilder error = new StringBuilder(
+                    "Password must be at least 8 characters, include upper and lower case letters, a digit, and a special character.");
+            if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) {
+                error.append(" Password must contain at least one special character.");
+            }
+            throw new PasswordNotStrongEnoughException(error.toString());
+        }
     }
 
     public List<AppUser> findAll() {
@@ -60,7 +82,8 @@ public class AppUserService {
         user.setUserId(UUID.randomUUID().toString());
         user.setEmail(request.getEmail());
 
-        // **Hash the password before saving**
+        // Validate password strength before hashing
+        validatePasswordStrength(request.getPassword());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
         Role role = roleService.findByRoleName(roleName);
@@ -82,6 +105,8 @@ public class AppUserService {
     @Transactional
     public AppUser updateUserPassword(String userId, ChangePasswordDto passwordDto) {
         AppUser foundUser = findById(userId).orElseThrow(() -> new UserNotFoundException("User does not exist"));
+        // Validate password strength before hashing
+        validatePasswordStrength(passwordDto.getNewPassword());
         foundUser.setPasswordHash(passwordEncoder.encode(passwordDto.getNewPassword()));
         return foundUser;
     }

@@ -48,8 +48,16 @@
       >Confirm Password:
       <input type="password" name="confirmPassword" [(ngModel)]="confirmPassword"
     /></label>
+    <div *ngIf="passwordError" class="error">
+      {{ passwordError }}
+    </div>
     <div class="btn__div">
-      <button class="btn secondary" type="submit" [disabled]="savingPassword">
+      <button
+        class="btn ghost"
+        type="button"
+        [disabled]="savingPassword"
+        (click)="saveEditPassword()"
+      >
         {{ savingPassword ? 'Saving password...' : 'Save Password' }}
       </button>
       <button class="btn secondary" type="button" (click)="cancelEditPassword()">Cancel</button>

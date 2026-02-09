@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.NoHandlerFoundException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +31,15 @@ public class GlobalExceptionHandler {
         body.put("error", "Email Already Exists");
         body.put("message", ex.getMessage());
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(PasswordNotStrongEnoughException.class)
+    public ResponseEntity<Object> handlePasswordNotStrongEnoughException(PasswordNotStrongEnoughException ex,
+            WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Password Not Strong Enough");
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -53,9 +64,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(org.springframework.web.servlet.NoHandlerFoundException.class)
+    @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<Object> handleNoHandlerFoundException(
-            org.springframework.web.servlet.NoHandlerFoundException ex, WebRequest request) {
+            NoHandlerFoundException ex, WebRequest request) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", "Not Found");
         body.put("message", "The requested resource was not found");

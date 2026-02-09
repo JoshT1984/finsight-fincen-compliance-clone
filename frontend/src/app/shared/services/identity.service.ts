@@ -91,7 +91,6 @@ export class IdentityService {
             this.setProfile(profile);
           },
           error: () => {
-            console.error('Failed to save profile updates');
             /* Do not update local profile if backend fails */
           },
         }),
