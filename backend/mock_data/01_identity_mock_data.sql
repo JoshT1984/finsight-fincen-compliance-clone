@@ -35,47 +35,47 @@ INSERT INTO app_user (
   phone, is_active, deleted, created_at, updated_at, deleted_at, role_id
 ) VALUES 
 (UUID(), 'matthew.wright9630@gmail.com',
- '$2a$12$5P/qyGmiJEX1PAwNklkiVe2CqsrTIRqIQEDS0OMEFUxHrS00zpNJS',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Matthew', 'Wright', '2146067487', TRUE, FALSE, NOW(), NOW(), NULL, 2),
 -- Analysts
 (UUID(), 'test@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Test', 'Analyst', '555-0100', TRUE, FALSE, NOW(), NOW(), NULL, 1),
 
 (UUID(), 'leahanalyst@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Leah', 'Analyst', '555-0101', TRUE, FALSE, NOW(), NOW(), NULL, 1),
 
 (UUID(), 'joshanalyst@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Josh', 'Analyst', '555-0102', TRUE, FALSE, NOW(), NOW(), NULL, 1),
 
 (UUID(), 'matthewanalyst@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Matthew', 'Analyst', '555-0103', TRUE, FALSE, NOW(), NOW(), NULL, 1),
 
 -- Compliance
 (UUID(), 'leahcompliance@fincen.local',
- '$2a$12$5P/qyGmiJEX1PAwNklkiVe2CqsrTIRqIQEDS0OMEFUxHrS00zpNJS',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Leah', 'Compliance', '555-0201', TRUE, FALSE, NOW(), NOW(), NULL, 2),
 
 (UUID(), 'joshcompliance@fincen.local',
- '$2a$12$5P/qyGmiJEX1PAwNklkiVe2CqsrTIRqIQEDS0OMEFUxHrS00zpNJS',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Josh', 'Compliance', '555-0202', TRUE, FALSE, NOW(), NOW(), NULL, 2),
 
 (UUID(), 'matthewcompliance@fincen.local',
- '$2a$12$5P/qyGmiJEX1PAwNklkiVe2CqsrTIRqIQEDS0OMEFUxHrS00zpNJS',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Matthew', 'Compliance', '555-0203', TRUE, FALSE, NOW(), NOW(), NULL, 2),
 
 -- LEU
 (UUID(), 'leahleu@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Leah', 'LEU', '555-0301', TRUE, FALSE, NOW(), NOW(), NULL, 3),
 
 (UUID(), 'joshleu@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Josh', 'LEU', '555-0302', TRUE, FALSE, NOW(), NOW(), NULL, 3),
 
 (UUID(), 'matthewleu@fincen.local',
- '$2a$10$6NwfldQ4mygbmfdwUIjU/O316yraEmGTvPSYPHiuw2zm51vvgrs4u',
+ '$2a$12$rRMLIADIWIBJpZmR7R9CbO7dS7AW7XZRXqt.zCYXpuob0Z4NwIGae',
  'Matthew', 'LEU', '555-0303', TRUE, FALSE, NOW(), NOW(), NULL, 3);
