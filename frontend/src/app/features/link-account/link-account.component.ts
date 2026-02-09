@@ -21,7 +21,7 @@ export class LinkAccountComponent {
     this.identityService.linkAccount().subscribe({
       next: () => {
         if (window.confirm('Account linked successfully!')) {
-          this.router.navigate(['/profile']);
+          this.router.navigate(['/dashboard']);
         }
       },
       error: () => {
