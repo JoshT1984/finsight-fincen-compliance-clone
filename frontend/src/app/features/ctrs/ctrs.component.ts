@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { TransactionFormComponent } from './transaction-form.component';
 import {
@@ -19,7 +19,7 @@ import {
   standalone: true,
   templateUrl: './ctrs.component.html',
   styleUrls: ['./ctrs.component.css'],
-  imports: [CommonModule, FormsModule, RouterModule, TransactionFormComponent],
+  imports: [CommonModule, FormsModule, RouterModule, MatSnackBarModule, TransactionFormComponent],
 })
 export class CtrsComponent {
   showTransactionForm = false;

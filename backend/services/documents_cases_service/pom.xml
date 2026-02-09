@@ -122,6 +122,13 @@
       <artifactId>dynamodb</artifactId>
     </dependency>
 
+    <!-- Apache PDFBox for PDF text extraction (FinCEN 104/109 forms) -->
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>3.0.3</version>
+    </dependency>
+
     <!-- Actuator -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
