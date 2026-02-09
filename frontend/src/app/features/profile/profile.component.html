@@ -24,8 +24,11 @@
       <input [(ngModel)]="profile.email" name="email" />
     </label>
     <label class="form-label">Phone: <input [(ngModel)]="profile.phone" name="phone" /></label>
+    <div *ngIf="profileError" class="error">
+      {{ profileError }}
+    </div>
     <div class="btn__div">
-      <button class="btn primary" type="submit" [disabled]="savingProfile">
+      <button class="btn primary" type="button" [disabled]="savingProfile" (click)="saveEdit()">
         {{ savingProfile ? 'Saving...' : 'Save' }}
       </button>
       <button class="btn primary" type="button" (click)="cancelEdit()">Cancel</button>

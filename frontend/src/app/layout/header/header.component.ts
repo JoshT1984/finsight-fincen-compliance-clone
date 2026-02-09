@@ -26,6 +26,7 @@ export class HeaderComponent {
 
   logout() {
     this.loginDialog.logout();
+    this.router.navigate(['/home']);
   }
 
   openProfile() {

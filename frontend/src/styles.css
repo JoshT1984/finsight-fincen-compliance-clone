@@ -107,7 +107,7 @@ a {
   width: 100%;
   background: #fff;
   border-bottom: 1px solid var(--border);
-  font-size: .78em;
+  font-size: 0.78em;
   color: #000;
 }
 .usagovbar__inner {
@@ -454,6 +454,11 @@ a {
 }
 .footer__right {
   white-space: nowrap;
+}
+.error {
+  color: #dc2626;
+  margin-top: 8px;
+  text-align: center;
 }
 
 /* Responsive */

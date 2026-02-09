@@ -77,6 +77,10 @@ public class AppUserService {
         if (appUserRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Email already in use");
         }
+        // Validate email format
+        if (request.getEmail() == null || !request.getEmail().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]{3,}$")) {
+            throw new IllegalArgumentException("Email must be in the format user@domain.xxx");
+        }
 
         AppUser user = new AppUser();
         user.setUserId(UUID.randomUUID().toString());
@@ -95,6 +99,17 @@ public class AppUserService {
     @Transactional
     public AppUser updateUser(String userId, UpdateUserDto user) {
         AppUser foundUser = findById(userId).orElseThrow(() -> new UserNotFoundException("User does not exist"));
+        // Validate firstName and lastName
+        if (user.getFirstName() == null || user.getFirstName().trim().isEmpty()) {
+            throw new IllegalArgumentException("First name cannot be empty");
+        }
+        if (user.getLastName() == null || user.getLastName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name cannot be empty");
+        }
+        // Validate email format
+        if (user.getEmail() == null || !user.getEmail().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]{3,}$")) {
+            throw new IllegalArgumentException("Email must be in the format user@domain.xxx");
+        }
         foundUser.setFirstName(user.getFirstName());
         foundUser.setLastName(user.getLastName());
         foundUser.setPhone(user.getPhone());

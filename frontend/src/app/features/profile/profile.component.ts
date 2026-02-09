@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
   imports: [CommonModule, FormsModule],
 })
 export class ProfileComponent implements OnInit {
+  profileError: string | null = null;
   profile: ProfileModel | null = null;
 
   constructor(
@@ -43,13 +44,23 @@ export class ProfileComponent implements OnInit {
 
   saveEdit() {
     this.savingProfile = true;
+    console.log('Saving profile:', this.profile);
+    this.profileError = null;
     this.identityService.saveProfileUpdates(this.profile!).subscribe({
       next: () => {
         this.editMode = false;
         this.savingProfile = false;
+        this.profileError = null;
       },
-      error: () => {
+      error: (err) => {
+        console.log('Error saving profile:', err);
         this.savingProfile = false;
+        if (err && err.error && err.error.message) {
+          this.profileError = err.error.message;
+        } else {
+          this.profileError = 'Failed to update profile.';
+        }
+        this.cdr.detectChanges();
       },
     });
   }
