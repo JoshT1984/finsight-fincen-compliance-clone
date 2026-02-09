@@ -18,12 +18,11 @@ export class LinkAccountComponent {
   ) {}
 
   linkAccount() {
-    // const sessionInfo = JSON.parse(sessionStorage.getItem('sessionInfo') || '{}');
-    // const authToken = localStorage.getItem('authToken');
     this.identityService.linkAccount().subscribe({
       next: () => {
-        alert('Account linked successfully!');
-        this.router.navigate(['/']);
+        if (window.confirm('Account linked successfully!')) {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: () => {
         alert('Failed to link account.');

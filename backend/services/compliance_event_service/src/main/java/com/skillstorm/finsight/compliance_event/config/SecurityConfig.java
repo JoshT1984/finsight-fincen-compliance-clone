@@ -43,8 +43,6 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error/**").permitAll()
                         .anyRequest().permitAll())
-                // .oauth2Login(oauth2 -> oauth2.successHandler(loginSuccessHandler)) // OAuth
-                // login
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .decoder(jwtConfig.jwtDecoder(jwtConfig.jwtPublicKey()))

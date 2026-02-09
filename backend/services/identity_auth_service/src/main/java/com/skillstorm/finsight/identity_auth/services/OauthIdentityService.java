@@ -93,6 +93,20 @@ public class OauthIdentityService {
                 user.getUserId(), refreshToken);
     }
 
+    public String generateToken(String userId, String role) {
+        Instant now = Instant.now();
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("identity-service")
+                .issuedAt(now)
+                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
+                .subject(userId)
+                .claim("role", role)
+                .build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
     public void revokeRefreshToken(String refreshToken) {
         refreshTokenStore.remove(refreshToken);
     }
@@ -122,20 +136,6 @@ public class OauthIdentityService {
         identity.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
         oauthIdentityRepository.save(identity);
-    }
-
-    public String generateToken(String userId, String role) {
-        Instant now = Instant.now();
-
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("identity-service")
-                .issuedAt(now)
-                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
-                .subject(userId)
-                .claim("role", role)
-                .build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
     // Real password reset email logic

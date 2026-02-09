@@ -3,6 +3,7 @@ import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject, map, Observable, tap } from 'rxjs';
 import { environment } from '../../../environment/environment';
 import { ProfileModel } from '../../models/profile.model';
+import { Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class IdentityService {
@@ -14,7 +15,10 @@ export class IdentityService {
 
   private readonly apiBaseUrl: string;
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+  ) {
     const base = environment.identityApiBaseUrl || '';
     this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
   }
@@ -69,6 +73,7 @@ export class IdentityService {
           () => {
             this.clearProfile();
             this._isLoggedIn.next(false);
+            this.router.navigate(['/']);
           },
         ),
       )
@@ -128,6 +133,7 @@ export class IdentityService {
   private handleInactivityLogout() {
     this.clearProfile();
     localStorage.removeItem('authToken');
+    this.router.navigate(['/']);
     this._isLoggedIn.next(false);
     console.log('Logged out due to inactivity');
   }
