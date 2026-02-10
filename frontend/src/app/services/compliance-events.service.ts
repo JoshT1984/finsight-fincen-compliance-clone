@@ -3,6 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environment/environment';
 
+import { ComplianceEventDto } from '../models/compliance-event-dto.interface';
+import { CtrDetailResponse } from '../models/ctr-detail.model';
+
 @Injectable({ providedIn: 'root' })
 export class ComplianceEventsService {
   private readonly apiUrl: string;
@@ -18,21 +21,34 @@ export class ComplianceEventsService {
    * CTR list (paged)
    * GET /api/compliance-events?eventType=CTR&page=0&size=200
    */
-  getCtrEvents(page: number, size: number): Observable<any> {
+  getCtrEvents(
+    page: number,
+    size: number,
+  ): Observable<{
+    content: ComplianceEventDto[];
+    totalElements: number;
+    number: number;
+    size: number;
+  }> {
     const params = new HttpParams()
       .set('eventType', 'CTR')
       .set('page', String(page))
       .set('size', String(size));
 
-    return this.http.get<any>(this.apiUrl, { params });
+    return this.http.get<{
+      content: ComplianceEventDto[];
+      totalElements: number;
+      number: number;
+      size: number;
+    }>(this.apiUrl, { params });
   }
 
   /**
    * CTR detail
    * GET /api/compliance-events/{eventId}/ctr-detail
    */
-  getCtrDetail(eventId: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${eventId}/ctr-detail`);
+  getCtrDetail(eventId: number): Observable<CtrDetailResponse> {
+    return this.http.get<CtrDetailResponse>(`${this.apiUrl}/${eventId}/ctr-detail`);
   }
 
   /**
@@ -40,10 +56,24 @@ export class ComplianceEventsService {
    * Expected by suspect-detail.component.ts
    * GET /api/compliance-events/by-suspect/{suspectId}?page=0&size=200
    */
-  getBySuspectId(suspectId: number, page = 0, size = 200): Observable<any> {
+  getBySuspectId(
+    suspectId: number,
+    page = 0,
+    size = 200,
+  ): Observable<{
+    content: ComplianceEventDto[];
+    totalElements: number;
+    number: number;
+    size: number;
+  }> {
     const params = new HttpParams().set('page', String(page)).set('size', String(size));
 
-    return this.http.get<any>(`${this.apiUrl}/by-suspect/${suspectId}`, { params });
+    return this.http.get<{
+      content: ComplianceEventDto[];
+      totalElements: number;
+      number: number;
+      size: number;
+    }>(`${this.apiUrl}/by-suspect/${suspectId}`, { params });
   }
 
   /**
@@ -56,19 +86,28 @@ export class ComplianceEventsService {
     excludeSuspectId: number,
     page = 0,
     size = 200,
-  ): Observable<any> {
+  ): Observable<{
+    content: ComplianceEventDto[];
+    totalElements: number;
+    number: number;
+    size: number;
+  }> {
     const params = new HttpParams()
       .set('eventType', eventType)
       .set('excludeSuspectId', String(excludeSuspectId))
       .set('page', String(page))
       .set('size', String(size));
 
-    return this.http.get<any>(`${this.apiUrl}/linkable`, { params });
+    return this.http.get<{
+      content: ComplianceEventDto[];
+      totalElements: number;
+      number: number;
+      size: number;
+    }>(`${this.apiUrl}/linkable`, { params });
   }
 
   /**
    * Link event to suspect
-   * Expected by suspect-detail.component.ts
    * POST /api/compliance-events/{eventId}/link-suspect/{suspectId}
    */
   linkEventToSuspect(eventId: number, suspectId: number): Observable<void> {
@@ -77,10 +116,17 @@ export class ComplianceEventsService {
 
   /**
    * Unlink event from suspect
-   * Expected by suspect-detail.component.ts
    * DELETE /api/compliance-events/{eventId}/unlink-suspect
    */
   unlinkEventFromSuspect(eventId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${eventId}/unlink-suspect`);
+  }
+
+  /**
+   * Auto-generate a SAR draft from an existing CTR event.
+   * POST /api/compliance-events/{ctrEventId}/generate-sar
+   */
+  generateSarFromCtr(ctrEventId: number): Observable<ComplianceEventDto> {
+    return this.http.post<ComplianceEventDto>(`${this.apiUrl}/${ctrEventId}/generate-sar`, {});
   }
 }

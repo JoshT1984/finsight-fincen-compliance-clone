@@ -16,7 +16,8 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
       COALESCE(
         external_subject_key,
         CONCAT(source_system, ':', source_subject_type, ':', source_subject_id)
-      ) AS subjectKey,
+          ) AS subjectKey,
+           MAX(subject_name) AS subjectName,
       DATE(txn_time) AS txnDay,
       SUM(cash_in) AS totalCashIn,
       SUM(cash_out) AS totalCashOut,
@@ -30,7 +31,7 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
   """, nativeQuery = true)
   List<CtrAggregationRow> aggregateCtrCandidates(
     @Param("fromTime") Instant fromTime,
-    @Param("toTime") Instant toTime
+      @Param("toTime") Instant toTime
   );
 
   @Query(value = """
@@ -38,7 +39,8 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
       COALESCE(
         external_subject_key,
         CONCAT(source_system, ':', source_subject_type, ':', source_subject_id)
-      ) AS subjectKey,
+          ) AS subjectKey,
+           MAX(subject_name) AS subjectName,
       DATE(txn_time) AS txnDay,
       SUM(cash_in) AS totalCashIn,
       SUM(cash_out) AS totalCashOut,

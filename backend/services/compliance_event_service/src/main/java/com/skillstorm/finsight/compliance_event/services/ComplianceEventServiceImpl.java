@@ -225,6 +225,78 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         );
     }
 
+
+    @Override
+    @Transactional
+    public ComplianceEventResponse generateSarFromCtr(Long ctrEventId) {
+        ComplianceEvent ctrEvent = complianceEventRepository.findById(ctrEventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + ctrEventId));
+
+        if (ctrEvent.getEventType() != EventType.CTR) {
+            throw new ResourceConflictException("Event is not a CTR: " + ctrEventId);
+        }
+
+        ComplianceEventCtrDetail ctrDetail = ctrDetailRepository.findById(ctrEventId)
+                .orElseThrow(() -> new ResourceNotFoundException("CTR detail not found for event: " + ctrEventId));
+
+        // Idempotent source identifiers for the SAR draft derived from this CTR
+        String sourceSystem = "AUTO_FROM_CTR";
+        String sourceEntityId = "CTR:" + ctrEventId;
+
+        assertNoDuplicateSource(sourceSystem, sourceEntityId);
+
+        ComplianceEvent sarEvent = new ComplianceEvent();
+        sarEvent.setEventType(EventType.SAR);
+        sarEvent.setSourceSystem(sourceSystem);
+        sarEvent.setSourceEntityId(sourceEntityId);
+        sarEvent.setExternalSubjectKey(ctrEvent.getExternalSubjectKey());
+        sarEvent.setEventTime(Instant.now());
+        sarEvent.setTotalAmount(ctrEvent.getTotalAmount());
+        sarEvent.setSeverityScore(ctrEvent.getSeverityScore());
+        sarEvent.setStatus(EventStatus.DRAFT);
+
+        sarEvent = complianceEventRepository.save(sarEvent);
+
+        Map<String, Object> ctrFormData = ctrDetail.getCtrFormData() == null ? Map.of() : ctrDetail.getCtrFormData();
+
+        String subjectKey = String.valueOf(ctrFormData.getOrDefault("subjectKey", ctrEvent.getExternalSubjectKey()));
+
+        Object driversObj = ctrFormData.get("suspicionDrivers");
+        String drivers = "";
+        if (driversObj instanceof List<?> list && !list.isEmpty()) {
+            drivers = list.stream().map(String::valueOf).reduce((a, b) -> a + ", " + b).orElse("");
+        }
+
+        String narrative = "Auto-generated SAR draft from CTR " + ctrEventId +
+                " for subject " + subjectKey +
+                ". Suspicion score: " + (ctrEvent.getSeverityScore() == null ? "—" : ctrEvent.getSeverityScore()) +
+                (drivers.isBlank() ? "" : ". Drivers: " + drivers) +
+                ". Please review and edit before submission.";
+
+        ComplianceEventSarDetail sarDetail = new ComplianceEventSarDetail();
+        sarDetail.setEvent(sarEvent);
+        sarDetail.setNarrative(narrative);
+        // Use CTR day as activity window by default
+        sarDetail.setActivityStart(ctrEvent.getEventTime());
+        sarDetail.setActivityEnd(ctrEvent.getEventTime());
+
+        // Seed SAR formData with CTR-derived info (can be expanded to match FIN-109 fields)
+        Map<String, Object> seed = new java.util.HashMap<>();
+        seed.put("fromCtrEventId", ctrEventId);
+        seed.put("subjectKey", subjectKey);
+        seed.put("totalCashAmount", ctrFormData.getOrDefault("totalCashAmount", null));
+        seed.put("txnDay", ctrFormData.getOrDefault("txnDay", null));
+        seed.put("suspicionScore", ctrFormData.getOrDefault("suspicionScore", ctrEvent.getSeverityScore()));
+        seed.put("suspicionBand", ctrFormData.getOrDefault("suspicionBand", null));
+        seed.put("suspicionDrivers", ctrFormData.getOrDefault("suspicionDrivers", List.of()));
+        seed.put("contributingTxnIds", ctrFormData.getOrDefault("contributingTxnIds", List.of()));
+        sarDetail.setFormData(seed);
+
+        sarDetailRepository.save(sarDetail);
+
+        return mapper.toResponse(sarEvent);
+    }
+
     @SuppressWarnings("unchecked")
     private List<Long> extractTxnIds(Map<String, Object> ctrFormData) {
         Object raw = ctrFormData.get("contributingTxnIds");

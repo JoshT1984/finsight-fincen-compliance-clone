@@ -29,18 +29,17 @@ public class TransactionController {
   private final CashTransactionMapper mapper;
   private final CtrGenerationService ctrGenerationService;
 
-  public TransactionController(CashTransactionRepository repo, CashTransactionMapper mapper, CtrGenerationService ctrGenerationService) {
+  public TransactionController(CashTransactionRepository repo, CashTransactionMapper mapper,
+      CtrGenerationService ctrGenerationService) {
     this.repo = repo;
     this.mapper = mapper;
     this.ctrGenerationService = ctrGenerationService;
   }
 
-
   @GetMapping
   public Page<TransactionResponse> list(
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "50") int size
-  ) {
+      @RequestParam(defaultValue = "50") int size) {
     // Keep this lightweight: newest first
     var pageable = PageRequest.of(page, Math.min(size, 500), Sort.by(Sort.Direction.DESC, "txnTime"));
     return repo.findAll(pageable).map(mapper::toResponse);
@@ -54,17 +53,17 @@ public class TransactionController {
 
     // Derive subjectKey and day from saved transaction
     java.time.LocalDate day = saved.getTxnTime().atZone(java.time.ZoneOffset.UTC).toLocalDate();
-        String subjectKey = (saved.getExternalSubjectKey() != null && !saved.getExternalSubjectKey().isBlank())
+    String subjectKey = (saved.getExternalSubjectKey() != null && !saved.getExternalSubjectKey().isBlank())
         ? saved.getExternalSubjectKey()
         : String.format("%s:%s:%s", saved.getSourceSystem(), saved.getSourceSubjectType(), saved.getSourceSubjectId());
 
     try {
       int created = ctrGenerationService.generateForSubjectDay(subjectKey, day);
       org.slf4j.LoggerFactory.getLogger(TransactionController.class)
-        .info("CTR generation attempt subjectKey={}, day={}, created={}", subjectKey, day, created);
+          .info("CTR generation attempt subjectKey={}, day={}, created={}", subjectKey, day, created);
     } catch (Exception e) {
       org.slf4j.LoggerFactory.getLogger(TransactionController.class)
-        .warn("CTR generation failed (non-fatal) subjectKey={}, day={} : {}", subjectKey, day, e.getMessage(), e);
+          .warn("CTR generation failed (non-fatal) subjectKey={}, day={} : {}", subjectKey, day, e.getMessage(), e);
     }
 
     return mapper.toResponse(saved);

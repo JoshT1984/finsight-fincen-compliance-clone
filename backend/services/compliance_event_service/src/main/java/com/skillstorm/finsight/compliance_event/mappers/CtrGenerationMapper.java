@@ -82,7 +82,15 @@ public class CtrGenerationMapper {
         d.setEvent(event);
 
         // Required NOT NULL columns in compliance_event_ctr_detail
-        d.setCustomerName(deriveCustomerName(row.getSubjectKey()));
+        String subjName = row.getSubjectName();
+        d.setCustomerName(
+                (subjName == null || subjName.isBlank()) ? deriveCustomerName(row.getSubjectKey()) : subjName);
+        
+                if (subjName != null && !subjName.isBlank()) {
+  formData.put("subjectName", subjName);
+}
+
+
         d.setTransactionTime(row.getTxnDay().atStartOfDay(ZoneOffset.UTC).toInstant());
 
         // ctr_form_data is Map<String,Object> (JSON)
