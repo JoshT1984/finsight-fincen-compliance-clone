@@ -29,6 +29,7 @@ public class CtrGenerationMapper {
             String subjectKey,
             LocalDate day,
             BigDecimal totalAmount,
+            Integer suspicionScore,
             String idempotencyKey
     ) {
         ComplianceEvent e = new ComplianceEvent();
@@ -39,7 +40,7 @@ public class CtrGenerationMapper {
         e.setEventTime(day.atStartOfDay(ZoneOffset.UTC).toInstant());
         e.setTotalAmount(nullSafe(totalAmount));
         e.setStatus(EventStatus.CREATED);
-        e.setSeverityScore(null);
+        e.setSeverityScore(suspicionScore);
         e.setIdempotencyKey(idempotencyKey);
         return e;
     }
@@ -47,7 +48,10 @@ public class CtrGenerationMapper {
     public ComplianceEventCtrDetail toCtrDetail(
             ComplianceEvent event,
             CtrAggregationRow row,
-            List<Long> txnIds
+            List<Long> txnIds,
+            Integer suspicionScore,
+            String suspicionBand,
+            List<String> suspicionDrivers
     ) {
         ObjectNode formData = objectMapper.createObjectNode();
         formData.put("source", "AUTO_FROM_TXNS");
@@ -57,6 +61,17 @@ public class CtrGenerationMapper {
         formData.put("totalCashOut", row.getTotalCashOut().toPlainString());
         formData.put("totalCashAmount", row.getTotalCashAmount().toPlainString());
         formData.put("txnCount", row.getTxnCount());
+
+        if (suspicionScore != null) {
+            formData.put("suspicionScore", suspicionScore);
+        }
+        if (suspicionBand != null) {
+            formData.put("suspicionBand", suspicionBand);
+        }
+        if (suspicionDrivers != null) {
+            var dArr = formData.putArray("suspicionDrivers");
+            suspicionDrivers.forEach(dArr::add);
+        }
 
         var arr = formData.putArray("contributingTxnIds");
         txnIds.forEach(arr::add);

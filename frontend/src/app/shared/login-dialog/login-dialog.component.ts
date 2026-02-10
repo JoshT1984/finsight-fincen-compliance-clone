@@ -1,14 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { LoginDialogService } from '../services/loginDialog.service';
 import { IdentityService } from '../services/identity.service';
 
 @Component({
   selector: 'app-login-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './login-dialog.component.html',
   styleUrls: ['./login-dialog.component.css'],
 })

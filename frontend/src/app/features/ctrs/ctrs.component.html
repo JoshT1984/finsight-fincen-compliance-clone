@@ -17,7 +17,7 @@
       </button>
 
       <button class="btn ghost" type="button" (click)="goToUploadCtr()">Upload CTR PDF</button>
-      <button class="btn ghost" type="button" (click)="refreshCtrs()">Refresh</button>
+      <button class="btn ghost" type="button" (click)="refreshTransactions()">Refresh</button>
     </div>
 
     <p *ngIf="submitSuccess" class="notice notice--success">Transaction added successfully.</p>
@@ -25,6 +25,67 @@
   </section>
 
   <section class="content" aria-label="CTRs content">
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Ledger</div>
+          <h3>Cash Transactions</h3>
+          <p class="muted">
+            All recorded cash activity. CTRs are generated from these transactions when daily totals
+            exceed the reporting threshold.
+          </p>
+        </div>
+
+        <div class="searchBox">
+          <input
+            class="input"
+            type="text"
+            placeholder="Search transactions (id, subject, name, location, amount)"
+            [(ngModel)]="search"
+          />
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Txn ID</th>
+              <th>Subject</th>
+              <th>Name</th>
+              <th>Time (UTC)</th>
+              <th>Cash In</th>
+              <th>Cash Out</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let t of filteredTransactions()">
+              <td class="mono">{{ t.txnId }}</td>
+              <td class="mono">{{ t.subjectKey || '—' }}</td>
+              <td>{{ t.subjectName || '—' }}</td>
+              <td>{{ t.txnTime | date: 'medium' : 'UTC' }}</td>
+              <td>{{ t.cashIn | currency }}</td>
+              <td>{{ t.cashOut | currency }}</td>
+              <td>{{ t.location || '—' }}</td>
+            </tr>
+
+            <tr *ngIf="!transactions || transactions.length === 0">
+              <td colspan="7" class="empty">No transactions found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="loadingTxns" class="notice">Loading transactions…</div>
+      <div *ngIf="txnsError" class="notice notice--error">{{ txnsError }}</div>
+
+      <div class="card__footer">
+        <button class="btn ghost" type="button" (click)="refreshTransactions()">Refresh</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card__header">
         <div>
@@ -36,42 +97,7 @@
           </p>
         </div>
       </div>
-
-      <div class="tableWrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>CTR ID</th>
-              <th>Account</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr *ngFor="let ctr of ctrs">
-              <td class="mono">{{ ctr.ctrId }}</td>
-              <td>{{ ctr.accountNumber }}</td>
-              <td>{{ ctr.filingDate | date: 'mediumDate' }}</td>
-              <td>{{ ctr.transactionAmount | currency }}</td>
-              <td>
-                <span class="badge badge--good">{{ ctr.status }}</span>
-              </td>
-              <td>
-                <button class="btn ghost" type="button" (click)="downloadCtr(ctr.ctrId)">
-                  Download
-                </button>
-              </td>
-            </tr>
-
-            <tr *ngIf="!ctrs || ctrs.length === 0">
-              <td colspan="6" class="empty">No CTRs found.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <app-ctr-list></app-ctr-list>
     </div>
 
     <!-- Modal overlay for Add Transaction -->

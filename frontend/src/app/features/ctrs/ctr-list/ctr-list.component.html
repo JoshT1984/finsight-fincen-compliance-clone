@@ -1,0 +1,40 @@
+<div class="tableWrap">
+  <div *ngIf="loading" class="notice">Loading CTRs...</div>
+  <div *ngIf="error && !loading" class="notice notice--error">{{ error }}</div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>CTR ID</th>
+        <th>Subject</th>
+        <th>Date</th>
+        <th>Amount</th>
+        <th>Suspicion</th>
+        <th>Status</th>
+        <th>Linked</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let event of events">
+        <td class="mono">{{ event.eventId }}</td>
+        <td>
+          <span class="subject-text">{{ event.subjectName || '—' }}</span>
+          <span class="subject-type">{{ event.subjectType || '' }}</span>
+        </td>
+        <td>{{ event.eventTime | date: 'mediumDate' }}</td>
+        <td>{{ event.totalAmount | currency }}</td>
+        <td>
+          <span class="badge">{{ event.suspicionScore }}</span>
+        </td>
+        <td>
+          <span class="badge">{{ event.status || '—' }}</span>
+        </td>
+        <td>
+          <span *ngIf="event.isLinked" class="linked-badge">{{ event.linkedLabel }}</span>
+        </td>
+      </tr>
+      <tr *ngIf="!loading && (!events || events.length === 0)">
+        <td colspan="7" class="empty">No CTRs found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
