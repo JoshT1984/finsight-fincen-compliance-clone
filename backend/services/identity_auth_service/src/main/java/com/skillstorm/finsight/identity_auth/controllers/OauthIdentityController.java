@@ -35,6 +35,8 @@ public class OauthIdentityController {
                                 .httpOnly(true)
                                 .path("/")
                                 .maxAge(60 * 60 * 4) // 4 hours
+                                .sameSite("None")
+                                .secure(false)
                                 .build();
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
@@ -68,7 +70,7 @@ public class OauthIdentityController {
         }
 
         @PostMapping("/refresh")
-        public ResponseEntity<LoginResponse> refresh(@CookieValue("refreshToken") String refreshToken) {
+        public ResponseEntity<LoginResponse> refresh(@CookieValue String refreshToken) {
                 LoginResponse response = oauthIdentityService.refreshAccessToken(refreshToken);
                 ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
                                 .httpOnly(true)
@@ -81,7 +83,7 @@ public class OauthIdentityController {
         }
 
         @PostMapping("/logout")
-        public ResponseEntity<Void> logout(@CookieValue("refreshToken") String refreshToken) {
+        public ResponseEntity<Void> logout(@CookieValue(required = false) String refreshToken) {
                 oauthIdentityService.revokeRefreshToken(refreshToken);
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
                                 .maxAge(0)

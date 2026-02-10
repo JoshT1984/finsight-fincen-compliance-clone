@@ -1,5 +1,6 @@
 package com.skillstorm.finsight.identity_auth.aspects;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -54,6 +55,7 @@ public class AuditLogger {
             audit.put("outcome", outcome.name());
             audit.put("targetEntityType", targetEntityType);
             audit.put("targetId", targetUserId);
+            audit.put("timestamp", Instant.now().toString());
 
             if (outcome == AuditOutcome.FAILURE && ex != null) {
                 audit.put("errorType", ex.getClass().getSimpleName());
@@ -88,10 +90,11 @@ public class AuditLogger {
             Throwable error) {
         try {
             Map<String, Object> audit = new HashMap<>();
-            audit.put("actorUserId", actorUserId != null ? actorUserId : "anonymous");
+            audit.put("userId", actorUserId != null ? actorUserId : "anonymous");
             audit.put("action", action.name());
             audit.put("outcome", outcome.name());
             audit.put("provider", provider != null ? provider : "unknown");
+            audit.put("timestamp", Instant.now().toString());
 
             if (request != null) {
                 audit.put("ipAddress", request.getRemoteAddr());

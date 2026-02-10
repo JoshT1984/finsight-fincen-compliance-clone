@@ -55,15 +55,14 @@ public class OauthAuditAspect {
         String methodName = ((MethodSignature) joinPoint.getSignature())
                 .getMethod().getName().toLowerCase();
 
-        // if (methodName.startsWith("login"))
-        // return AuditAction.LOGIN;
-
         if (methodName.startsWith("link"))
             return AuditAction.LINK;
         if (methodName.startsWith("sendpassword"))
             return AuditAction.PASSWORD_RESET_EMAIL;
         if (methodName.startsWith("resetpassword"))
             return AuditAction.PASSWORD_RESET;
+        if (methodName.startsWith("revoke"))
+            return AuditAction.LOGOUT;
 
         return null;
     }

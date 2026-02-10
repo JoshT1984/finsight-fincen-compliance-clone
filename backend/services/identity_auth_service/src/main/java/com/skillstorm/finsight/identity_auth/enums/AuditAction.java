@@ -7,5 +7,6 @@ public enum AuditAction {
     LOGIN,
     LINK,
     PASSWORD_RESET_EMAIL,
-    PASSWORD_RESET
+    PASSWORD_RESET,
+    LOGOUT
 }

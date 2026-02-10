@@ -48,8 +48,22 @@ export class IdentityService {
   }
 
   clearProfile() {
-    this.profileSubject.next(null);
-    this._isLoggedIn.next(false);
+    return this.http
+      .post(`${this.apiBaseUrl}/auth/logout`, {}, { withCredentials: true })
+      .subscribe({
+        next: () => {
+          this.profileSubject.next(null);
+          this._isLoggedIn.next(false);
+          localStorage.removeItem('authToken');
+          this.router.navigate(['/']);
+        },
+        error: (err) => {
+          this.profileSubject.next(null);
+          this._isLoggedIn.next(false);
+          localStorage.removeItem('authToken');
+          this.router.navigate(['/']);
+        },
+      });
   }
 
   getProfileSnapshot(): ProfileModel | null {
@@ -131,7 +145,6 @@ export class IdentityService {
 
   private handleInactivityLogout() {
     this.clearProfile();
-    localStorage.removeItem('authToken');
     this.router.navigate(['/']);
     this._isLoggedIn.next(false);
     console.log('Logged out due to inactivity');
