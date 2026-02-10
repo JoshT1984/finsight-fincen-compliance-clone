@@ -2,10 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+
 import {
   ComplianceService,
   ComplianceEventResponse,
 } from '../../shared/services/compliance.service';
+
 import { ComplianceEventsService } from '../../services/compliance-events.service';
 
 @Component({
@@ -19,12 +21,14 @@ export class SarsComponent {
   sars: ComplianceEventResponse[] = [];
   loading = false;
   error: string | null = null;
+
   search = '';
-  query: string = '';
+  query = '';
 
   // Auto-generate SARs from an existing CTR
   ctrOptions: Array<{ id: number; label: string }> = [];
   selectedCtrId: number | null = null;
+
   generating = false;
   generateError: string | null = null;
 
@@ -36,21 +40,32 @@ export class SarsComponent {
     this.refresh();
   }
 
+  // =========================
+  // Load SARs
+  // =========================
   refresh(): void {
     this.loading = true;
     this.error = null;
+
     this.complianceService.getEvents('SAR', 0, 200).subscribe({
-      next: (list) => {
-        // Map SAR table template properties for compatibility
-        this.sars = [...(list ?? [])]
+      next: (list: ComplianceEventResponse[] | null) => {
+        const rows = list ?? [];
+
+        this.sars = rows
           .map((e) => ({
             ...e,
+
+            // Compatibility fields used by SAR table template
             sarId: e.eventId,
-            subjectName: e.sourceEntityId, // or another field if available
+            subjectName:
+              (e as any).customerName ?? (e as any).subjectName ?? e.sourceEntityId ?? '—',
             suspicionScore: e.severityScore,
             updatedAt: e.eventTime || e.createdAt,
           }))
-          .sort((a, b) => (b.eventTime || '').localeCompare(a.eventTime || ''));
+          .sort((a, b) =>
+            (b.eventTime || b.createdAt || '').localeCompare(a.eventTime || a.createdAt || ''),
+          );
+
         this.loading = false;
         this.loadCtrOptions();
       },
@@ -63,11 +78,14 @@ export class SarsComponent {
     });
   }
 
-
+  // =========================
+  // CTR dropdown for SAR generation
+  // =========================
   loadCtrOptions(): void {
     this.complianceService.getCtrOptions().subscribe({
-      next: (opts) => {
+      next: (opts: Array<{ id: number; label: string }> | null) => {
         this.ctrOptions = opts ?? [];
+
         if (this.ctrOptions.length && this.selectedCtrId == null) {
           this.selectedCtrId = this.ctrOptions[0].id;
         }
@@ -78,6 +96,9 @@ export class SarsComponent {
     });
   }
 
+  // =========================
+  // Generate SAR from CTR
+  // =========================
   generateSarFromSelectedCtr(): void {
     if (this.selectedCtrId == null) return;
 
@@ -89,25 +110,41 @@ export class SarsComponent {
         this.generating = false;
         this.refresh();
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error(err);
         this.generating = false;
-        this.generateError = err?.error?.message ?? 'Failed to auto-generate SAR.';
+
+        let message = 'Failed to auto-generate SAR.';
+        if (err && typeof err === 'object' && 'error' in err) {
+          const e = err as any;
+          message = e?.error?.message ?? e?.message ?? message;
+        }
+
+        this.generateError = message;
       },
     });
   }
 
+  // =========================
+  // Navigation
+  // =========================
   goToUploadSar(): void {
-    this.router.navigate(['/upload'], { queryParams: { documentType: 'SAR' } });
+    this.router.navigate(['/upload'], {
+      queryParams: { documentType: 'SAR' },
+    });
   }
 
   goToCases(): void {
     this.router.navigate(['/cases']);
   }
 
+  // =========================
+  // Filtering
+  // =========================
   filteredSars(): ComplianceEventResponse[] {
     const q = (this.query || this.search).trim().toLowerCase();
     if (!q) return this.sars;
+
     return this.sars.filter((s) => {
       const sev = s.severityScore != null ? String(s.severityScore) : '';
       return (
@@ -124,7 +161,7 @@ export class SarsComponent {
   }
 
   openSar(_id: any): void {
-    // Implement navigation or modal logic here
+    // Optional: route to SAR detail page later
   }
 
   badgeClass(status: string | null | undefined): string {
