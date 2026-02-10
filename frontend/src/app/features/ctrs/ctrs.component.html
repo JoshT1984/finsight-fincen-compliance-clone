@@ -25,6 +25,9 @@
   </section>
 
   <section class="content" aria-label="CTRs content">
+    <!-- ========================= -->
+    <!-- Cash Transactions Table -->
+    <!-- ========================= -->
     <div class="card">
       <div class="card__header">
         <div>
@@ -64,6 +67,7 @@
             <tr *ngFor="let t of filteredTransactions()">
               <td class="mono">{{ t.txnId }}</td>
               <td class="mono">{{ t.sourceSubjectType || '—' }}</td>
+              <!-- ✅ FIX: TxnRowVm has subjectName only (no customerName) -->
               <td>{{ t.subjectName || '—' }}</td>
               <td>{{ t.txnTime | date: 'medium' : 'UTC' }}</td>
               <td>{{ t.cashIn | currency }}</td>
@@ -86,6 +90,9 @@
       </div>
     </div>
 
+    <!-- ========================= -->
+    <!-- CTRs Table -->
+    <!-- ========================= -->
     <div class="card">
       <div class="card__header">
         <div>
@@ -97,6 +104,7 @@
           </p>
         </div>
       </div>
+
       <div class="tableWrap">
         <table class="table">
           <thead>
@@ -110,25 +118,39 @@
               <th>Amount</th>
             </tr>
           </thead>
+
           <tbody>
             <tr *ngFor="let ctr of ctrs">
               <td class="mono">{{ ctr.ctrId }}</td>
               <td class="mono">{{ ctr.sourceSubjectType || '—' }}</td>
-              <td>{{ ctr.subjectName || '—' }}</td>
+              <td>
+                <div>{{ ctr.subjectName || '—' }}</div>
+                <div
+                  *ngIf="ctr.subjectId && ctr.subjectName !== ctr.subjectId"
+                  class="mono small muted"
+                >
+                  {{ ctr.subjectId }}
+                </div>
+              </td>
               <td>{{ ctr.suspicionScore != null ? ctr.suspicionScore : '-' }}</td>
               <td>{{ ctr.ctrTime | date: 'medium' : 'UTC' }}</td>
               <td>{{ ctr.status || '—' }}</td>
               <td>{{ ctr.amount | currency }}</td>
             </tr>
+
             <tr *ngIf="!ctrs || ctrs.length === 0">
-              <td colspan="5" class="empty">No CTRs found.</td>
+              <td colspan="7" class="empty">No CTRs found.</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <div *ngIf="loadingCtrs" class="notice">Loading CTRs…</div>
     </div>
 
+    <!-- ========================= -->
     <!-- Modal overlay for Add Transaction -->
+    <!-- ========================= -->
     <div
       *ngIf="showTransactionForm"
       class="modalBackdrop"
