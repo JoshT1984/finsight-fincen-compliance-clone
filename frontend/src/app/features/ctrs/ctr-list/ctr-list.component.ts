@@ -5,23 +5,7 @@ import { switchMap, scan, takeWhile, catchError, map } from 'rxjs/operators';
 
 import { ComplianceEventsService } from '../../../services/compliance-events.service';
 import { ComplianceEventDto } from '../../../models/compliance-event-dto.interface';
-
-type CtrDetailResponse = {
-  ctr?: {
-    customerName?: string | null;
-    suspectMinimal?: { primaryName?: string | null } | null;
-    severityScore?: number | null;
-    [k: string]: any;
-  };
-  ctrFormData?: {
-    customerName?: string | null;
-    subjectName?: string | null;
-    sourceSubjectType?: string | null;
-    suspicionScore?: number | null;
-    [k: string]: any;
-  };
-  [k: string]: any;
-};
+import { CtrDetailResponse, CtrFormData } from '../../../models/ctr-detail.model';
 
 @Component({
   selector: 'app-ctr-list',
@@ -68,19 +52,19 @@ export class CtrListComponent implements OnInit, OnDestroy {
     this.pollingSub = timer(0, delayMs)
       .pipe(
         switchMap(() =>
-          this.complianceEventsService.getCtrEvents(pageIndex, this.pageSize).pipe(
-            catchError(() => of(null))
-          )
+          this.complianceEventsService
+            .getCtrEvents(pageIndex, this.pageSize)
+            .pipe(catchError(() => of(null))),
         ),
-        scan((_, res) => ({ res, attempt: _.attempt + 1 }), { res: null as any, attempt: 0 }),
+        scan((acc, res) => ({ res, attempt: acc.attempt + 1 }), { res: null as any, attempt: 0 }),
         takeWhile(
           ({ res, attempt }) =>
             // keep polling while we have no response and haven't hit max attempts
             (res === null && attempt < maxAttempts) ||
             // or stop immediately on first success
             (res !== null && attempt === 1),
-          true
-        )
+          true,
+        ),
       )
       .subscribe(({ res, attempt }) => {
         if (res !== null) {
@@ -119,20 +103,17 @@ export class CtrListComponent implements OnInit, OnDestroy {
     forkJoin(
       events.map((event) =>
         this.complianceEventsService.getCtrDetail(event.eventId).pipe(
-          map((detailUnknown: unknown) => {
-            const detail = (detailUnknown ?? {}) as CtrDetailResponse;
+          map((detail: CtrDetailResponse) => {
             const ctr = detail.ctr ?? {};
-            const form = detail.ctrFormData ?? {};
+            const form: CtrFormData = (detail.ctrFormData ?? {}) as CtrFormData;
 
             const subjectName =
-              ctr.customerName ??
-              form.customerName ??
-              form.subjectName ??
+              (ctr.customerName ?? null) ||
+              (form.customerName ?? null) ||
+              (form.subjectName ?? null) ||
               '—';
 
-            const subjectType =
-              form.sourceSubjectType ??
-              '—';
+            const subjectType = (form.sourceSubjectType ?? null) || '—';
 
             const isLinked = !!(event as any).suspectId;
 
@@ -144,10 +125,7 @@ export class CtrListComponent implements OnInit, OnDestroy {
             }
 
             const suspicionScore =
-              form.suspicionScore ??
-              ctr.severityScore ??
-              (event as any).severityScore ??
-              null;
+              form.suspicionScore ?? ctr.severityScore ?? (event as any).severityScore ?? null;
 
             return {
               ...event,
@@ -166,10 +144,10 @@ export class CtrListComponent implements OnInit, OnDestroy {
               isLinked: !!(event as any).suspectId,
               linkedLabel: '',
               suspicionScore: (event as any).severityScore ?? null,
-            })
-          )
-        )
-      )
+            }),
+          ),
+        ),
+      ),
     ).subscribe((rows) => {
       this.events = rows as any;
     });
