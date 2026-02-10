@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { IdentityService } from '../../shared/services/identity.service';
 import { CommonModule } from '@angular/common';
@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './link-account.component.html',
   standalone: true,
   styleUrls: ['./link-account.component.css'],
-  imports: [RouterLink, CommonModule],
+  imports: [CommonModule],
 })
 export class LinkAccountComponent {
   constructor(

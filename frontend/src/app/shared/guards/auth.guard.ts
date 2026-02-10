@@ -13,6 +13,10 @@ export const authGuard: CanActivateFn = () => {
 
   return identity.isLoggedIn$.pipe(
     take(1),
-    map((loggedIn) => (loggedIn ? true : router.createUrlTree([''])))
-  );
+    map((loggedIn) => {
+      // If the app is still bootstrapping but a token is present, allow navigation.
+      // Components/interceptors will handle any 401s and redirect if needed.
+      const hasToken = !!localStorage.getItem('authToken');
+      return loggedIn || hasToken ? true : router.createUrlTree(['']);
+    }));
 };

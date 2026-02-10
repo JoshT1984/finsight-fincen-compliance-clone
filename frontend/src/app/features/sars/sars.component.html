@@ -11,6 +11,30 @@
       <button class="btn ghost" type="button" (click)="goToUploadSar()">Upload SAR PDF</button>
       <button class="btn ghost" type="button" (click)="refresh()">Refresh</button>
     </div>
+
+    <div class="ctaRow" style="margin-top: 12px; gap: 10px; flex-wrap: wrap">
+      <label class="muted" style="display: flex; align-items: center; gap: 8px">
+        <span>Generate from CTR</span>
+        <select
+          class="input"
+          [(ngModel)]="selectedCtrId"
+          [disabled]="generating || ctrOptions.length === 0"
+        >
+          <option *ngFor="let o of ctrOptions" [ngValue]="o.id">{{ o.label }}</option>
+        </select>
+      </label>
+
+      <button
+        class="btn primary"
+        type="button"
+        (click)="generateSarFromSelectedCtr()"
+        [disabled]="generating || selectedCtrId == null"
+      >
+        {{ generating ? 'Generating…' : 'Auto-generate SAR draft' }}
+      </button>
+
+      <span *ngIf="generateError" class="notice notice--error">{{ generateError }}</span>
+    </div>
   </section>
 
   <section class="content" aria-label="SARs content">

@@ -5,8 +5,15 @@
     <div class="header-actions">
       <a routerLink="/registry/suspects" class="back-link">Back to Suspects</a>
       @if (suspect) {
-        <a [routerLink]="['/registry/suspects', suspect.suspectId, 'edit']" class="btn-secondary">Edit</a>
-        <button type="button" class="btn-danger" (click)="openDeleteConfirm()" [disabled]="deleting">
+        <a [routerLink]="['/registry/suspects', suspect.suspectId, 'edit']" class="btn-secondary"
+          >Edit</a
+        >
+        <button
+          type="button"
+          class="btn-danger"
+          (click)="openDeleteConfirm()"
+          [disabled]="deleting"
+        >
           {{ deleting ? 'Deleting...' : 'Delete' }}
         </button>
       }
@@ -34,7 +41,9 @@
         <dd>{{ suspect.ssn ?? '-' }}</dd>
         <dt>Risk level</dt>
         <dd>
-          <span class="risk risk-{{ suspect.riskLevel | lowercase }}">{{ suspect.riskLevel | properCase }}</span>
+          <span class="risk risk-{{ suspect.riskLevel | lowercase }}">{{
+            suspect.riskLevel | properCase
+          }}</span>
         </dd>
         <dt>Created</dt>
         <dd>{{ formatDate(suspect.createdAt) }}</dd>
@@ -101,10 +110,20 @@
             </select>
           </div>
           <div class="link-form-row link-form-checkbox">
-            <input type="checkbox" id="linkAddressCurrent" [(ngModel)]="linkAddressIsCurrent" name="linkAddressIsCurrent" />
+            <input
+              type="checkbox"
+              id="linkAddressCurrent"
+              [(ngModel)]="linkAddressIsCurrent"
+              name="linkAddressIsCurrent"
+            />
             <label for="linkAddressCurrent">Current address</label>
           </div>
-          <button type="button" class="btn-link" (click)="linkAddress()" [disabled]="linkAddressId === '' || linkingAddr">
+          <button
+            type="button"
+            class="btn-link"
+            (click)="linkAddress()"
+            [disabled]="linkAddressId === '' || linkingAddr"
+          >
             {{ linkingAddr ? 'Linking...' : 'Link address' }}
           </button>
         </div>
@@ -161,9 +180,21 @@
           </div>
           <div class="link-form-row">
             <label for="linkOrgRole">Role (optional)</label>
-            <input id="linkOrgRole" type="text" [(ngModel)]="linkOrgRole" name="linkOrgRole" maxlength="64" placeholder="e.g. member" />
+            <input
+              id="linkOrgRole"
+              type="text"
+              [(ngModel)]="linkOrgRole"
+              name="linkOrgRole"
+              maxlength="64"
+              placeholder="e.g. member"
+            />
           </div>
-          <button type="button" class="btn-link" (click)="linkOrganization()" [disabled]="linkOrgId === '' || linkingOrg">
+          <button
+            type="button"
+            class="btn-link"
+            (click)="linkOrganization()"
+            [disabled]="linkOrgId === '' || linkingOrg"
+          >
             {{ linkingOrg ? 'Linking...' : 'Link organization' }}
           </button>
         </div>
@@ -192,21 +223,43 @@
                   @if (editingAliasId === al.aliasId) {
                     <tr class="edit-row">
                       <td>
-                        <input type="text" [(ngModel)]="editAliasName" name="editAliasName" maxlength="256" class="edit-input" />
+                        <input
+                          type="text"
+                          [(ngModel)]="editAliasName"
+                          name="editAliasName"
+                          maxlength="256"
+                          class="edit-input"
+                        />
                       </td>
                       <td>
-                        <select [(ngModel)]="editAliasType" name="editAliasType" class="edit-select">
+                        <select
+                          [(ngModel)]="editAliasType"
+                          name="editAliasType"
+                          class="edit-select"
+                        >
                           @for (t of aliasTypes; track t) {
                             <option [value]="t">{{ t | properCase }}</option>
                           }
                         </select>
                       </td>
                       <td>
-                        <input type="checkbox" [(ngModel)]="editAliasIsPrimary" name="editAliasIsPrimary" />
+                        <input
+                          type="checkbox"
+                          [(ngModel)]="editAliasIsPrimary"
+                          name="editAliasIsPrimary"
+                        />
                       </td>
                       <td>
-                        <button type="button" class="btn-link btn-small" (click)="saveEditAlias()">Save</button>
-                        <button type="button" class="btn-unlink btn-small" (click)="cancelEditAlias()">Cancel</button>
+                        <button type="button" class="btn-link btn-small" (click)="saveEditAlias()">
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-unlink btn-small"
+                          (click)="cancelEditAlias()"
+                        >
+                          Cancel
+                        </button>
                       </td>
                     </tr>
                   } @else {
@@ -215,8 +268,23 @@
                       <td>{{ al.aliasType | properCase }}</td>
                       <td>{{ al.isPrimary ? 'Yes' : 'No' }}</td>
                       <td>
-                        <button type="button" class="btn-unlink" (click)="startEditAlias(al)" [attr.aria-label]="'Edit alias ' + al.aliasName">Edit</button>
-                        <button type="button" class="btn-unlink" (click)="openDeleteAliasConfirm(al.aliasId)" [disabled]="deletingAlias" [attr.aria-label]="'Delete alias ' + al.aliasName">Delete</button>
+                        <button
+                          type="button"
+                          class="btn-unlink"
+                          (click)="startEditAlias(al)"
+                          [attr.aria-label]="'Edit alias ' + al.aliasName"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-unlink"
+                          (click)="openDeleteAliasConfirm(al.aliasId)"
+                          [disabled]="deletingAlias"
+                          [attr.aria-label]="'Delete alias ' + al.aliasName"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   }
@@ -229,7 +297,14 @@
           <h3 class="link-form-heading">Add alias</h3>
           <div class="link-form-row">
             <label for="linkAliasName">Alias name</label>
-            <input id="linkAliasName" type="text" [(ngModel)]="linkAliasName" name="linkAliasName" maxlength="256" placeholder="e.g. Johnny Doe" />
+            <input
+              id="linkAliasName"
+              type="text"
+              [(ngModel)]="linkAliasName"
+              name="linkAliasName"
+              maxlength="256"
+              placeholder="e.g. Johnny Doe"
+            />
           </div>
           <div class="link-form-row">
             <label for="linkAliasType">Type</label>
@@ -240,10 +315,20 @@
             </select>
           </div>
           <div class="link-form-row link-form-checkbox">
-            <input type="checkbox" id="linkAliasPrimary" [(ngModel)]="linkAliasIsPrimary" name="linkAliasIsPrimary" />
+            <input
+              type="checkbox"
+              id="linkAliasPrimary"
+              [(ngModel)]="linkAliasIsPrimary"
+              name="linkAliasIsPrimary"
+            />
             <label for="linkAliasPrimary">Primary alias</label>
           </div>
-          <button type="button" class="btn-link" (click)="addAlias()" [disabled]="!linkAliasName?.trim() || linkingAlias">
+          <button
+            type="button"
+            class="btn-link"
+            (click)="addAlias()"
+            [disabled]="!linkAliasName.trim() || linkingAlias"
+          >
             {{ linkingAlias ? 'Adding...' : 'Add alias' }}
           </button>
         </div>
@@ -269,11 +354,17 @@
                 @for (e of ctrs; track e.eventId) {
                   <tr>
                     <td>{{ e.eventId }}</td>
-                    <td>{{ e.status ?? '-' }}</td>
+                    <td>{{ e.status }}</td>
                     <td>{{ formatDate(e.eventTime) }}</td>
                     <td>{{ e.totalAmount != null ? (e.totalAmount | number) : '-' }}</td>
                     <td>
-                      <button type="button" class="btn-unlink" (click)="unlinkCtr(e.eventId)" [disabled]="unlinkingCtrEventId === e.eventId" [attr.aria-label]="'Unlink CTR ' + e.eventId">
+                      <button
+                        type="button"
+                        class="btn-unlink"
+                        (click)="unlinkCtr(e.eventId)"
+                        [disabled]="unlinkingCtrEventId === e.eventId"
+                        [attr.aria-label]="'Unlink CTR ' + e.eventId"
+                      >
                         {{ unlinkingCtrEventId === e.eventId ? 'Unlinking...' : 'Unlink' }}
                       </button>
                     </td>
@@ -293,14 +384,22 @@
             <select id="linkCtr" [(ngModel)]="linkCtrEventId" name="linkCtrEventId">
               <option [ngValue]="''">Select a CTR</option>
               @for (e of linkableCtrs; track e.eventId) {
-                <option [ngValue]="e.eventId">Event {{ e.eventId }} – {{ formatDate(e.eventTime) }} – {{ e.totalAmount != null ? (e.totalAmount | number) : '-' }}</option>
+                <option [ngValue]="e.eventId">
+                  Event {{ e.eventId }} – {{ formatDate(e.eventTime) }} –
+                  {{ e.totalAmount != null ? (e.totalAmount | number) : '-' }}
+                </option>
               }
             </select>
             @if (linkableCtrs.length === 0) {
               <p class="link-form-hint">No unlinked CTRs available to link.</p>
             }
           </div>
-          <button type="button" class="btn-link" (click)="linkCtr()" [disabled]="linkCtrEventId === '' || linkingCtr">
+          <button
+            type="button"
+            class="btn-link"
+            (click)="linkCtr()"
+            [disabled]="linkCtrEventId === '' || linkingCtr"
+          >
             {{ linkingCtr ? 'Linking...' : 'Link CTR' }}
           </button>
         </div>
@@ -326,11 +425,17 @@
                 @for (e of sars; track e.eventId) {
                   <tr>
                     <td>{{ e.eventId }}</td>
-                    <td>{{ e.status ?? '-' }}</td>
+                    <td>{{ e.status }}</td>
                     <td>{{ formatDate(e.eventTime) }}</td>
                     <td>{{ e.severityScore != null ? e.severityScore : '-' }}</td>
                     <td>
-                      <button type="button" class="btn-unlink" (click)="unlinkSar(e.eventId)" [disabled]="unlinkingSarEventId === e.eventId" [attr.aria-label]="'Unlink SAR ' + e.eventId">
+                      <button
+                        type="button"
+                        class="btn-unlink"
+                        (click)="unlinkSar(e.eventId)"
+                        [disabled]="unlinkingSarEventId === e.eventId"
+                        [attr.aria-label]="'Unlink SAR ' + e.eventId"
+                      >
                         {{ unlinkingSarEventId === e.eventId ? 'Unlinking...' : 'Unlink' }}
                       </button>
                     </td>
@@ -350,14 +455,22 @@
             <select id="linkSar" [(ngModel)]="linkSarEventId" name="linkSarEventId">
               <option [ngValue]="''">Select a SAR</option>
               @for (e of linkableSars; track e.eventId) {
-                <option [ngValue]="e.eventId">Event {{ e.eventId }} – {{ formatDate(e.eventTime) }} – {{ e.severityScore != null ? e.severityScore : '-' }}</option>
+                <option [ngValue]="e.eventId">
+                  Event {{ e.eventId }} – {{ formatDate(e.eventTime) }} –
+                  {{ e.severityScore != null ? e.severityScore : '-' }}
+                </option>
               }
             </select>
             @if (linkableSars.length === 0) {
               <p class="link-form-hint">No unlinked SARs available to link.</p>
             }
           </div>
-          <button type="button" class="btn-link" (click)="linkSar()" [disabled]="linkSarEventId === '' || linkingSar">
+          <button
+            type="button"
+            class="btn-link"
+            (click)="linkSar()"
+            [disabled]="linkSarEventId === '' || linkingSar"
+          >
             {{ linkingSar ? 'Linking...' : 'Link SAR' }}
           </button>
         </div>
@@ -385,13 +498,21 @@
                     <td>{{ c.caseId }}</td>
                     <td>{{ c.sarId ?? '-' }}</td>
                     <td>
-                      <span class="case-status case-status-{{ c.status | lowercase }}">{{ c.status }}</span>
+                      <span class="case-status case-status-{{ c.status | lowercase }}">{{
+                        c.status
+                      }}</span>
                     </td>
                     <td>{{ formatDate(c.createdAt) }}</td>
                     <td>
                       <a [routerLink]="['/cases', c.caseId]" class="view-link">View case</a>
                       @if (c.sarId != null) {
-                        <button type="button" class="btn-unlink" (click)="unlinkCase(c)" [disabled]="unlinkingCaseId === c.caseId" [attr.aria-label]="'Unlink case ' + c.caseId">
+                        <button
+                          type="button"
+                          class="btn-unlink"
+                          (click)="unlinkCase(c)"
+                          [disabled]="unlinkingCaseId === c.caseId"
+                          [attr.aria-label]="'Unlink case ' + c.caseId"
+                        >
                           {{ unlinkingCaseId === c.caseId ? 'Unlinking...' : 'Unlink' }}
                         </button>
                       }
@@ -412,14 +533,23 @@
             <select id="linkCase" [(ngModel)]="linkCaseId" name="linkCaseId">
               <option [ngValue]="''">Select a case</option>
               @for (c of linkableCases; track c.caseId) {
-                <option [ngValue]="c.caseId">Case {{ c.caseId }} – SAR {{ c.sarId ?? '-' }} – {{ c.status }}</option>
+                <option [ngValue]="c.caseId">
+                  Case {{ c.caseId }} – SAR {{ c.sarId ?? '-' }} – {{ c.status }}
+                </option>
               }
             </select>
             @if (linkableCases.length === 0) {
-              <p class="link-form-hint">No cases available to link (all cases are already linked to this suspect).</p>
+              <p class="link-form-hint">
+                No cases available to link (all cases are already linked to this suspect).
+              </p>
             }
           </div>
-          <button type="button" class="btn-link" (click)="linkCase()" [disabled]="linkCaseId === '' || linkingCase">
+          <button
+            type="button"
+            class="btn-link"
+            (click)="linkCase()"
+            [disabled]="linkCaseId === '' || linkingCase"
+          >
             {{ linkingCase ? 'Linking...' : 'Link case' }}
           </button>
         </div>
@@ -434,7 +564,8 @@
       confirmText="Delete"
       cancelText="Cancel"
       (confirm)="onConfirmDelete()"
-      (cancel)="onCancelDelete()" />
+      (cancel)="onCancelDelete()"
+    />
   }
 
   @if (showDeleteAliasConfirm) {
@@ -444,6 +575,7 @@
       confirmText="Delete"
       cancelText="Cancel"
       (confirm)="onConfirmDeleteAlias()"
-      (cancel)="onCancelDeleteAlias()" />
+      (cancel)="onCancelDeleteAlias()"
+    />
   }
 </div>

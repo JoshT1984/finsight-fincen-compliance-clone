@@ -1,11 +1,20 @@
 package com.skillstorm.finsight.compliance_event.services;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.skillstorm.finsight.compliance_event.dtos.ComplianceEventResponse;
 import com.skillstorm.finsight.compliance_event.dtos.CreateCtrRequest;
 import com.skillstorm.finsight.compliance_event.dtos.CreateSarRequest;
+import com.skillstorm.finsight.compliance_event.dtos.CtrDetailResponse;
 import com.skillstorm.finsight.compliance_event.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.compliance_event.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.compliance_event.mappers.ComplianceEventMapper;
@@ -14,18 +23,11 @@ import com.skillstorm.finsight.compliance_event.models.ComplianceEventCtrDetail;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEventSarDetail;
 import com.skillstorm.finsight.compliance_event.models.EventStatus;
 import com.skillstorm.finsight.compliance_event.models.EventType;
+import com.skillstorm.finsight.compliance_event.models.SuspectSnapshotAtTimeOfEvent;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventCtrDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventSarDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.SuspectSnapshotAtTimeOfEventRepository;
-import com.skillstorm.finsight.compliance_event.models.SuspectSnapshotAtTimeOfEvent;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ComplianceEventServiceImpl implements ComplianceEventService {
@@ -64,7 +66,7 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         event.setTotalAmount(request.totalAmount());
         event.setSeverityScore(request.severityScore());
 
-        // SAR status must be DRAFT or SUBMITTED (your entity guardrails enforce this)
+        // SAR status must be DRAFT or SUBMITTED
         event.setStatus(EventStatus.DRAFT);
 
         try {
@@ -121,7 +123,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     public ComplianceEventResponse getById(Long eventId) {
         ComplianceEvent event = complianceEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + eventId));
-
         return mapper.toResponse(event);
     }
 
@@ -150,7 +151,11 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ComplianceEventResponse> findLinkableByEventType(EventType eventType, Long excludeSuspectId, Pageable pageable) {
+    public Page<ComplianceEventResponse> findLinkableByEventType(
+            EventType eventType,
+            Long excludeSuspectId,
+            Pageable pageable) {
+
         return complianceEventRepository
                 .findLinkableByEventType(eventType, excludeSuspectId, pageable)
                 .map(mapper::toResponse);
@@ -181,6 +186,138 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         event.setSuspectSnapshot(null);
         complianceEventRepository.save(event);
         return mapper.toResponse(event);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CtrDetailResponse getCtrDetail(Long eventId) {
+        ComplianceEvent event = complianceEventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + eventId));
+
+        if (event.getEventType() != EventType.CTR) {
+            throw new ResourceConflictException("Event is not a CTR: " + eventId);
+        }
+
+        ComplianceEventCtrDetail detail = ctrDetailRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("CTR detail not found for event: " + eventId));
+
+        Map<String, Object> ctrFormData =
+                detail.getCtrFormData() == null ? Map.of() : detail.getCtrFormData();
+
+        List<Long> contributingTxnIds = extractTxnIds(ctrFormData);
+
+        List<ComplianceEventResponse> priorCtrs =
+                complianceEventRepository
+                        .findByExternalSubjectKeyAndEventTypeOrderByEventTimeDesc(
+                                event.getExternalSubjectKey(),
+                                EventType.CTR
+                        )
+                        .stream()
+                        .filter(e -> !e.getEventId().equals(eventId)) // change to getEventId() if needed
+                        .map(mapper::toResponse)
+                        .toList();
+
+        return new CtrDetailResponse(
+                mapper.toResponse(event),
+                ctrFormData,
+                contributingTxnIds,
+                priorCtrs
+        );
+    }
+
+
+    @Override
+    @Transactional
+    public ComplianceEventResponse generateSarFromCtr(Long ctrEventId) {
+        ComplianceEvent ctrEvent = complianceEventRepository.findById(ctrEventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + ctrEventId));
+
+        if (ctrEvent.getEventType() != EventType.CTR) {
+            throw new ResourceConflictException("Event is not a CTR: " + ctrEventId);
+        }
+
+        ComplianceEventCtrDetail ctrDetail = ctrDetailRepository.findById(ctrEventId)
+                .orElseThrow(() -> new ResourceNotFoundException("CTR detail not found for event: " + ctrEventId));
+
+        // Idempotent source identifiers for the SAR draft derived from this CTR
+        String sourceSystem = "AUTO_FROM_CTR";
+        String sourceEntityId = "CTR:" + ctrEventId;
+
+        assertNoDuplicateSource(sourceSystem, sourceEntityId);
+
+        ComplianceEvent sarEvent = new ComplianceEvent();
+        sarEvent.setEventType(EventType.SAR);
+        sarEvent.setSourceSystem(sourceSystem);
+        sarEvent.setSourceEntityId(sourceEntityId);
+        sarEvent.setExternalSubjectKey(ctrEvent.getExternalSubjectKey());
+        sarEvent.setEventTime(Instant.now());
+        sarEvent.setTotalAmount(ctrEvent.getTotalAmount());
+        sarEvent.setSeverityScore(ctrEvent.getSeverityScore());
+        sarEvent.setStatus(EventStatus.DRAFT);
+
+        sarEvent = complianceEventRepository.save(sarEvent);
+
+        Map<String, Object> ctrFormData = ctrDetail.getCtrFormData() == null ? Map.of() : ctrDetail.getCtrFormData();
+
+        String subjectKey = String.valueOf(ctrFormData.getOrDefault("subjectKey", ctrEvent.getExternalSubjectKey()));
+
+        Object driversObj = ctrFormData.get("suspicionDrivers");
+        String drivers = "";
+        if (driversObj instanceof List<?> list && !list.isEmpty()) {
+            drivers = list.stream().map(String::valueOf).reduce((a, b) -> a + ", " + b).orElse("");
+        }
+
+        String narrative = "Auto-generated SAR draft from CTR " + ctrEventId +
+                " for subject " + subjectKey +
+                ". Suspicion score: " + (ctrEvent.getSeverityScore() == null ? "—" : ctrEvent.getSeverityScore()) +
+                (drivers.isBlank() ? "" : ". Drivers: " + drivers) +
+                ". Please review and edit before submission.";
+
+        ComplianceEventSarDetail sarDetail = new ComplianceEventSarDetail();
+        sarDetail.setEvent(sarEvent);
+        sarDetail.setNarrative(narrative);
+        // Use CTR day as activity window by default
+        sarDetail.setActivityStart(ctrEvent.getEventTime());
+        sarDetail.setActivityEnd(ctrEvent.getEventTime());
+
+        // Seed SAR formData with CTR-derived info (can be expanded to match FIN-109 fields)
+        Map<String, Object> seed = new java.util.HashMap<>();
+        seed.put("fromCtrEventId", ctrEventId);
+        seed.put("subjectKey", subjectKey);
+        seed.put("totalCashAmount", ctrFormData.getOrDefault("totalCashAmount", null));
+        seed.put("txnDay", ctrFormData.getOrDefault("txnDay", null));
+        seed.put("suspicionScore", ctrFormData.getOrDefault("suspicionScore", ctrEvent.getSeverityScore()));
+        seed.put("suspicionBand", ctrFormData.getOrDefault("suspicionBand", null));
+        seed.put("suspicionDrivers", ctrFormData.getOrDefault("suspicionDrivers", List.of()));
+        seed.put("contributingTxnIds", ctrFormData.getOrDefault("contributingTxnIds", List.of()));
+        sarDetail.setFormData(seed);
+
+        sarDetailRepository.save(sarDetail);
+
+        return mapper.toResponse(sarEvent);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Long> extractTxnIds(Map<String, Object> ctrFormData) {
+        Object raw = ctrFormData.get("contributingTxnIds");
+        if (raw == null) return List.of();
+
+        if (raw instanceof List<?> list) {
+            return list.stream()
+                    .map(v -> v instanceof Number n ? n.longValue() : tryParseLong(v))
+                    .filter(v -> v != null)
+                    .toList();
+        }
+
+        return List.of();
+    }
+
+    private Long tryParseLong(Object v) {
+        try {
+            return Long.parseLong(String.valueOf(v));
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private void assertNoDuplicateSource(String sourceSystem, String sourceEntityId) {
