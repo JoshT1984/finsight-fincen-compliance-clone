@@ -69,12 +69,12 @@ public class CtrGenerationService {
             var scoreResult = CtrSuspicionScoring.score(row, daySignals, windowSignals);
 
             ComplianceEvent event = mapper.toCtrEvent(
-                    subjectKey,
-                    day,
+                    row.getSubjectKey(),
+                    row.getSourceSubjectType(),
+                    row.getTxnDay(),
                     row.getTotalCashAmount(),
                     scoreResult.score(),
-                    idem
-            );
+                    idem);
 
             ComplianceEvent saved = eventRepo.save(event);
 
@@ -86,10 +86,10 @@ public class CtrGenerationService {
                     txnIds,
                     scoreResult.score(),
                     scoreResult.band(),
-                    scoreResult.drivers()
-            );
+                    scoreResult.drivers());
 
-            // eventType is DB-defaulted and insertable=false, so it may be null in-memory pre-flush.
+            // eventType is DB-defaulted and insertable=false, so it may be null in-memory
+            // pre-flush.
             log.info("Saving CTR detail for eventId={}, subjectKey={}, day={}, score={}",
                     saved.getEventId(), subjectKey, day, scoreResult.score());
 
@@ -125,12 +125,12 @@ public class CtrGenerationService {
             var scoreResult = CtrSuspicionScoring.score(row, daySignals, windowSignals);
 
             ComplianceEvent event = mapper.toCtrEvent(
-                    subjectKey,
-                    day,
+                    row.getSubjectKey(),
+                    row.getSourceSubjectType(),
+                    row.getTxnDay(),
                     row.getTotalCashAmount(),
                     scoreResult.score(),
-                    idem
-            );
+                    idem);
 
             ComplianceEvent saved = eventRepo.save(event);
 
@@ -142,8 +142,7 @@ public class CtrGenerationService {
                     txnIds,
                     scoreResult.score(),
                     scoreResult.band(),
-                    scoreResult.drivers()
-            );
+                    scoreResult.drivers());
 
             log.info("Saving CTR detail for eventId={}, subjectKey={}, day={}, score={}",
                     saved.getEventId(), subjectKey, day, scoreResult.score());

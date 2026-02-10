@@ -10,7 +10,9 @@ import com.skillstorm.finsight.compliance_event.models.CashTransaction;
 public class CashTransactionMapper {
 
     public CashTransaction toEntity(CreateTransactionRequest r) {
-        if (r == null) return null;
+        if (r == null) {
+            return null;
+        }
 
         CashTransaction t = new CashTransaction();
         t.setSourceSystem(defaultIfBlank(r.sourceSystem(), "TXN_SEED"));
@@ -29,7 +31,9 @@ public class CashTransactionMapper {
     }
 
     public TransactionResponse toResponse(CashTransaction t) {
-        if (t == null) return null;
+        if (t == null) {
+            return null;
+        }
 
         return new TransactionResponse(
                 t.getTxnId(),
@@ -41,8 +45,8 @@ public class CashTransactionMapper {
                 t.getTxnTime(),
                 t.getCashIn(),
                 t.getCashOut(),
-                t.getCreatedAt()
-        );
+                t.getLocation(),
+                t.getCreatedAt());
     }
 
     private String defaultIfBlank(String v, String def) {

@@ -5,10 +5,18 @@ import java.time.LocalDate;
 
 public interface CtrAggregationRow {
   String getSubjectKey();
+
   String getSubjectName();
+
+  String getSourceSubjectType();
+
   LocalDate getTxnDay();
+
   BigDecimal getTotalCashIn();
+
   BigDecimal getTotalCashOut();
+
   BigDecimal getTotalCashAmount();
-          Long getTxnCount();
+
+  Long getTxnCount();
 }

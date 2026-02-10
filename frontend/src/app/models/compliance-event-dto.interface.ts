@@ -1,16 +1,12 @@
-// src/app/models/compliance-event-dto.interface.ts
-
-export type EventType = 'CTR' | 'SAR';
-
 export interface ComplianceEventDto {
   eventId: number;
-
-  // ✅ was string; now matches the enum/union used elsewhere
-  eventType: EventType;
-
+  eventType: any; // keep your existing type if you have EventType enum
   sourceSystem: string;
   sourceEntityId: string;
   eventTime: string;
+
+  customerName?: string | null;
+  subjectType?: string | null;
 
   totalAmount: number;
   status: string;
@@ -18,6 +14,5 @@ export interface ComplianceEventDto {
   createdAt: string;
 
   suspectId?: string | number;
-
   [key: string]: any;
 }
