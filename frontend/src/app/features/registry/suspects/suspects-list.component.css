@@ -1,0 +1,137 @@
+.suspects-container {
+  margin-left: 51px !important;
+  margin-right: 51px !important;
+  max-width: 1440px !important;
+}
+
+.suspects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--navy-800, #093c6f);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.suspects-header h1 {
+  margin: 0;
+}
+
+.back-link {
+  color: var(--navy-800, #093c6f);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.loading,
+.empty {
+  color: #666;
+}
+
+.error {
+  color: #c00;
+}
+
+.suspects-table-wrapper {
+  overflow-x: auto;
+}
+
+.suspects-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.suspects-table th,
+.suspects-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.suspects-table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+}
+
+.suspects-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.suspects-table-row-link {
+  cursor: pointer;
+}
+
+.suspects-table-row-link:focus {
+  outline: 2px solid var(--navy-800, #093c6f);
+  outline-offset: -2px;
+}
+
+.risk {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.risk-low {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.risk-medium {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.risk-high {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.view-link {
+  color: var(--navy-800, #093c6f);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.view-link:hover,
+.edit-link:hover {
+  text-decoration: underline;
+}
+
+.edit-link {
+  margin-left: 0.75rem;
+  color: var(--navy-800, #093c6f);
+  font-weight: 600;
+  text-decoration: none;
+}

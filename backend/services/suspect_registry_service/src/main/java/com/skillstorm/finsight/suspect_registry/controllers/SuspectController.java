@@ -17,8 +17,9 @@ import com.skillstorm.finsight.suspect_registry.dtos.request.CreateSuspectReques
 import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectOrganizationRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchSuspectRequest;
-import com.skillstorm.finsight.suspect_registry.dtos.response.AddressResponse;
+import com.skillstorm.finsight.suspect_registry.dtos.response.LinkedAddressResponse;
 import com.skillstorm.finsight.suspect_registry.dtos.response.AliasResponse;
+import com.skillstorm.finsight.suspect_registry.dtos.response.LinkedOrganizationResponse;
 import com.skillstorm.finsight.suspect_registry.dtos.response.SuspectResponse;
 import com.skillstorm.finsight.suspect_registry.services.AddressService;
 import com.skillstorm.finsight.suspect_registry.services.AliasService;
@@ -58,6 +59,25 @@ public class SuspectController {
     return ResponseEntity.ok(suspects);
   }
 
+  /** GET linked organizations (path distinct from POST to avoid 405). */
+  @GetMapping("/{id}/linked-organizations")
+  public ResponseEntity<List<LinkedOrganizationResponse>> getOrganizationsBySuspect(@PathVariable Long id) {
+    List<LinkedOrganizationResponse> organizations = service.findOrganizationsBySuspectId(id);
+    return ResponseEntity.ok(organizations);
+  }
+
+  @GetMapping("/{id}/aliases")
+  public ResponseEntity<List<AliasResponse>> getAliasesBySuspect(@PathVariable Long id) {
+    List<AliasResponse> aliases = aliasService.findBySuspectId(id);
+    return ResponseEntity.ok(aliases);
+  }
+
+  @GetMapping("/{id}/addresses")
+  public ResponseEntity<List<LinkedAddressResponse>> getAddressesBySuspect(@PathVariable Long id) {
+    List<LinkedAddressResponse> addresses = addressService.findBySuspectId(id);
+    return ResponseEntity.ok(addresses);
+  }
+
   @GetMapping("/{id}")
   public ResponseEntity<SuspectResponse> getById(@PathVariable Long id) {
     SuspectResponse response = service.findById(id);
@@ -88,17 +108,5 @@ public class SuspectController {
       @Valid @RequestBody LinkSuspectAddressRequest request) {
     SuspectResponse response = service.linkAddressToSuspect(id, request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
-  }
-
-  @GetMapping("/{id}/aliases")
-  public ResponseEntity<List<AliasResponse>> getAliasesBySuspect(@PathVariable Long id) {
-    List<AliasResponse> aliases = aliasService.findBySuspectId(id);
-    return ResponseEntity.ok(aliases);
-  }
-
-  @GetMapping("/{id}/addresses")
-  public ResponseEntity<List<AddressResponse>> getAddressesBySuspect(@PathVariable Long id) {
-    List<AddressResponse> addresses = addressService.findBySuspectId(id);
-    return ResponseEntity.ok(addresses);
   }
 }

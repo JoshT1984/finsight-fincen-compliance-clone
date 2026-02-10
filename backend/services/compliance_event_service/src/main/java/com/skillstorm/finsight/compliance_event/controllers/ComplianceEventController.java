@@ -5,6 +5,7 @@ import java.time.Instant;
 import com.skillstorm.finsight.compliance_event.dtos.ComplianceEventResponse;
 import com.skillstorm.finsight.compliance_event.dtos.CreateCtrRequest;
 import com.skillstorm.finsight.compliance_event.dtos.CreateSarRequest;
+import com.skillstorm.finsight.compliance_event.dtos.LinkEventToSuspectRequest;
 import com.skillstorm.finsight.compliance_event.models.EventStatus;
 import com.skillstorm.finsight.compliance_event.models.EventType;
 import com.skillstorm.finsight.compliance_event.services.ComplianceEventService;
@@ -15,9 +16,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -61,8 +64,28 @@ public class ComplianceEventController {
             @RequestParam(required = false) String sourceSystem,
             @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) Long suspectId,
+            @RequestParam(required = false) Long notLinkedToSuspectId,
             Pageable pageable) {
 
+        if (suspectId != null) {
+            return service.findBySuspectId(suspectId, pageable);
+        }
+        if (notLinkedToSuspectId != null && eventType != null) {
+            return service.findLinkableByEventType(eventType, notLinkedToSuspectId, pageable);
+        }
         return service.search(eventType, status, sourceSystem, from, to, pageable);
+    }
+
+    @PutMapping("/{eventId}/suspect")
+    public ComplianceEventResponse linkEventToSuspect(
+            @PathVariable Long eventId,
+            @Valid @RequestBody LinkEventToSuspectRequest request) {
+        return service.linkEventToSuspect(eventId, request.suspectId());
+    }
+
+    @DeleteMapping("/{eventId}/suspect")
+    public ComplianceEventResponse unlinkEventFromSuspect(@PathVariable Long eventId) {
+        return service.unlinkEventFromSuspect(eventId);
     }
 }

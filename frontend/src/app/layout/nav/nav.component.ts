@@ -20,6 +20,7 @@ export class NavComponent {
     { path: '/cases', label: 'Cases' },
     { path: '/sars', label: 'SARs' },
     { path: '/ctrs', label: 'CTRs' },
+    { path: '/registry', label: 'Registry' },
     { path: '/documents', label: 'Documents' },
     { path: '/upload', label: 'Upload' },
   ];
