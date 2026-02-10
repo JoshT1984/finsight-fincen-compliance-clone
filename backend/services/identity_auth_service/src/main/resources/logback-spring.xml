@@ -2,8 +2,8 @@
 <configuration>
 
     <appender name="AUDIT_FILE" class="ch.qos.logback.core.FileAppender">
-        <!-- <file>/var/log/audit/audit.log</file> -->
-        <file>logs/audit/audit.log</file>
+        <file>/var/log/audit/audit.log</file> <!-- For production -->
+        <!-- <file>logs/audit/audit.log</file>  --> <!-- For local development -->
         <encoder>
             <pattern>%msg%n</pattern>
         </encoder>

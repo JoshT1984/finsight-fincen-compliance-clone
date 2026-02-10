@@ -36,7 +36,7 @@ public class OauthIdentityController {
                                 .path("/")
                                 .maxAge(60 * 60 * 4) // 4 hours
                                 .sameSite("None")
-                                .secure(false)
+                                .secure(true)
                                 .build();
                 return ResponseEntity.ok()
                                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())

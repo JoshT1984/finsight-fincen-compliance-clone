@@ -34,7 +34,6 @@ public class AuditLogger {
             AuditOutcome outcome,
             Object result,
             Throwable ex) {
-        System.out.println("AUDIT LOGGER ENTERED");
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String userId = (auth != null) ? auth.getName() : "anonymous";
