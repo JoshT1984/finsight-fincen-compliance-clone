@@ -1,7 +1,39 @@
 /* Match header/navbar container alignment */
+/* Footer layout: left links, right icons */
 .footer .container {
-  margin-left: 51px;
-  margin-right: 51px;
-  max-width: 1440px;
-  padding: 1.5rem 80px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 75%;
+  padding: 1.5em 4em;
+  gap: 2em;
+}
+.footer__left {
+  display: flex;
+  gap: 1.5em;
+}
+.footer-link {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.3em;
+  letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+.footer-link:hover {
+  color: #9bdaf1;
+  text-decoration: underline;
+}
+.footer__right {
+  display: flex;
+  gap: 1.2em;
+}
+.footer-icon {
+  color: #fff;
+  transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+}
+.footer-icon:hover {
+  color: #9bdaf1;
 }

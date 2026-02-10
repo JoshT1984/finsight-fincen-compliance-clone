@@ -148,10 +148,6 @@ public class ComplianceEvent {
             return;
         }
 
-        if (eventType == EventType.CTR) {
-            throw new IllegalStateException(
-                    "CTR events cannot have severityScore");
-        }
 
         if (severityScore < 0 || severityScore > 100) {
             throw new IllegalStateException(

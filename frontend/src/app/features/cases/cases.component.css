@@ -1,10 +1,4 @@
-/* Match header/navbar container alignment */
-.cases-container {
-  margin-left: 51px !important;
-  margin-right: 51px !important;
-  max-width: 1440px !important;
-}
-
+/* No padding/margin overrides — inherits from .container only */
 .cases-page {
   display: flex;
 }
@@ -15,7 +9,8 @@
 
 .cases-content {
   flex: 1;
-  padding: 0rem 2rem 0rem 2rem;
+  min-width: 0;
+  padding-left: 1.5rem;
 }
 
 .category-label {

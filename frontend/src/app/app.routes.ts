@@ -25,6 +25,8 @@ import { AddressFormComponent } from './features/registry/addresses/address-form
 import { SupportTicketComponent } from './features/support-ticket/support-ticket.component';
 import { authGuard } from './shared/guards/auth.guard';
 import { publicLandingGuard } from './shared/guards/public-landing.guard';
+import { LinkAccountComponent } from './features/link-account/link-account.component';
+import { OauthCallbackComponent } from './features/oauth-callback/oauth-callback.component';
 
 export const routes: Routes = [
   {
@@ -143,6 +145,8 @@ export const routes: Routes = [
         path: 'support',
         component: SupportTicketComponent,
       },
+      { path: 'linkAccount', component: LinkAccountComponent },
+      { path: 'oauth-callback', component: OauthCallbackComponent },
       {
         path: 'reset-password',
         loadComponent: () =>

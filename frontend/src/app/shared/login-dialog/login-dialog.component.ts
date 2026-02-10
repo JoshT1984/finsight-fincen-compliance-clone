@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginDialogService } from '../services/loginDialog.service';
+import { IdentityService } from '../services/identity.service';
 
 @Component({
   selector: 'app-login-dialog',
@@ -12,11 +13,14 @@ import { LoginDialogService } from '../services/loginDialog.service';
   styleUrls: ['./login-dialog.component.css'],
 })
 export class LoginDialogComponent {
+  loginError: string | null = null;
   email = '';
   password = '';
 
   constructor(
     private loginDialog: LoginDialogService,
+    private identityService: IdentityService,
+    private cdr: ChangeDetectorRef,
     private router: Router,
   ) {}
 
@@ -25,14 +29,30 @@ export class LoginDialogComponent {
   }
 
   login() {
+    this.loginError = null;
     this.loginDialog.login(this.email, this.password).subscribe({
-      next: () => {
+      next: (token: string) => {
         this.router.navigate(['/dashboard']);
       },
-      error: (error: unknown) => {
-        console.error('Login failed', error);
+      error: (error: any) => {
+        if (error && error.error && error.error.message) {
+          this.loginError = error.error.message;
+        } else {
+          this.loginError = 'Login failed. Please check your credentials.';
+        }
+        this.cdr.detectChanges();
       },
     });
+  }
+
+  loginWithGoogle() {
+    localStorage.setItem('postLoginRedirect', '/dashboard');
+    this.identityService.loginWithProvider('google');
+  }
+
+  loginWithGithub() {
+    localStorage.setItem('postLoginRedirect', '/dashboard');
+    this.identityService.loginWithProvider('github');
   }
 
   forgotPasswordEmail = '';

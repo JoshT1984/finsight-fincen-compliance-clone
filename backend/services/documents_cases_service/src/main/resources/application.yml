@@ -47,7 +47,9 @@ management:
 
 jwt:
   public-key: "${JWT_PUBLIC_KEY:}"
+  private-key: "${JWT_PRIVATE_KEY:}"
 
 aws:
+  region: ${AWS_REGION:us-east-1}
   s3:
-    bucket: ${AWS_S3_BUCKET:local-dev-bucket}
+    bucket: ${AWS_S3_BUCKET:finsight-documents-2026}

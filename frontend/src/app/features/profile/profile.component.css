@@ -1,3 +1,12 @@
+button:disabled,
+.btn.primary:disabled,
+.btn.secondary:disabled {
+  background: #e5e7eb !important;
+  color: #a1a1aa !important;
+  border: 1px solid #d1d5db !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
 .profile-container {
   max-width: 70%;
   margin: 2rem auto;
@@ -20,7 +29,7 @@ form {
   flex-direction: column;
   justify-content: space-between;
   gap: 1rem;
-  width: 100%;
+  width: 60%;
 }
 
 .form-label {
@@ -28,6 +37,11 @@ form {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+}
+
+input {
+  width: 50%;
+  height: 2rem;
 }
 
 button {
@@ -40,23 +54,52 @@ button {
 }
 
 .profile-oauth {
-  width: 100%;
+  max-width: 420px;
+}
+
+.profile-oauth h3 {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.provider-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
-.profile-oauth button {
-  width: 50%;
+.provider-row img {
+  width: 24px;
+  height: 24px;
 }
 
-.btn.oauth.google {
-  background: #4285f4;
-  color: #fff;
+.info {
+  flex: 1;
 }
 
-.btn.oauth.github {
-  background: #333;
-  color: #fff;
+.name {
+  font-weight: 500;
+}
+
+.status {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.status.connected {
+  color: #16a34a;
+}
+
+.status.not-connected {
+  color: #6b7280;
+}
+
+.action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
 }

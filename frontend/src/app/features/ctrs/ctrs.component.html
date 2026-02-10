@@ -1,4 +1,125 @@
 <div class="container">
-  <h1>CTRs</h1>
-  <p>This is the CTRs (Currency Transaction Reports) page placeholder.</p>
+  <section class="hero" aria-label="CTRs intro">
+    <h2>CTRs</h2>
+    <p>
+      Create and review Currency Transaction Reports. Start by adding a transaction or reviewing
+      existing work.
+    </p>
+
+    <div class="ctaRow">
+      <button
+        class="btn primary"
+        type="button"
+        (click)="openTransactionForm()"
+        [disabled]="submitting"
+      >
+        {{ justSubmittedLabel ? 'Submitted' : 'Add Cash Transaction' }}
+      </button>
+
+      <button class="btn ghost" type="button" (click)="goToUploadCtr()">Upload CTR PDF</button>
+      <button class="btn ghost" type="button" (click)="refreshTransactions()">Refresh</button>
+    </div>
+
+    <p *ngIf="submitSuccess" class="notice notice--success">Transaction added successfully.</p>
+    <p *ngIf="submitError" class="notice notice--error">{{ submitError }}</p>
+  </section>
+
+  <section class="content" aria-label="CTRs content">
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Ledger</div>
+          <h3>Cash Transactions</h3>
+          <p class="muted">
+            All recorded cash activity. CTRs are generated from these transactions when daily totals
+            exceed the reporting threshold.
+          </p>
+        </div>
+
+        <div class="searchBox">
+          <input
+            class="input"
+            type="text"
+            placeholder="Search transactions (id, subject, name, location, amount)"
+            [(ngModel)]="search"
+          />
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Txn ID</th>
+              <th>Subject</th>
+              <th>Name</th>
+              <th>Time (UTC)</th>
+              <th>Cash In</th>
+              <th>Cash Out</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let t of filteredTransactions()">
+              <td class="mono">{{ t.txnId }}</td>
+              <td class="mono">{{ t.subjectKey || '—' }}</td>
+              <td>{{ t.subjectName || '—' }}</td>
+              <td>{{ t.txnTime | date: 'medium' : 'UTC' }}</td>
+              <td>{{ t.cashIn | currency }}</td>
+              <td>{{ t.cashOut | currency }}</td>
+              <td>{{ t.location || '—' }}</td>
+            </tr>
+
+            <tr *ngIf="!transactions || transactions.length === 0">
+              <td colspan="7" class="empty">No transactions found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="loadingTxns" class="notice">Loading transactions…</div>
+      <div *ngIf="txnsError" class="notice notice--error">{{ txnsError }}</div>
+
+      <div class="card__footer">
+        <button class="btn ghost" type="button" (click)="refreshTransactions()">Refresh</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Generated</div>
+          <h3>Currency Transaction Reports</h3>
+          <p class="muted">
+            CTRs are created automatically when daily cash totals exceed the reporting threshold.
+            CTRs are treated as immutable after creation.
+          </p>
+        </div>
+      </div>
+      <app-ctr-list></app-ctr-list>
+    </div>
+
+    <!-- Modal overlay for Add Transaction -->
+    <div
+      *ngIf="showTransactionForm"
+      class="modalBackdrop"
+      role="presentation"
+      (click)="closeTransactionForm()"
+    ></div>
+
+    <div
+      *ngIf="showTransactionForm"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add cash transaction"
+      (click)="$event.stopPropagation()"
+    >
+      <app-transaction-form
+        (cancel)="closeTransactionForm()"
+        (submitted)="handleTransactionSubmit($event)"
+      ></app-transaction-form>
+    </div>
+  </section>
 </div>

@@ -2,14 +2,6 @@ package com.skillstorm.finsight.compliance_event.controllers;
 
 import java.time.Instant;
 
-import com.skillstorm.finsight.compliance_event.dtos.ComplianceEventResponse;
-import com.skillstorm.finsight.compliance_event.dtos.CreateCtrRequest;
-import com.skillstorm.finsight.compliance_event.dtos.CreateSarRequest;
-import com.skillstorm.finsight.compliance_event.dtos.LinkEventToSuspectRequest;
-import com.skillstorm.finsight.compliance_event.models.EventStatus;
-import com.skillstorm.finsight.compliance_event.models.EventType;
-import com.skillstorm.finsight.compliance_event.services.ComplianceEventService;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -26,6 +18,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.skillstorm.finsight.compliance_event.dtos.ComplianceEventResponse;
+import com.skillstorm.finsight.compliance_event.dtos.CreateCtrRequest;
+import com.skillstorm.finsight.compliance_event.dtos.CreateSarRequest;
+import com.skillstorm.finsight.compliance_event.dtos.CtrDetailResponse;
+import com.skillstorm.finsight.compliance_event.dtos.LinkEventToSuspectRequest;
+import com.skillstorm.finsight.compliance_event.models.EventStatus;
+import com.skillstorm.finsight.compliance_event.models.EventType;
+import com.skillstorm.finsight.compliance_event.services.ComplianceEventService;
 
 import jakarta.validation.Valid;
 
@@ -55,6 +56,11 @@ public class ComplianceEventController {
     @GetMapping("/{eventId}")
     public ComplianceEventResponse getById(@PathVariable Long eventId) {
         return service.getById(eventId);
+    }
+
+    @GetMapping("/{eventId}/ctr-detail")
+    public CtrDetailResponse getCtrDetail(@PathVariable Long eventId) {
+        return service.getCtrDetail(eventId);
     }
 
     @GetMapping

@@ -1,13 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgFor } from '@angular/common';
+import { SearchButtonComponent } from './search-button.component';
 import { IdentityService } from '../../shared/services/identity.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-nav',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, NgFor],
+  imports: [RouterLink, RouterLinkActive, NgFor, SearchButtonComponent],
   templateUrl: './nav.component.html',
   styleUrls: ['./nav.component.css'],
 })

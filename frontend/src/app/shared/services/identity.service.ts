@@ -3,6 +3,7 @@ import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject, map, Observable, tap } from 'rxjs';
 import { environment } from '../../../environment/environment';
 import { ProfileModel } from '../../models/profile.model';
+import { Router } from '@angular/router';
 
 @Injectable({ providedIn: 'root' })
 export class IdentityService {
@@ -14,7 +15,10 @@ export class IdentityService {
 
   private readonly apiBaseUrl: string;
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+  ) {
     const base = environment.identityApiBaseUrl || '';
     this.apiBaseUrl = base ? `${base.replace(/\/$/, '')}` : '';
   }
@@ -27,6 +31,12 @@ export class IdentityService {
   fetchAndSetProfile(userId: string) {
     return this.http
       .get<ProfileModel>(`${this.apiBaseUrl}/api/users/${userId}`, { withCredentials: true })
+      .pipe(tap((profile) => this.setProfile(profile)));
+  }
+
+  setCurrentUserProfile() {
+    return this.http
+      .get<ProfileModel>(`${this.apiBaseUrl}/api/users/me`, { withCredentials: true })
       .pipe(tap((profile) => this.setProfile(profile)));
   }
 
@@ -63,6 +73,7 @@ export class IdentityService {
           () => {
             this.clearProfile();
             this._isLoggedIn.next(false);
+            this.router.navigate(['/']);
           },
         ),
       )
@@ -80,7 +91,6 @@ export class IdentityService {
             this.setProfile(profile);
           },
           error: () => {
-            console.error('Failed to save profile updates');
             /* Do not update local profile if backend fails */
           },
         }),
@@ -122,6 +132,7 @@ export class IdentityService {
   private handleInactivityLogout() {
     this.clearProfile();
     localStorage.removeItem('authToken');
+    this.router.navigate(['/']);
     this._isLoggedIn.next(false);
     console.log('Logged out due to inactivity');
   }
@@ -131,5 +142,36 @@ export class IdentityService {
    */
   resetPassword(token: string, newPassword: string) {
     return this.http.post(`${this.apiBaseUrl}/auth/reset-password`, { token, newPassword });
+  }
+
+  /**
+   * Initiates OAuth linking for a provider (e.g., Google, GitHub).
+   * Redirects the user to the provider's login page.
+   * @param provider 'google' | 'github'
+   */
+  linkProvider(provider: 'google' | 'github') {
+    window.location.href = `${this.apiBaseUrl}/oauth2/authorization/${provider}?mode=link`;
+  }
+
+  /**
+   * Checks if the current user has a linked provider (e.g., Google, GitHub) by querying the backend.
+   * Returns an Observable<boolean>.
+   */
+  hasLinkedProvider(provider: 'google' | 'github'): Observable<boolean> {
+    return this.http.get<boolean>(`${this.apiBaseUrl}/auth/oauth/linked/${provider}`, {
+      withCredentials: true,
+    });
+  }
+
+  /**
+   * Initiates OAuth login for a provider (Google, GitHub).
+   * Redirects the user to the backend endpoint to start the OAuth flow.
+   */
+  loginWithProvider(provider: 'google' | 'github'): void {
+    window.location.href = `${this.apiBaseUrl}/oauth2/authorization/${provider}?mode=login`;
+  }
+
+  linkAccount(): Observable<any> {
+    return this.http.post(this.apiBaseUrl + '/auth/oauth/link', {}, { withCredentials: true });
   }
 }

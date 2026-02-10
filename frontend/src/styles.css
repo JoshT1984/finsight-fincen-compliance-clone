@@ -1,26 +1,54 @@
 /* styles.css */
+body {
+  margin: 0;
+  color: #1b1b1b;
+  background-color: #fff;
+  overflow-x: hidden;
+  min-height: 100vh;
+  font-family: 'Public Sans', Helvetica, Arial, sans-serif;
+  font-size: 16px;
+}
+
+/* Show embedded background only on landing page */
+.landing-page-bg #fincen-bg {
+  position: fixed;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 75vh;
+  background: url('/images/fincen-hero-final.png') no-repeat center top;
+  background-size: 100vw 75vh;
+  pointer-events: none;
+  display: block;
+}
+
+#fincen-bg {
+  display: none;
+}
+
+app-root {
+  position: relative;
+  z-index: 1;
+}
+
 :root {
-  /* Your palette */
-  --navy-900: #00264c;
-  --navy-800: #093c6f;
-  --sky-200: #b2e3fa;
-  --sky-050: #eff6fb;
-  --gray-050: #f0f0f0;
-  --green-600: rgb(28, 122, 75);
-  --green-100: rgba(28, 122, 75, 0.14);
-
-  /* UI tokens */
-  --text: #0b1220;
-  --muted: #4b5563;
-  --border: rgba(0, 38, 76, 0.18);
-  --shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
-  --radius: 14px;
-
-  --max: 1160px;
-  --pad: 18px;
-
   /* World background (subtle) */
   --world-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='50%25' r='60%25'%3E%3Cstop offset='0%25' stop-color='%239aa3ad' stop-opacity='0.22'/%3E%3Cstop offset='70%25' stop-color='%239aa3ad' stop-opacity='0.10'/%3E%3Cstop offset='100%25' stop-color='%239aa3ad' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='none'/%3E%3C!-- simplified world blobs (decorative) --%3E%3Cpath d='M210 290c40-70 150-120 250-90 90 25 110 100 60 150-55 55-190 95-290 60-70-25-60-75-20-120z' fill='url(%23g)'/%3E%3Cpath d='M640 190c85-50 205-40 280 30 70 65 55 140-20 185-80 50-210 55-300 10-80-40-65-165 40-225z' fill='url(%23g)'/%3E%3Cpath d='M720 380c60-30 140-20 190 20 45 35 35 80-15 110-55 35-150 40-210 10-55-28-45-105 35-140z' fill='url(%23g)'/%3E%3Cpath d='M320 410c50-35 120-35 165-5 35 22 30 60-10 85-45 28-125 30-175 5-45-22-40-60 20-85z' fill='url(%23g)'/%3E%3C/svg%3E");
+
+  /* Core palette (FINCEN inspired) */
+  --navy-900: #00264c;
+  --navy-800: #003a75;
+
+  --sky-050: #eff6fb;
+  --gray-050: #f6fafd;
+
+  --text: #1b1b1b;
+  --muted: #4b5563;
+  --border: #b3d0e6;
+
+  --radius: 16px;
+  --shadow: 0 2px 10px rgba(0, 38, 76, 0.08);
 }
 
 * {
@@ -44,7 +72,7 @@ h5,
 h6 {
   font-family: 'Merriweather Web', georgia, serif;
   font-weight: 400;
-  color: rgb(27,27,27)
+  color: rgb(27, 27, 27);
 }
 
 p {
@@ -52,31 +80,15 @@ p {
   line-height: 24px;
 }
 
-body {
-  margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Helvetica,
-    Arial,
-    'Apple Color Emoji',
-    'Segoe UI Emoji';
-  color: var(--text);
-
-  /* Plain white background */
-  background: #fff;
-}
-
 a {
   color: inherit;
 }
 .container {
-  margin-left: 51px;
-  margin-right: 51px;
-  max-width: 1440px;
-  padding: 2rem 80px;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 72vw;
+  width: 100%;
+  padding: 1.5rem 0;
 }
 
 /* Make footer stick to bottom */
@@ -89,25 +101,40 @@ a {
   flex: 1;
 }
 
-/* Official website bar */
+/* Official website bar - cleaned for consistency */
 .usagovbar {
+  display: flex;
+  width: 100%;
   background: #fff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 13px;
-  color: #1f2937;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78em;
+  color: #000;
 }
 .usagovbar__inner {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  padding: 8px 0;
-  white-space: nowrap;
-  overflow: auto;
-  scrollbar-width: none;
+  background: var(--green-600);
+  padding: 0.4em 2em;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.usagovbar .container {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 72vw;
+  width: 100%;
+  padding: 0.4em 2em;
 }
 .usagovbar__inner::-webkit-scrollbar {
   display: none;
+}
+.siteHeader__banner .container {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 72vw;
+  width: 100%;
+  padding: 0px 2em;
 }
 .flag {
   width: 16px;
@@ -137,7 +164,7 @@ a {
   border-top-left-radius: 2px;
 }
 .usagovbar a {
-  color: #1d4ed8;
+  color: #1d4ed8 !important;
   text-decoration: none;
   font-weight: 700;
 }
@@ -148,10 +175,15 @@ a {
 /* Header banner */
 .siteHeader {
   background: var(--navy-900);
+  background-color: var(--navy-900);
+  box-shadow: 0 2px 12px rgba(0, 38, 76, 0.1);
+  opacity: 1;
 }
 .siteHeader__banner {
   padding: 22px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 38, 76, 0.98);
+  backdrop-filter: blur(2px);
 }
 .brand {
   display: flex;
@@ -204,6 +236,9 @@ a {
 .siteNav {
   background: var(--navy-800);
   color: #fff;
+  background-color: var(--navy-800);
+  box-shadow: 0 2px 12px rgba(0, 38, 76, 0.1);
+  opacity: 1;
 }
 .siteNav__inner {
   display: flex;
@@ -211,6 +246,8 @@ a {
   justify-content: space-between;
   gap: 14px;
   padding: 10px 0;
+  background: rgba(9, 60, 111, 0.98);
+  backdrop-filter: blur(2px);
 }
 .menu {
   display: flex;
@@ -281,13 +318,18 @@ a {
 }
 
 /* Main content */
-.hero {
-  background: linear-gradient(135deg, var(--sky-200), var(--sky-050));
+/* Compliance workflow and CTRS containers */
+.hero,
+.compliance-workflow-container,
+.ctrs-container {
+  background: linear-gradient(135deg, #96cff1 0%, #edf6fb 100%);
   border: 1px solid rgba(0, 38, 76, 0.15);
   border-radius: var(--radius);
   padding: 22px;
   box-shadow: var(--shadow);
-  backdrop-filter: saturate(110%);
+  backdrop-filter: blur(2px) saturate(110%);
+  opacity: 1;
+  min-height: 110%;
 }
 .hero h2 {
   margin: 0 0 8px;
@@ -306,6 +348,7 @@ a {
   flex-wrap: wrap;
   margin-top: 8px;
 }
+/* Buttons on white containers */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -314,28 +357,45 @@ a {
   border-radius: 12px;
   font-weight: 900;
   text-decoration: none;
-  border: 1px solid transparent;
+  border: 1.5px solid #b3d0e6;
   font-size: 14px;
   cursor: pointer;
+  background: #f6fafd;
+  color: var(--navy-900);
+  box-shadow: 0 1px 4px rgba(0, 38, 76, 0.06);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+/* Use a modifier class for buttons on white containers */
+.btn.on-white {
+  background: #eff6fb;
+  color: var(--navy-900);
+  border: 1.5px solid #b3d0e6;
 }
 .btn.primary {
-  background: var(--navy-900);
+  background: #00264c;
   color: #fff;
+  border: 1.5px solid #00264c;
 }
 .btn.secondary {
-  background: var(--navy-800);
+  background: #00264c;
   color: #fff;
+  border: 1.5px solid #00264c;
 }
 .btn.primary:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
+  box-shadow: 0 2px 8px rgba(0, 38, 76, 0.13);
 }
 .btn.ghost {
-  background: rgba(255, 255, 255, 0.78);
-  border-color: rgba(0, 38, 76, 0.18);
+  background: #f6fafd;
+  border-color: #b3d0e6;
   color: var(--navy-900);
 }
 .btn.ghost:hover {
   background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 38, 76, 0.1);
 }
 
 .grid {
@@ -346,10 +406,11 @@ a {
 }
 .card {
   background: #fff;
-  border: 1px solid var(--border);
+  border: 1.5px solid #b3d0e6;
   border-radius: var(--radius);
   padding: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 10px rgba(0, 38, 76, 0.08);
+  min-height: 110%;
 }
 .tag {
   display: inline-flex;
@@ -360,9 +421,9 @@ a {
   font-weight: 900;
   letter-spacing: 0.3px;
   text-transform: uppercase;
-  background: var(--sky-050);
+  background: #eaf4fb;
   color: var(--navy-900);
-  border: 1px solid rgba(0, 38, 76, 0.12);
+  border: 1px solid #b3d0e6;
   margin-bottom: 10px;
 }
 .card h3 {
@@ -378,13 +439,14 @@ a {
 
 /* Footer (now pinned to bottom) */
 .footer {
-  background: var(--navy-900);
+  background: #00264c;
   color: #fff;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 .footer__inner {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
   padding: 14px 0;
   font-size: 12px;
@@ -392,6 +454,11 @@ a {
 }
 .footer__right {
   white-space: nowrap;
+}
+.error {
+  color: #dc2626;
+  margin-top: 8px;
+  text-align: center;
 }
 
 /* Responsive */

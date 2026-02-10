@@ -1,29 +1,49 @@
 <div class="login-dialog">
   <div class="login-dialog__overlay" (click)="close()"></div>
   <div class="login-dialog__content">
-    <h2>Login</h2>
+    <h2>{{ forgotPasswordMode ? 'Reset Password' : 'Login' }}</h2>
     <form *ngIf="!forgotPasswordMode" (ngSubmit)="login()">
-      <label>Email</label>
-      <input type="email" [(ngModel)]="email" name="email" required />
-      <label>Password</label>
-      <input type="password" [(ngModel)]="password" name="password" required />
+      <div class="form__div">
+        <label>Email:</label>
+        <input type="email" [(ngModel)]="email" name="email" required />
+      </div>
+      <div class="form__div">
+        <label>Password:</label>
+        <input type="password" [(ngModel)]="password" name="password" required />
+      </div>
+      <div *ngIf="loginError" class="error">{{ loginError }}</div>
       <button type="submit" class="btn primary">Login</button>
-      <button type="button" class="btn" (click)="openForgotPassword()">Forgot password?</button>
+      <button type="button" class="btn ghost" (click)="openForgotPassword()">
+        Forgot password?
+      </button>
     </form>
     <ng-container *ngIf="forgotPasswordMode">
       <form *ngIf="!forgotPasswordMessage" (ngSubmit)="requestPasswordReset()">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="forgotPasswordEmail" name="forgotPasswordEmail" required />
+        <div class="form__div">
+          <label>Email:</label>
+          <input
+            type="email"
+            [(ngModel)]="forgotPasswordEmail"
+            name="forgotPasswordEmail"
+            required
+          />
+        </div>
         <button type="submit" class="btn primary">Send Reset Email</button>
         <button type="button" class="btn" (click)="closeForgotPassword()">Cancel</button>
       </form>
       <div *ngIf="forgotPasswordMessage" class="forgot-message">{{ forgotPasswordMessage }}</div>
     </ng-container>
-    <!-- <div class="login-dialog__oauth">
-      <span>or login with:</span>
-      <button class="btn oauth google" (click)="loginWithGoogle()">Google</button>
-      <button class="btn oauth github" (click)="loginWithGithub()">GitHub</button>
-    </div> -->
+    <div class="login-dialog__oauth" *ngIf="!forgotPasswordMode">
+      <button class="btn oauth google" (click)="loginWithGoogle()">
+        <img src="images/google-icon.svg" alt="" />
+        Continue with Google
+      </button>
+
+      <button class="btn oauth github" (click)="loginWithGithub()">
+        <img src="images/GitHub_Invertocat_White.svg" alt="" />
+        Continue with GitHub
+      </button>
+    </div>
     <button class="login-dialog__close" (click)="close()">×</button>
   </div>
 </div>

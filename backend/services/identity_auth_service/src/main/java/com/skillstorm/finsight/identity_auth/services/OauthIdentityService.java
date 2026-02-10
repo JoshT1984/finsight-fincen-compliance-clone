@@ -1,17 +1,20 @@
 
 package com.skillstorm.finsight.identity_auth.services;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
 
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.models.OauthIdentity;
@@ -21,6 +24,9 @@ import com.skillstorm.finsight.identity_auth.responseDtos.LoginResponse;
 
 @Service
 public class OauthIdentityService {
+
+    @Value("${frontend.frontend_url}")
+    private String frontendUrl;
 
     private final OauthIdentityRepository oauthIdentityRepository;
     private final JwtEncoder jwtEncoder;
@@ -55,6 +61,11 @@ public class OauthIdentityService {
         }
     }
 
+    public AppUser getAppUserById(String userId) {
+        return appUserService.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+    }
+
     public LoginResponse loginWithRefresh(String email, String password) {
         AppUser user = appUserService.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -82,6 +93,20 @@ public class OauthIdentityService {
                 user.getUserId(), refreshToken);
     }
 
+    public String generateToken(String userId, String role) {
+        Instant now = Instant.now();
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("identity-service")
+                .issuedAt(now)
+                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
+                .subject(userId)
+                .claim("role", role)
+                .build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
     public void revokeRefreshToken(String refreshToken) {
         refreshTokenStore.remove(refreshToken);
     }
@@ -89,7 +114,8 @@ public class OauthIdentityService {
     public void linkOAuthIdentity(
             String appUserId,
             String provider,
-            String providerUserId) {
+            String providerUserId,
+            String providerEmail) {
 
         AppUser user = appUserService.findById(appUserId)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
@@ -106,23 +132,10 @@ public class OauthIdentityService {
         identity.setProvider(provider);
         identity.setProviderUserId(providerUserId);
         identity.setUser(user);
-        identity.setEmailAtProvider(user.getEmail());
+        identity.setEmailAtProvider(providerEmail);
+        identity.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
         oauthIdentityRepository.save(identity);
-    }
-
-    public String generateToken(String userId, String role) {
-        Instant now = Instant.now();
-
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("identity-service")
-                .issuedAt(now)
-                .expiresAt(now.plus(15, ChronoUnit.MINUTES))
-                .subject(userId)
-                .claim("role", role)
-                .build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
     // Real password reset email logic
@@ -140,7 +153,7 @@ public class OauthIdentityService {
             resetTokenStore.put(resetToken, new ResetTokenInfo(user.getUserId(), expiresAt));
 
             // Send email with real reset link (replace with your frontend URL)
-            String resetUrl = "http://localhost:4200/reset-password?token=" + resetToken;
+            String resetUrl = frontendUrl + "/reset-password?token=" + resetToken;
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(user.getEmail());
             message.setFrom("matthew.wright9630@gmail.com");
@@ -149,7 +162,6 @@ public class OauthIdentityService {
                     + "\n\nThis link will expire in 15 minutes.");
             mailSender.send(message);
 
-            System.out.println("Password reset email sent to: " + user.getEmail() + " with token: " + resetToken);
             return true;
         } catch (Exception e) {
             // Log the exception to console for debugging
@@ -196,5 +208,22 @@ public class OauthIdentityService {
         appUserService.updateUserPassword(user.getUserId(), passwordDto);
         consumeResetToken(token);
         return true;
+    }
+
+    /**
+     * Checks if the given user is connected with the specified provider.
+     */
+    public boolean isProviderLinked(String userId, String provider) {
+        return oauthIdentityRepository.existsByUserUserIdAndProvider(userId, provider);
+    }
+
+    public String findUserId(String provider, String providerUserId) {
+        OauthIdentity identity = oauthIdentityRepository.findByProviderAndProviderUserId(provider, providerUserId);
+
+        if (identity == null || identity.getUser() == null) {
+            return null; // not linked yet
+        }
+
+        return identity.getUser().getUserId();
     }
 }

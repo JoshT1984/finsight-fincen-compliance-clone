@@ -24,8 +24,13 @@
       <input [(ngModel)]="profile.email" name="email" />
     </label>
     <label class="form-label">Phone: <input [(ngModel)]="profile.phone" name="phone" /></label>
+    <div *ngIf="profileError" class="error">
+      {{ profileError }}
+    </div>
     <div class="btn__div">
-      <button class="btn primary" type="submit">Save</button>
+      <button class="btn primary" type="button" [disabled]="savingProfile" (click)="saveEdit()">
+        {{ savingProfile ? 'Saving...' : 'Save' }}
+      </button>
       <button class="btn primary" type="button" (click)="cancelEdit()">Cancel</button>
     </div>
   </form>
@@ -46,15 +51,57 @@
       >Confirm Password:
       <input type="password" name="confirmPassword" [(ngModel)]="confirmPassword"
     /></label>
+    <div *ngIf="passwordError" class="error">
+      {{ passwordError }}
+    </div>
     <div class="btn__div">
-      <button class="btn secondary" type="submit">Save Password</button>
+      <button
+        class="btn ghost"
+        type="button"
+        [disabled]="savingPassword"
+        (click)="saveEditPassword()"
+      >
+        {{ savingPassword ? 'Saving password...' : 'Save Password' }}
+      </button>
       <button class="btn secondary" type="button" (click)="cancelEditPassword()">Cancel</button>
     </div>
   </form>
 
   <div class="profile-oauth">
-    <span>Link to account:</span>
-    <button class="btn oauth google" (click)="linkGoogle()">Google</button>
-    <button class="btn oauth github" (click)="linkGithub()">GitHub</button>
+    <h3>Connected accounts</h3>
+
+    <!-- Google -->
+    <div class="provider-row">
+      <img src="images/google-icon.svg" alt="" />
+
+      <div class="info">
+        <div class="name">Google</div>
+        <div class="status connected" *ngIf="googleLinked">Connected</div>
+        <div class="status not-connected" *ngIf="!googleLinked">Not connected</div>
+      </div>
+
+      <button class="btn action" *ngIf="!googleLinked" (click)="linkGoogle()">Connect</button>
+
+      <!-- <button class="action danger" *ngIf="googleLinked" (click)="unlinkGoogle()"> -->
+      <!-- Disconnect
+      </button> -->
+    </div>
+
+    <!-- GitHub -->
+    <div class="provider-row">
+      <img src="images/GitHub_Invertocat_Black.svg" alt="" />
+
+      <div class="info">
+        <div class="name">GitHub</div>
+        <div class="status connected" *ngIf="githubLinked">Connected</div>
+        <div class="status not-connected" *ngIf="!githubLinked">Not connected</div>
+      </div>
+
+      <button class="btn action" *ngIf="!githubLinked" (click)="linkGithub()">Connect</button>
+
+      <!-- <button class="action danger" *ngIf="githubLinked" (click)="unlinkGithub()"> -->
+      <!-- Disconnect
+      </button> -->
+    </div>
   </div>
 </div>
