@@ -7,6 +7,8 @@ cors:
 spring:
     application:
         name: identity-auth-service
+    profiles:
+        active: "dev"
 
     datasource:
         url: "${DB_URL:jdbc:mysql://127.0.0.1:13306/identity?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}"
