@@ -25,6 +25,7 @@ import { AddressFormComponent } from './features/registry/addresses/address-form
 import { SupportTicketComponent } from './features/support-ticket/support-ticket.component';
 import { authGuard } from './shared/guards/auth.guard';
 import { publicLandingGuard } from './shared/guards/public-landing.guard';
+import { roleGuard } from './shared/guards/role.guard';
 import { LinkAccountComponent } from './features/link-account/link-account.component';
 import { OauthCallbackComponent } from './features/oauth-callback/oauth-callback.component';
 
@@ -46,13 +47,15 @@ export const routes: Routes = [
       {
         path: 'cases',
         component: CasesComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'LAW_ENFORCEMENT_USER'] },
       },
       {
         path: 'cases/:id',
         component: CaseDetailComponent,
         resolve: { case: caseResolver },
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'LAW_ENFORCEMENT_USER'] },
         children: [
           { path: '', redirectTo: 'overview', pathMatch: 'full' },
           { path: 'overview', component: CaseDetailOverviewComponent },
@@ -64,12 +67,14 @@ export const routes: Routes = [
       {
         path: 'sars',
         component: SarsComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'COMPLIANCE_USER'] },
       },
       {
         path: 'ctrs',
         component: CtrsComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'COMPLIANCE_USER'] },
       },
       {
         path: 'documents',
@@ -79,7 +84,8 @@ export const routes: Routes = [
       {
         path: 'upload',
         component: UploadComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'COMPLIANCE_USER'] },
       },
       {
         path: 'profile',
@@ -89,57 +95,68 @@ export const routes: Routes = [
       {
         path: 'registry',
         component: RegistryComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/suspects',
         component: SuspectsListComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/suspects/new',
         component: SuspectFormComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/suspects/:id/edit',
         component: SuspectFormComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/suspects/:id',
         component: SuspectDetailComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/organizations',
         component: OrganizationsComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/organizations/new',
         component: OrganizationFormComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/organizations/:id/edit',
         component: OrganizationFormComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/addresses',
         component: AddressesComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/addresses/new',
         component: AddressFormComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'registry/addresses/:id/edit',
         component: AddressFormComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'support',
