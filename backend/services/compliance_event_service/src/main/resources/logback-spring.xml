@@ -6,26 +6,19 @@
     <!-- ===================== -->
     <appender name="COMPLIANCE_FILE"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- For production -->
-        <file>/var/log/compliance/compliance_event.log</file> 
-        <!-- For local development -->
-        <!-- <file>logs/compliance/compliance_event.log</file>   -->
+
+        <file>/var/log/audit/compliance/compliance_event.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/compliance/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>7</maxHistory> <!-- 7 days -->
+            <fileNamePattern>/var/log/audit/compliance/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
         </rollingPolicy>
 
         <encoder>
-            <!-- One JSON object per line -->
             <pattern>%msg%n</pattern>
         </encoder>
     </appender>
 
-    
-    <!-- ===================== -->
-    <!-- Compliance Logger -->
-    <!-- ===================== -->
     <logger name="COMPLIANCE_LOG"
             level="INFO"
             additivity="false">
@@ -33,29 +26,23 @@
     </logger>
 
     <!-- ===================== -->
-    <!-- Security Log Appender -->
+    <!-- Security Appender -->
     <!-- ===================== -->
     <appender name="SECURITY_FILE"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- For production -->
-        <file>/var/log/compliance/security_compliance_event.log</file> 
-        <!-- For local development -->
-        <!-- <file>logs/compliance/security_compliance_event.log</file>   -->
+
+        <file>/var/log/audit/compliance/security_compliance_event.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/compliance/security.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>7</maxHistory> <!-- 7 days -->
+            <fileNamePattern>/var/log/audit/compliance/security.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
         </rollingPolicy>
 
         <encoder>
-            <!-- One JSON object per line -->
             <pattern>%msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- ===================== -->
-    <!-- Security Logger -->
-    <!-- ===================== -->
     <logger name="COMPLIANCE_SECURITY"
             level="INFO"
             additivity="false">
