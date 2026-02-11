@@ -28,8 +28,8 @@ public class AuditAction {
     @Column(name = "audit_id", nullable = false, updatable = false)
     private Long auditId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private ComplianceEvent event;
 
     @Column(name = "actor_user_id")
@@ -55,7 +55,22 @@ public class AuditAction {
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
+    /** Required by JPA */
     protected AuditAction() {
+    }
+
+    /**
+     * Factory method for creating audit actions safely.
+     */
+    public static AuditAction create(
+            ComplianceEvent event,
+            AuditActionType type,
+            Map<String, Object> metadata) {
+        AuditAction action = new AuditAction();
+        action.event = event;
+        action.action = type.name();
+        action.metadata = metadata != null ? metadata : new HashMap<>();
+        return action;
     }
 
     @PrePersist
@@ -65,16 +80,14 @@ public class AuditAction {
         }
     }
 
+    // -------- Getters / setters --------
+
     public Long getAuditId() {
         return auditId;
     }
 
     public ComplianceEvent getEvent() {
         return event;
-    }
-
-    public void setEvent(ComplianceEvent event) {
-        this.event = event;
     }
 
     public UUID getActorUserId() {
@@ -95,10 +108,6 @@ public class AuditAction {
 
     public String getAction() {
         return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
     }
 
     public Map<String, Object> getMetadata() {
@@ -128,6 +137,8 @@ public class AuditAction {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    // -------- Equality --------
 
     @Override
     public boolean equals(Object o) {
