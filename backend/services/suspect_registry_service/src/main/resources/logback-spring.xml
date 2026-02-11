@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <!-- Console (Eclipse/IDE) -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %cyan(%logger{20}) - %msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- File: persists so you can read logs even when Eclipse switches consoles -->
+  <property name="LOG_PATH" value="${LOG_PATH:-logs}"/>
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/suspect-registry-service.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/suspect-registry-service.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- Audit / Security file -->
+  <appender name="SUSPECT_REGISTRY_FILE"
+            class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/var/log/audit/suspect_registry.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>/var/log/audit/suspect_registry.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <!-- JSON only, no Logback metadata -->
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Only your audit logger writes to file -->
+  <logger name="SUSPECT_REGISTRY_EVENT" level="INFO" additivity="false">
+    <appender-ref ref="SUSPECT_REGISTRY_FILE"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+  <logger name="com.skillstorm.finsight.suspect_registry" level="DEBUG"/>
+</configuration>
