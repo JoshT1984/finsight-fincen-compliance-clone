@@ -6,7 +6,10 @@
     <!-- ===================== -->
     <appender name="COMPLIANCE_FILE"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/var/log/compliance/compliance.log</file>
+        <!-- For production -->
+        <file>/var/log/compliance/compliance_event.log</file> 
+        <!-- For local development -->
+        <!-- <file>logs/compliance/compliance_event.log</file>   -->
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>/var/log/compliance/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
@@ -34,7 +37,11 @@
     <!-- ===================== -->
     <appender name="SECURITY_FILE"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/var/log/compliance/security.log</file>
+        <!-- For production -->
+        <file>/var/log/compliance/security_compliance_event.log</file> 
+        <!-- For local development -->
+        <!-- <file>logs/compliance/security_compliance_event.log</file>   -->
+
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>/var/log/compliance/security.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>7</maxHistory> <!-- 7 days -->
