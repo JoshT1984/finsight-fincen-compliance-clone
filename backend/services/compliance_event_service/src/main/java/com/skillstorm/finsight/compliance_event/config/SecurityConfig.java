@@ -12,13 +12,21 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.skillstorm.finsight.compliance_event.loggers.LoggingAccessDeniedHandler;
+import com.skillstorm.finsight.compliance_event.loggers.LoggingAuthenticationEntryPoint;
+
 @Configuration
 public class SecurityConfig {
 
     private final JwtConfig jwtConfig;
+    private final LoggingAuthenticationEntryPoint authEntryPoint;
+    private final LoggingAccessDeniedHandler accessDeniedHandler;
 
-    public SecurityConfig(JwtConfig jwtConfig) {
+    public SecurityConfig(JwtConfig jwtConfig, LoggingAuthenticationEntryPoint authEntryPoint,
+            LoggingAccessDeniedHandler accessDeniedHandler) {
         this.jwtConfig = jwtConfig;
+        this.authEntryPoint = authEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -34,6 +42,9 @@ public class SecurityConfig {
                         .hasAnyRole("ANALYST", "LAW_ENFORCEMENT_USER", "COMPLIANCE_USER")
                         .requestMatchers("/api/documents/**", "/api/audit-events/**").authenticated()
                         .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(authEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
                                 .decoder(jwtConfig.jwtDecoder(jwtConfig.jwtPublicKey()))

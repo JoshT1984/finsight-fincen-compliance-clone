@@ -1,23 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <appender name="AUDIT_FILE" class="ch.qos.logback.core.FileAppender">
-            <!-- For production -->
-        <!-- <file>/var/log/audit/audit.log</file>  -->
-            <!-- For local development -->
-        <file>logs/audit/audit.log</file>  
+    <!-- ===================== -->
+    <!-- Compliance Appender -->
+    <!-- ===================== -->
+    <appender name="COMPLIANCE_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/compliance/compliance.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/compliance/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory> <!-- 7 days -->
+        </rollingPolicy>
+
         <encoder>
+            <!-- One JSON object per line -->
             <pattern>%msg%n</pattern>
         </encoder>
     </appender>
 
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <fileNamePattern>/var/log/audit/audit.%d{yyyy-MM-dd}.log</fileNamePattern>
-        <maxHistory>7</maxHistory>
-    </rollingPolicy>
-
-    <logger name="AUDIT_LOG" level="INFO" additivity="false">
-        <appender-ref ref="AUDIT_FILE"/>
+    
+    <!-- ===================== -->
+    <!-- Compliance Logger -->
+    <!-- ===================== -->
+    <logger name="COMPLIANCE_LOG"
+            level="INFO"
+            additivity="false">
+        <appender-ref ref="COMPLIANCE_FILE"/>
     </logger>
+
+    <!-- ===================== -->
+    <!-- Security Log Appender -->
+    <!-- ===================== -->
+    <appender name="SECURITY_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/compliance/security.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/compliance/security.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory> <!-- 7 days -->
+        </rollingPolicy>
+
+        <encoder>
+            <!-- One JSON object per line -->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===================== -->
+    <!-- Security Logger -->
+    <!-- ===================== -->
+    <logger name="COMPLIANCE_SECURITY"
+            level="INFO"
+            additivity="false">
+        <appender-ref ref="SECURITY_FILE"/>
+    </logger>
+
+    <!-- ===================== -->
+    <!-- Normal App Logging -->
+    <!-- ===================== -->
+    <appender name="CONSOLE"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
 
 </configuration>

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.skillstorm.finsight.compliance_event.emitters.ComplianceEventEmitter;
+import com.skillstorm.finsight.compliance_event.loggers.ComplianceEventLog;
 import com.skillstorm.finsight.compliance_event.mappers.CtrGenerationMapper;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
 import com.skillstorm.finsight.compliance_event.repositories.CashTransactionRepository;
@@ -27,6 +30,8 @@ public class CtrGenerationService {
     private final ComplianceEventRepository eventRepo;
     private final ComplianceEventCtrDetailRepository ctrDetailRepo;
 
+    private final ComplianceEventEmitter complianceEmitter;
+
     @NonNull
     private final CtrGenerationMapper mapper;
 
@@ -34,11 +39,12 @@ public class CtrGenerationService {
             CashTransactionRepository txnRepo,
             ComplianceEventRepository eventRepo,
             ComplianceEventCtrDetailRepository ctrDetailRepo,
-            @NonNull CtrGenerationMapper mapper) {
+            @NonNull CtrGenerationMapper mapper, ComplianceEventEmitter complianceEmitter) {
         this.txnRepo = txnRepo;
         this.eventRepo = eventRepo;
         this.ctrDetailRepo = ctrDetailRepo;
         this.mapper = mapper;
+        this.complianceEmitter = complianceEmitter;
     }
 
     @Transactional
@@ -77,6 +83,14 @@ public class CtrGenerationService {
                     idem);
 
             ComplianceEvent saved = eventRepo.save(event);
+
+            complianceEmitter.emit(
+                    ComplianceEventLog.ctrCreated(saved.getEventId().toString(), idem, "CTR_GENERATION",
+                            Map.of(
+                                    "subjectKey", row.getSubjectKey(),
+                                    "day", row.getTxnDay().toString(),
+                                    "totalCashAmount", row.getTotalCashAmount(),
+                                    "score", scoreResult.score())));
 
             List<Long> txnIds = txnRepo.findTxnIdsForSubjectDay(subjectKey, dayStart, dayEnd);
 
@@ -133,6 +147,14 @@ public class CtrGenerationService {
                     idem);
 
             ComplianceEvent saved = eventRepo.save(event);
+
+            complianceEmitter.emit(
+                    ComplianceEventLog.ctrCreated(saved.getEventId().toString(), idem, "CTR_GENERATION",
+                            Map.of(
+                                    "subjectKey", row.getSubjectKey(),
+                                    "day", row.getTxnDay().toString(),
+                                    "totalCashAmount", row.getTotalCashAmount(),
+                                    "score", scoreResult.score())));
 
             List<Long> txnIds = txnRepo.findTxnIdsForSubjectDay(subjectKey, dayStart, dayEnd);
 

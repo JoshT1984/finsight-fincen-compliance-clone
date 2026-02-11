@@ -23,7 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Service
 public class AuditLogger {
 
-    private static final Logger AUDIT_LOG = LoggerFactory.getLogger("AUDIT_LOG");
+    private static final Logger IDENTITY_SECURITY = LoggerFactory.getLogger("IDENTITY_SECURITY");
 
     private final ObjectMapper objectMapper;
     private final String serviceName = "identity-service";
@@ -128,10 +128,10 @@ public class AuditLogger {
             audit.put("target", buildTarget(target));
             enrichError(audit, error);
 
-            AUDIT_LOG.info(objectMapper.writeValueAsString(audit));
+            IDENTITY_SECURITY.info(objectMapper.writeValueAsString(audit));
 
         } catch (Exception e) {
-            AUDIT_LOG.warn("Failed to write audit log", e);
+            IDENTITY_SECURITY.warn("Failed to write audit log", e);
         }
     }
 

@@ -10,7 +10,7 @@
         </encoder>
     </appender>
 
-    <appender name="AUDIT_FILE" class="ch.qos.logback.core.FileAppender">
+    <appender name="IDENTITY_SECURITY_FILE" class="ch.qos.logback.core.FileAppender">
         <!-- For production -->
         <!-- <file>/var/log/audit/audit.log</file>  -->
         <!-- For local development -->
@@ -25,8 +25,8 @@
     </rollingPolicy>
     </appender>
 
-    <logger name="AUDIT_LOG" level="INFO" additivity="false">
-        <appender-ref ref="AUDIT_FILE"/>
+    <logger name="IDENTITY_SECURITY" level="INFO" additivity="false">
+        <appender-ref ref="IDENTITY_SECURITY_FILE"/>
     </logger>
 
     <root level="ERROR">
