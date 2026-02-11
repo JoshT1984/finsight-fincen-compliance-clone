@@ -375,4 +375,26 @@ export class CtrsComponent implements OnInit {
   }
 
   trackByEventId = (_: number, item: CtrRowVm) => item?.ctrId ?? _;
+
+  /**
+   * CTR→SAR promotion thresholds (UI-only, matches backend simple model):
+   * - >= 60: auto-generate SAR
+   * - 40–59: analyst review
+   * - < 40: CTR only
+   */
+  scoreClass(score: number | string | null | undefined): string {
+    const n = typeof score === 'number' ? score : score != null ? Number(score) : NaN;
+    if (!Number.isFinite(n)) return 'badge';
+    if (n >= 60) return 'badge badge--good';
+    if (n >= 40) return 'badge badge--warn';
+    return 'badge';
+  }
+
+  promotionLabel(score: number | string | null | undefined): string {
+    const n = typeof score === 'number' ? score : score != null ? Number(score) : NaN;
+    if (!Number.isFinite(n)) return '—';
+    if (n >= 60) return 'Auto SAR';
+    if (n >= 40) return 'Review';
+    return 'CTR Only';
+  }
 }

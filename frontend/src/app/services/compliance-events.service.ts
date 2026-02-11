@@ -16,14 +16,12 @@ type PageResponse<T> = {
 
 @Injectable({ providedIn: 'root' })
 export class ComplianceEventsService {
-  // ✅ Correct base URL from your environment
   private readonly apiUrl = `${environment.complianceApiBaseUrl}/api/compliance-events`;
 
   constructor(private http: HttpClient) {}
 
   // ====================================================
-  // Generic search (matches backend controller query params)
-  // GET /api/compliance-events?eventType=CTR|SAR&suspectId=...&notLinkedToSuspectId=...&page=...&size=...
+  // Generic search
   // ====================================================
   search(
     params: {
@@ -58,9 +56,9 @@ export class ComplianceEventsService {
   }
 
   // ====================================================
-  // CTR convenience method (used by CTRs feature)
+  // CTR Events
   // ====================================================
-  getCtrEvents(page = 0, size = 200): Observable<PageResponse<ComplianceEventDto>> {
+  getCtrEvents(page: number = 0, size: number = 200): Observable<PageResponse<ComplianceEventDto>> {
     return this.search({
       eventType: 'CTR',
       page,
@@ -69,9 +67,9 @@ export class ComplianceEventsService {
   }
 
   // ====================================================
-  // SAR convenience method (optional, future-safe)
+  // SAR Events
   // ====================================================
-  getSarEvents(page = 0, size = 200): Observable<PageResponse<ComplianceEventDto>> {
+  getSarEvents(page: number = 0, size: number = 200): Observable<PageResponse<ComplianceEventDto>> {
     return this.search({
       eventType: 'SAR',
       page,
@@ -79,13 +77,13 @@ export class ComplianceEventsService {
     });
   }
 
-  /**
-   * Backend: GET /api/compliance-events?suspectId=123&page=0&size=200
-   */
+  // ====================================================
+  // Events by Suspect
+  // ====================================================
   getBySuspectId(
     suspectId: number,
-    page = 0,
-    size = 200,
+    page: number = 0,
+    size: number = 200,
   ): Observable<PageResponse<ComplianceEventDto>> {
     return this.search({
       suspectId,
@@ -94,14 +92,14 @@ export class ComplianceEventsService {
     });
   }
 
-  /**
-   * Backend: GET /api/compliance-events?eventType=CTR&notLinkedToSuspectId=123&page=0&size=200
-   */
+  // ====================================================
+  // Linkable Events
+  // ====================================================
   getLinkableByEventType(
     eventType: 'CTR' | 'SAR',
     excludeSuspectId: number,
-    page = 0,
-    size = 200,
+    page: number = 0,
+    size: number = 200,
   ): Observable<PageResponse<ComplianceEventDto>> {
     return this.search({
       eventType,
@@ -111,33 +109,28 @@ export class ComplianceEventsService {
     });
   }
 
-  /**
-   * Backend: PUT /api/compliance-events/{eventId}/suspect
-   * Body: { "suspectId": 123 }
-   */
+  // ====================================================
+  // Link / Unlink
+  // ====================================================
   linkEventToSuspect(eventId: number, suspectId: number): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${eventId}/suspect`, { suspectId });
   }
 
-  /**
-   * Backend: DELETE /api/compliance-events/{eventId}/suspect
-   */
   unlinkEventFromSuspect(eventId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${eventId}/suspect`);
   }
 
-  /**
-   * Optional: CTR detail endpoint (keep only if backend supports it)
-   */
+  // ====================================================
+  // CTR Detail
+  // ====================================================
   getCtrDetail(eventId: number): Observable<CtrDetailResponse> {
     return this.http.get<CtrDetailResponse>(`${this.apiUrl}/${eventId}/ctr-detail`);
   }
 
+  // ====================================================
+  // Manual SAR Generation
+  // ====================================================
   generateSarFromCtr(ctrId: number): Observable<void> {
-  // Default guess based on your existing service base:
-  // {complianceApiBaseUrl}/api/compliance-events/ctrs/{ctrId}/generate-sar
-  return this.http.post<void>(`${this.apiUrl}/ctrs/${ctrId}/generate-sar`, {});
+    return this.http.post<void>(`${this.apiUrl}/ctrs/${ctrId}/generate-sar`, {});
   }
-  
-  
 }
