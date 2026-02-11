@@ -28,7 +28,6 @@ import com.skillstorm.finsight.compliance_event.models.EventType;
 import com.skillstorm.finsight.compliance_event.models.SuspectSnapshotAtTimeOfEvent;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventCtrDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventRepository;
-import com.skillstorm.finsight.compliance_event.client.SuspectRegistryClient;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventSarDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.SuspectSnapshotAtTimeOfEventRepository;
 
@@ -40,7 +39,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     private final ComplianceEventCtrDetailRepository ctrDetailRepository;
     private final SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository;
     private final ComplianceEventMapper mapper;
-    private final SuspectRegistryClient suspectRegistryClient;
     private final ComplianceEventEmitter complianceEventEmitter;
 
     public ComplianceEventServiceImpl(
@@ -48,8 +46,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
             ComplianceEventSarDetailRepository sarDetailRepository,
             ComplianceEventCtrDetailRepository ctrDetailRepository,
             SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository,
-            ComplianceEventMapper mapper,
-            @Autowired(required = false) SuspectRegistryClient suspectRegistryClient) {
             ComplianceEventMapper mapper, ComplianceEventEmitter complianceEventEmitter) {
 
         this.complianceEventRepository = complianceEventRepository;
@@ -57,7 +53,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         this.ctrDetailRepository = ctrDetailRepository;
         this.suspectSnapshotRepository = suspectSnapshotRepository;
         this.mapper = mapper;
-        this.suspectRegistryClient = suspectRegistryClient;
         this.complianceEventEmitter = complianceEventEmitter;
     }
 
@@ -86,7 +81,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
 
         ComplianceEventSarDetail sar = new ComplianceEventSarDetail();
         sar.setEvent(event);
-        sar.setEventType(EventType.SAR.name()); // Required for @NotNull; DB also has default
         sar.setNarrative(request.narrative());
         sar.setActivityStart(request.activityStart());
         sar.setActivityEnd(request.activityEnd());
@@ -104,10 +98,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
                 "SAR_CREATED:" + saved.getEventId(),
                 Map.of("eventType", "SAR", "sourceSystem", request.sourceSystem())));
 
-        tryLinkEventToSuspectBySsn(event, request.externalSubjectKey(), null);
-        if (event.getSuspectSnapshot() != null && request.formData() != null) {
-            pushParsedAddressToSuspect(event.getSuspectSnapshot().getSuspectId(), request.formData());
-        }
         return mapper.toResponse(event);
     }
 
@@ -135,7 +125,6 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
 
         ComplianceEventCtrDetail ctr = new ComplianceEventCtrDetail();
         ctr.setEvent(event);
-        ctr.setEventType(EventType.CTR.name()); // Required for @NotNull; DB also has default
         ctr.setCustomerName(request.customerName());
         ctr.setTransactionTime(request.transactionTime());
         ctr.setCtrFormData(request.ctrFormData() == null ? Map.of() : request.ctrFormData());
@@ -152,49 +141,7 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
                 "CTR_CREATED:" + saved.getEventId(),
                 Map.of("eventType", "CTR", "sourceSystem", request.sourceSystem())));
 
-        tryLinkEventToSuspectBySsn(event, request.externalSubjectKey(), request.customerName());
-        if (event.getSuspectSnapshot() != null && request.ctrFormData() != null) {
-            pushParsedAddressToSuspect(event.getSuspectSnapshot().getSuspectId(), request.ctrFormData());
-        }
         return mapper.toResponse(event);
-    }
-
-    /**
-     * If externalSubjectKey is SSN:xxxxxxxxx, finds or creates a suspect by SSN (and name when provided),
-     * then links the event to that suspect. When the form name differs from the suspect's primary name,
-     * the suspect registry adds it as an alias (AKA).
-     */
-    private void tryLinkEventToSuspectBySsn(ComplianceEvent event, String externalSubjectKey, String primaryName) {
-        if (suspectRegistryClient == null) return;
-        String ssn = SuspectRegistryClient.extractSsnFromSubjectKey(externalSubjectKey);
-        if (ssn == null) return;
-        suspectRegistryClient.findOrCreateBySsnAndName(ssn, primaryName).ifPresent(suspectId -> {
-            SuspectSnapshotAtTimeOfEvent snapshot = suspectSnapshotRepository.findLatestForSuspect(suspectId);
-            if (snapshot == null) {
-                snapshot = new SuspectSnapshotAtTimeOfEvent(suspectId);
-                snapshot = suspectSnapshotRepository.save(snapshot);
-            }
-            event.setSuspectSnapshot(snapshot);
-            complianceEventRepository.save(event);
-        });
-    }
-
-    /** Pushes parsed CTR/SAR form address to the suspect registry when present in form data. */
-    private void pushParsedAddressToSuspect(long suspectId, Map<String, Object> formData) {
-        if (suspectRegistryClient == null || formData == null) return;
-        String line1 = getString(formData, "_parsedAddressLine1");
-        String city = getString(formData, "_parsedAddressCity");
-        String country = getString(formData, "_parsedAddressCountry");
-        if (line1 == null || city == null || country == null) return;
-        String line2 = getString(formData, "_parsedAddressLine2");
-        String state = getString(formData, "_parsedAddressState");
-        String postalCode = getString(formData, "_parsedAddressPostalCode");
-        suspectRegistryClient.ensureAddressForSuspect(suspectId, line1, line2, city, state, postalCode, country);
-    }
-
-    private static String getString(Map<String, Object> map, String key) {
-        Object v = map.get(key);
-        return v != null ? v.toString().trim() : null;
     }
 
     @Override
