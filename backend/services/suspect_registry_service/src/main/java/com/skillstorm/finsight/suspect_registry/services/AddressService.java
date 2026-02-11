@@ -1,6 +1,8 @@
 package com.skillstorm.finsight.suspect_registry.services;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -13,8 +15,10 @@ import com.skillstorm.finsight.suspect_registry.dtos.request.CreateAddressReques
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.AddressResponse;
 import com.skillstorm.finsight.suspect_registry.dtos.response.LinkedAddressResponse;
+import com.skillstorm.finsight.suspect_registry.emitters.LoggingSuspectRegistryEmitter;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
+import com.skillstorm.finsight.suspect_registry.loggers.SuspectRegistryEventLog;
 import com.skillstorm.finsight.suspect_registry.models.Address;
 import com.skillstorm.finsight.suspect_registry.models.SuspectAddress;
 import com.skillstorm.finsight.suspect_registry.repositories.AddressRepository;
@@ -26,18 +30,20 @@ import org.springframework.security.access.AccessDeniedException;
 
 @Service
 public class AddressService {
-  
+
   private static final Logger log = LoggerFactory.getLogger(AddressService.class);
-  
+
   private final AddressRepository repo;
   private final SuspectAddressRepository suspectAddressRepo;
   private final SuspectRepository suspectRepo;
+  private final LoggingSuspectRegistryEmitter eventEmitter;
 
   public AddressService(AddressRepository repo, SuspectAddressRepository suspectAddressRepo,
-      SuspectRepository suspectRepo) {
+      SuspectRepository suspectRepo, LoggingSuspectRegistryEmitter eventEmitter) {
     this.repo = repo;
     this.suspectAddressRepo = suspectAddressRepo;
     this.suspectRepo = suspectRepo;
+    this.eventEmitter = eventEmitter;
   }
 
   private AddressResponse toResponse(Address address) {
@@ -49,16 +55,18 @@ public class AddressService {
         address.getState(),
         address.getPostalCode(),
         address.getCountry(),
-        address.getCreatedAt()
-    );
+        address.getCreatedAt());
   }
 
   /**
-   * Finds an address by components or creates it (for CTR/SAR form sync from compliance service).
-   * Does not perform compliance-user check so it can be used by the from-form endpoint.
+   * Finds an address by components or creates it (for CTR/SAR form sync from
+   * compliance service).
+   * Does not perform compliance-user check so it can be used by the from-form
+   * endpoint.
    */
   @Transactional
-  public Address findOrCreateByComponents(String line1, String line2, String city, String state, String postalCode, String country) {
+  public Address findOrCreateByComponents(String line1, String line2, String city, String state, String postalCode,
+      String country) {
     String l2 = (line2 != null && !line2.isBlank()) ? line2.trim() : null;
     String st = (state != null && !state.isBlank()) ? state.trim() : null;
     String zip = (postalCode != null && !postalCode.isBlank()) ? postalCode.trim() : null;
@@ -95,7 +103,7 @@ public class AddressService {
         request.country()).isPresent()) {
       throw new ResourceConflictException("Addresses must be unique (line1, line2, city, state, postalCode, country).");
     }
-    
+
     Address address = new Address();
     address.setLine1(request.line1());
     address.setLine2(request.line2());
@@ -105,6 +113,18 @@ public class AddressService {
     address.setCountry(request.country());
     Address saved = repo.save(address);
     log.info("Created address with ID: {}", saved.getId());
+
+    eventEmitter.emit(
+        SuspectRegistryEventLog.addressCreated(
+            String.valueOf(saved.getId()),
+            "USER",
+            Map.of(
+                "line1", saved.getLine1(),
+                "city", saved.getCity(),
+                "state", saved.getState(),
+                "country", saved.getCountry(),
+                "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
+
     return toResponse(saved);
   }
 
@@ -117,10 +137,10 @@ public class AddressService {
 
   public AddressResponse findById(Long addressId) {
     log.debug("Retrieving address with ID: {}", addressId);
-    
+
     Address address = repo.findById(addressId)
         .orElseThrow(() -> new ResourceNotFoundException("Address with ID " + addressId + " not found"));
-    
+
     return toResponse(address);
   }
 
@@ -146,8 +166,7 @@ public class AddressService {
         a.getCountry(),
         a.getCreatedAt(),
         sa.getAddressType(),
-        sa.isCurrent()
-    );
+        sa.isCurrent());
   }
 
   @Transactional
@@ -159,33 +178,62 @@ public class AddressService {
     Address address = repo.findById(addressId)
         .orElseThrow(() -> new ResourceNotFoundException("Address with ID " + addressId + " not found"));
     boolean updated = false;
-    if (request.line1() != null) { address.setLine1(request.line1()); updated = true; }
-    if (request.line2() != null) { address.setLine2(request.line2()); updated = true; }
-    if (request.city() != null) { address.setCity(request.city()); updated = true; }
-    if (request.state() != null) { address.setState(request.state()); updated = true; }
-    if (request.postalCode() != null) { address.setPostalCode(request.postalCode()); updated = true; }
-    if (request.country() != null) { address.setCountry(request.country()); updated = true; }
+    if (request.line1() != null) {
+      address.setLine1(request.line1());
+      updated = true;
+    }
+    if (request.line2() != null) {
+      address.setLine2(request.line2());
+      updated = true;
+    }
+    if (request.city() != null) {
+      address.setCity(request.city());
+      updated = true;
+    }
+    if (request.state() != null) {
+      address.setState(request.state());
+      updated = true;
+    }
+    if (request.postalCode() != null) {
+      address.setPostalCode(request.postalCode());
+      updated = true;
+    }
+    if (request.country() != null) {
+      address.setCountry(request.country());
+      updated = true;
+    }
     if (!updated) {
       log.warn("No fields to update for address with ID: {}", addressId);
       return toResponse(address);
     }
-    
+
     String checkLine1 = address.getLine1();
     String checkLine2 = address.getLine2();
     String checkCity = address.getCity();
     String checkState = address.getState();
     String checkPostalCode = address.getPostalCode();
     String checkCountry = address.getCountry();
-    
+
     repo.findByAddressComponents(checkLine1, checkLine2, checkCity, checkState, checkPostalCode, checkCountry)
         .ifPresent(existing -> {
           if (existing.getId() != addressId) {
-            throw new ResourceConflictException("Addresses must be unique (line1, line2, city, state, postalCode, country).");
+            throw new ResourceConflictException(
+                "Addresses must be unique (line1, line2, city, state, postalCode, country).");
           }
         });
-    
+
     Address saved = repo.save(address);
     log.info("Updated address with ID: {}", saved.getId());
+    eventEmitter.emit(
+        SuspectRegistryEventLog.addressUpdated(
+            String.valueOf(saved.getId()),
+            "USER",
+            Map.of(
+                "line1", saved.getLine1(),
+                "city", saved.getCity(),
+                "state", saved.getState(),
+                "country", saved.getCountry(),
+                "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
     return toResponse(saved);
   }
 
@@ -198,7 +246,21 @@ public class AddressService {
     if (!repo.existsById(addressId)) {
       throw new ResourceNotFoundException("Address with ID " + addressId + " not found");
     }
+    // Fetch address for audit log before deletion
+    Address address = repo.findById(addressId).orElse(null);
     repo.deleteById(addressId);
     log.info("Deleted address with ID: {}", addressId);
+    if (address != null) {
+      eventEmitter.emit(
+          SuspectRegistryEventLog.addressDeleted(
+              String.valueOf(addressId),
+              "USER",
+              Map.of(
+                  "line1", address.getLine1(),
+                  "city", address.getCity(),
+                  "state", address.getState(),
+                  "country", address.getCountry(),
+                  "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
+    }
   }
 }
