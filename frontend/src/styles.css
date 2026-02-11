@@ -461,6 +461,10 @@ a {
   text-align: center;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 /* Responsive */
 @media (max-width: 980px) {
   .brand__title {
