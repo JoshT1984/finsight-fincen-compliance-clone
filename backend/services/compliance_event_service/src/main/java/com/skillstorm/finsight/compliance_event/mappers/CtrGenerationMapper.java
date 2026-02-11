@@ -14,6 +14,7 @@ import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEventCtrDetail;
 import com.skillstorm.finsight.compliance_event.models.EventStatus;
 import com.skillstorm.finsight.compliance_event.models.EventType;
+import com.skillstorm.finsight.compliance_event.models.SubjectType;
 import com.skillstorm.finsight.compliance_event.repositories.CtrAggregationRow;
 
 @Component
@@ -27,10 +28,12 @@ public class CtrGenerationMapper {
 
     public ComplianceEvent toCtrEvent(
             String subjectKey,
+            String sourceSubjectType,
             LocalDate day,
             BigDecimal totalAmount,
-            String idempotencyKey
-    ) {
+            Integer suspicionScore,
+            String idempotencyKey) {
+
         ComplianceEvent e = new ComplianceEvent();
         e.setEventType(EventType.CTR);
         e.setSourceSystem("AUTO_FROM_TXNS");
@@ -39,16 +42,29 @@ public class CtrGenerationMapper {
         e.setEventTime(day.atStartOfDay(ZoneOffset.UTC).toInstant());
         e.setTotalAmount(nullSafe(totalAmount));
         e.setStatus(EventStatus.CREATED);
-        e.setSeverityScore(null);
+        e.setSeverityScore(suspicionScore);
         e.setIdempotencyKey(idempotencyKey);
+
+        // ✅ Persist subject type on the event itself (used by list views)
+        if (sourceSubjectType != null && !sourceSubjectType.isBlank()) {
+            try {
+                e.setSourceSubjectType(SubjectType.valueOf(sourceSubjectType));
+            } catch (IllegalArgumentException ignored) {
+                // Leave null if unexpected value
+            }
+        }
+
         return e;
     }
 
     public ComplianceEventCtrDetail toCtrDetail(
             ComplianceEvent event,
             CtrAggregationRow row,
-            List<Long> txnIds
-    ) {
+            List<Long> txnIds,
+            Integer suspicionScore,
+            String suspicionBand,
+            List<String> suspicionDrivers) {
+
         ObjectNode formData = objectMapper.createObjectNode();
         formData.put("source", "AUTO_FROM_TXNS");
         formData.put("subjectKey", row.getSubjectKey());
@@ -58,19 +74,42 @@ public class CtrGenerationMapper {
         formData.put("totalCashAmount", row.getTotalCashAmount().toPlainString());
         formData.put("txnCount", row.getTxnCount());
 
+        if (suspicionScore != null) {
+            formData.put("suspicionScore", suspicionScore);
+        }
+        if (suspicionBand != null) {
+            formData.put("suspicionBand", suspicionBand);
+        }
+        if (suspicionDrivers != null) {
+            var dArr = formData.putArray("suspicionDrivers");
+            suspicionDrivers.forEach(dArr::add);
+        }
+
         var arr = formData.putArray("contributingTxnIds");
         txnIds.forEach(arr::add);
 
         ComplianceEventCtrDetail d = new ComplianceEventCtrDetail();
 
-        // Your entity uses @MapsId with field name "event" and setter setEvent(...)
+        // @MapsId relationship
         d.setEvent(event);
 
-        // Required NOT NULL columns in compliance_event_ctr_detail
-        d.setCustomerName(deriveCustomerName(row.getSubjectKey()));
+        // Subject name handling
+        String subjectName = row.getSubjectName();
+        String resolvedName = (subjectName == null || subjectName.isBlank())
+                ? deriveCustomerName(row.getSubjectKey())
+                : subjectName;
+
+        d.setCustomerName(resolvedName);
         d.setTransactionTime(row.getTxnDay().atStartOfDay(ZoneOffset.UTC).toInstant());
 
-        // ctr_form_data is Map<String,Object> (JSON)
+        // Persist subject metadata into form data (audit + fallback)
+        formData.put("subjectName", resolvedName);
+
+        if (row.getSourceSubjectType() != null && !row.getSourceSubjectType().isBlank()) {
+            formData.put("sourceSubjectType", row.getSourceSubjectType());
+        }
+
+        // ctr_form_data is Map<String,Object>
         @SuppressWarnings("unchecked")
         Map<String, Object> map = objectMapper.convertValue(formData, Map.class);
         d.setCtrFormData(map);
@@ -82,7 +121,9 @@ public class CtrGenerationMapper {
         if (subjectKey == null || subjectKey.isBlank()) {
             return "UNKNOWN";
         }
-        return subjectKey.length() > 128 ? subjectKey.substring(0, 128) : subjectKey;
+        return subjectKey.length() > 128
+                ? subjectKey.substring(0, 128)
+                : subjectKey;
     }
 
     private BigDecimal nullSafe(BigDecimal v) {

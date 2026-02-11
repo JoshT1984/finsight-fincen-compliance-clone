@@ -32,7 +32,7 @@ public class ComplianceEventCtrDetail {
      * composite FK (event_id, event_type). DB default is 'CTR'.
      * Marked insertable=false so the database default is used.
      */
-    @NotNull
+ 
     @Column(name = "event_type", nullable = false, length = 16, insertable = false, updatable = false)
     private String eventType;
 

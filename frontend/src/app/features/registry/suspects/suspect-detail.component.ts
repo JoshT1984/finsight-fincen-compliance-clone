@@ -4,9 +4,11 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+
 import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ProperCasePipe } from '../../../shared/pipes/proper-case.pipe';
+
 import {
   SuspectService,
   SuspectResponse,
@@ -15,13 +17,21 @@ import {
   CreateAliasRequest,
   PatchAliasRequest,
 } from '../../../shared/services/suspect.service';
+
 import { AddressResponse, LinkedAddressResponse, AddressService } from '../../../shared/services/address.service';
 import { OrganizationService, OrganizationResponse } from '../../../shared/services/organization.service';
-import { ComplianceEventService, ComplianceEventResponse } from '../../../shared/services/compliance-event.service';
+import { ComplianceEventsService } from '../../../services/compliance-events.service';
 import { CasesService, CaseFileResponse } from '../../../shared/services/cases.service';
+import { ComplianceEventResponse } from '../../../shared/services/compliance.service';
+
+// If you have a model for this, import it instead of using any
+// import { ComplianceEventDto } from '../../../models/compliance-event-dto.interface';
 
 const ADDRESS_TYPES = ['HOME', 'WORK', 'MAILING', 'UNKNOWN'];
 const ALIAS_TYPES = ['AKA', 'LEGAL', 'NICKNAME', 'BUSINESS'];
+
+
+
 
 @Component({
   selector: 'app-suspect-detail',
@@ -99,15 +109,15 @@ export class SuspectDetailComponent implements OnInit {
   readonly aliasTypes = ALIAS_TYPES;
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private suspectService: SuspectService,
-    private organizationService: OrganizationService,
-    private addressService: AddressService,
-    private complianceEventService: ComplianceEventService,
-    private casesService: CasesService,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  private route: ActivatedRoute,
+  private router: Router,
+  private suspectService: SuspectService,
+  private organizationService: OrganizationService,
+  private addressService: AddressService,
+  private complianceEventService: ComplianceEventsService,
+  private casesService: CasesService,
+  private cdr: ChangeDetectorRef,
+) {}
 
   get ctrs(): ComplianceEventResponse[] {
     return this.complianceEvents.filter((e) => e.eventType === 'CTR');
@@ -245,7 +255,7 @@ export class SuspectDetailComponent implements OnInit {
         this.organizations = organizations;
         this.aliases = aliases;
         this.complianceEvents = events;
-        const sarEventIds = new Set(events.filter((e) => e.eventType === 'SAR').map((e) => e.eventId));
+        const sarEventIds = new Set(events.filter((e: ComplianceEventResponse) => e.eventType === 'SAR').map((e: ComplianceEventResponse) => e.eventId));
         this.cases = allCases.filter((c) => c.sarId != null && sarEventIds.has(c.sarId));
         this.allCases = allCases;
         this.allOrganizations = allOrganizations;
@@ -310,7 +320,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.linkAliasError = this.getBackendErrorMessage(err) ?? 'Failed to add alias.';
         this.linkingAlias = false;
         this.cdr.detectChanges();
@@ -352,7 +362,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.linkAliasError = this.getBackendErrorMessage(err) ?? 'Failed to update alias.';
         this.cdr.detectChanges();
       },
@@ -377,7 +387,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.linkAliasError = this.getBackendErrorMessage(err) ?? 'Failed to delete alias.';
         this.deleteAliasId = null;
         this.deletingAlias = false;
@@ -435,7 +445,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.linkCtrError = this.getBackendErrorMessage(err) ?? 'Failed to link CTR.';
         this.linkingCtr = false;
         this.loadRelated(this.suspect!.suspectId);
@@ -456,7 +466,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.linkSarError = this.getBackendErrorMessage(err) ?? 'Failed to link SAR.';
         this.linkingSar = false;
         this.loadRelated(this.suspect!.suspectId);
@@ -482,7 +492,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.linkCaseError = this.getBackendErrorMessage(err) ?? 'Failed to link case.';
         this.linkingCase = false;
         this.loadRelated(this.suspect!.suspectId);
@@ -502,7 +512,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.unlinkError = this.getBackendErrorMessage(err) ?? 'Failed to unlink CTR.';
         this.unlinkingCtrEventId = null;
         this.loadRelated(this.suspect!.suspectId);
@@ -522,7 +532,7 @@ export class SuspectDetailComponent implements OnInit {
         this.loadRelated(this.suspect!.suspectId);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.unlinkError = this.getBackendErrorMessage(err) ?? 'Failed to unlink SAR.';
         this.unlinkingSarEventId = null;
         this.loadRelated(this.suspect!.suspectId);

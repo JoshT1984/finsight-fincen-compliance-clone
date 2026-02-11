@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { IdentityService } from '../../shared/services/identity.service';
 
 @Component({
   selector: 'app-oauth-callback',
   template: '',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
 })
 export class OauthCallbackComponent implements OnInit {
   constructor(

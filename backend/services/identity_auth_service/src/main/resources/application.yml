@@ -118,7 +118,7 @@ management:
 
 logging:
     level:
-        com.zaxxer.hikari: DEBUG
-        org.springframework.jdbc.datasource: DEBUG
-        root: INFO
-        com.finsight: INFO
+        com.zaxxer.hikari: ERROR
+        org.springframework.jdbc.datasource: ERROR
+        root: ERROR
+        com.finsight: ERROR

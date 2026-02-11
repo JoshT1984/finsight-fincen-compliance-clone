@@ -24,8 +24,11 @@
       <input [(ngModel)]="profile.email" name="email" />
     </label>
     <label class="form-label">Phone: <input [(ngModel)]="profile.phone" name="phone" /></label>
+    <div *ngIf="profileError" class="error">
+      {{ profileError }}
+    </div>
     <div class="btn__div">
-      <button class="btn primary" type="submit" [disabled]="savingProfile">
+      <button class="btn primary" type="button" [disabled]="savingProfile" (click)="saveEdit()">
         {{ savingProfile ? 'Saving...' : 'Save' }}
       </button>
       <button class="btn primary" type="button" (click)="cancelEdit()">Cancel</button>
@@ -48,8 +51,16 @@
       >Confirm Password:
       <input type="password" name="confirmPassword" [(ngModel)]="confirmPassword"
     /></label>
+    <div *ngIf="passwordError" class="error">
+      {{ passwordError }}
+    </div>
     <div class="btn__div">
-      <button class="btn secondary" type="submit" [disabled]="savingPassword">
+      <button
+        class="btn ghost"
+        type="button"
+        [disabled]="savingPassword"
+        (click)="saveEditPassword()"
+      >
         {{ savingPassword ? 'Saving password...' : 'Save Password' }}
       </button>
       <button class="btn secondary" type="button" (click)="cancelEditPassword()">Cancel</button>

@@ -4,14 +4,13 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { LoginDialogService } from '../../shared/services/loginDialog.service';
 import { IdentityService } from '../../shared/services/identity.service';
-import { LoginDialogComponent } from '../../shared/login-dialog/login-dialog.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css'],
-  imports: [CommonModule, LoginDialogComponent],
+  imports: [CommonModule],
 })
 export class HeaderComponent {
   constructor(
@@ -26,6 +25,7 @@ export class HeaderComponent {
 
   logout() {
     this.loginDialog.logout();
+    this.router.navigate(['/home']);
   }
 
   openProfile() {

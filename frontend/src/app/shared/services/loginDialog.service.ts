@@ -55,7 +55,6 @@ export class LoginDialogService {
   }
 
   logout() {
-    localStorage.removeItem('authToken');
     this.identityService.clearProfile();
     // IdentityService will update isLoggedIn$ accordingly
   }

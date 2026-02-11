@@ -127,6 +127,12 @@
       <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
+    <!-- AOP support -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
