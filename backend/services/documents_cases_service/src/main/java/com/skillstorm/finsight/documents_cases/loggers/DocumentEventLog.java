@@ -123,10 +123,6 @@ public record DocumentEventLog(
         return of("S3", s3Key, "UPLOAD", trigger, null, UUID.randomUUID().toString(), metadata);
     }
 
-    public static DocumentEventLog s3UploadFailed(String s3Key, String trigger, Map<String, Object> metadata) {
-        return of("S3", s3Key, "UPLOAD_FAILED", trigger, null, UUID.randomUUID().toString(), metadata);
-    }
-
     public static DocumentEventLog s3Delete(String s3Key, String trigger, Map<String, Object> metadata) {
         return of("S3", s3Key, "DELETE", trigger, null, UUID.randomUUID().toString(), metadata);
     }

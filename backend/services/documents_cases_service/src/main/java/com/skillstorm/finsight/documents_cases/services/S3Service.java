@@ -124,21 +124,6 @@ public class S3Service {
             return s3Key;
         } catch (Exception e) {
             log.error("Failed to upload file to S3: {}", s3Key, e);
-            // Emit event for S3 upload failure
-            eventEmitter.emit(
-                com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog.s3UploadFailed(
-                    s3Key,
-                    com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
-                        .orElse(null).toString(),
-                    java.util.Map.of(
-                        "fileName", file != null ? file.getOriginalFilename() : null,
-                        "fileSize", file != null ? file.getSize() : null,
-                        "contentType", contentType,
-                        "bucket", bucketName,
-                        "error", e.getMessage()
-                    )
-                )
-            );
             throw new IOException("Failed to upload file to S3: " + e.getMessage(), e);
         }
     }

@@ -10,7 +10,7 @@ import com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog;
 @Component
 public class LoggingDocumentEmitter implements DocumentEventEmitter {
 
-    private static final Logger DOCUMENT_LOG = LoggerFactory.getLogger("DOCUMENT_EVENT");
+    private static final Logger DOCUMENT_LOG = LoggerFactory.getLogger("DOCUMENT_LOG");
 
     private final ObjectMapper objectMapper;
 
