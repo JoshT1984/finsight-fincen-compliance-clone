@@ -16,10 +16,12 @@ import com.skillstorm.finsight.compliance_event.models.EventStatus;
 import com.skillstorm.finsight.compliance_event.models.EventType;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventCtrDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventRepository;
+import com.skillstorm.finsight.compliance_event.client.SuspectRegistryClient;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventSarDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.SuspectSnapshotAtTimeOfEventRepository;
 import com.skillstorm.finsight.compliance_event.models.SuspectSnapshotAtTimeOfEvent;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,19 +37,22 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     private final ComplianceEventCtrDetailRepository ctrDetailRepository;
     private final SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository;
     private final ComplianceEventMapper mapper;
+    private final SuspectRegistryClient suspectRegistryClient;
 
     public ComplianceEventServiceImpl(
             ComplianceEventRepository complianceEventRepository,
             ComplianceEventSarDetailRepository sarDetailRepository,
             ComplianceEventCtrDetailRepository ctrDetailRepository,
             SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository,
-            ComplianceEventMapper mapper) {
+            ComplianceEventMapper mapper,
+            @Autowired(required = false) SuspectRegistryClient suspectRegistryClient) {
 
         this.complianceEventRepository = complianceEventRepository;
         this.sarDetailRepository = sarDetailRepository;
         this.ctrDetailRepository = ctrDetailRepository;
         this.suspectSnapshotRepository = suspectSnapshotRepository;
         this.mapper = mapper;
+        this.suspectRegistryClient = suspectRegistryClient;
     }
 
     @Override
@@ -75,12 +80,14 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
 
         ComplianceEventSarDetail sar = new ComplianceEventSarDetail();
         sar.setEvent(event);
+        sar.setEventType(EventType.SAR.name()); // Required for @NotNull; DB also has default
         sar.setNarrative(request.narrative());
         sar.setActivityStart(request.activityStart());
         sar.setActivityEnd(request.activityEnd());
         sar.setFormData(request.formData() == null ? Map.of() : request.formData());
         sarDetailRepository.save(sar);
 
+        tryLinkEventToSuspectBySsn(event, request.externalSubjectKey(), null);
         return mapper.toResponse(event);
     }
 
@@ -108,12 +115,33 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
 
         ComplianceEventCtrDetail ctr = new ComplianceEventCtrDetail();
         ctr.setEvent(event);
+        ctr.setEventType(EventType.CTR.name()); // Required for @NotNull; DB also has default
         ctr.setCustomerName(request.customerName());
         ctr.setTransactionTime(request.transactionTime());
         ctr.setCtrFormData(request.ctrFormData() == null ? Map.of() : request.ctrFormData());
         ctrDetailRepository.save(ctr);
 
+        tryLinkEventToSuspectBySsn(event, request.externalSubjectKey(), request.customerName());
         return mapper.toResponse(event);
+    }
+
+    /**
+     * If externalSubjectKey is SSN:xxxxxxxxx, finds or creates a suspect by SSN (and name when provided),
+     * then links the event to that suspect.
+     */
+    private void tryLinkEventToSuspectBySsn(ComplianceEvent event, String externalSubjectKey, String primaryName) {
+        if (suspectRegistryClient == null) return;
+        String ssn = SuspectRegistryClient.extractSsnFromSubjectKey(externalSubjectKey);
+        if (ssn == null) return;
+        suspectRegistryClient.findOrCreateBySsnAndName(ssn, primaryName).ifPresent(suspectId -> {
+            SuspectSnapshotAtTimeOfEvent snapshot = suspectSnapshotRepository.findLatestForSuspect(suspectId);
+            if (snapshot == null) {
+                snapshot = new SuspectSnapshotAtTimeOfEvent(suspectId);
+                snapshot = suspectSnapshotRepository.save(snapshot);
+            }
+            event.setSuspectSnapshot(snapshot);
+            complianceEventRepository.save(event);
+        });
     }
 
     @Override

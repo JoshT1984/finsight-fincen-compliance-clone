@@ -52,15 +52,15 @@
 
           <tbody>
             <tr *ngFor="let ctr of ctrs">
-              <td class="mono">{{ ctr.ctrId }}</td>
-              <td>{{ ctr.accountNumber }}</td>
-              <td>{{ ctr.filingDate | date: 'mediumDate' }}</td>
-              <td>{{ ctr.transactionAmount | currency }}</td>
+              <td class="mono">{{ ctr.eventId ?? ctr.ctrId }}</td>
+              <td>{{ ctr.sourceSystem }} / {{ ctr.sourceEntityId }}</td>
+              <td>{{ (ctr.eventTime ?? ctr.filingDate) | date: 'mediumDate' }}</td>
+              <td>{{ (ctr.totalAmount ?? ctr.transactionAmount) | currency }}</td>
               <td>
                 <span class="badge badge--good">{{ ctr.status }}</span>
               </td>
               <td>
-                <button class="btn ghost" type="button" (click)="downloadCtr(ctr.ctrId)">
+                <button class="btn ghost" type="button" (click)="downloadCtr(ctr.eventId ?? ctr.ctrId)">
                   Download
                 </button>
               </td>

@@ -554,6 +554,9 @@ public class DocumentService {
     			try (InputStream is = file.getInputStream()) {
     				Object parsed = pdfExtractionService.extractAndParse(is, documentType);
     				CreateCtrRequestPayload payload = (CreateCtrRequestPayload) parsed;
+    				pdfExtractionService.validateCtrPayload(payload);
+    				log.info("CTR PDF extraction: customerName={}, totalAmount={}, transactionTime={}",
+    						payload.customerName(), payload.totalAmount(), payload.transactionTime());
     				ctrId = complianceEventClient.createCtr(payload);
     			}
     			log.info("Created CTR record from PDF with ID: {}", ctrId);
@@ -568,6 +571,7 @@ public class DocumentService {
     			try (InputStream is = file.getInputStream()) {
     				Object parsed = pdfExtractionService.extractAndParse(is, documentType);
     				CreateSarRequestPayload payload = (CreateSarRequestPayload) parsed;
+    				pdfExtractionService.validateSarPayload(payload);
     				sarId = complianceEventClient.createSar(payload);
     			}
     			log.info("Created SAR record from PDF with ID: {}", sarId);

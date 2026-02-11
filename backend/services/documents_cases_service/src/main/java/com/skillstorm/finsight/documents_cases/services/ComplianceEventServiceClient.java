@@ -49,6 +49,11 @@ public class ComplianceEventServiceClient {
             }
             log.error("Compliance service error creating CTR: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new IllegalStateException("Failed to create CTR: " + e.getStatusCode() + " " + e.getResponseBodyAsString(), e);
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            String body = e.getResponseBodyAsString();
+            log.error("Compliance service 5xx creating CTR: {} {}", e.getStatusCode(), body);
+            String detail = parseDetailFromProblemDetail(body);
+            throw new IllegalStateException(detail != null ? detail : "Compliance service error (500). Check compliance service logs.", e);
         } catch (org.springframework.web.client.ResourceAccessException e) {
             log.error("Cannot reach compliance-event-service at {}: {}", baseUrl, e.getMessage());
             throw new IllegalStateException("Compliance service unavailable at " + baseUrl + ". " + e.getMessage(), e);
@@ -77,9 +82,24 @@ public class ComplianceEventServiceClient {
             }
             log.error("Compliance service error creating SAR: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new IllegalStateException("Failed to create SAR: " + e.getStatusCode() + " " + e.getResponseBodyAsString(), e);
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            String body = e.getResponseBodyAsString();
+            log.error("Compliance service 5xx creating SAR: {} {}", e.getStatusCode(), body);
+            String detail = parseDetailFromProblemDetail(body);
+            throw new IllegalStateException(detail != null ? detail : "Compliance service error (500). Check compliance service logs.", e);
         } catch (org.springframework.web.client.ResourceAccessException e) {
             log.error("Cannot reach compliance-event-service at {}: {}", baseUrl, e.getMessage());
             throw new IllegalStateException("Compliance service unavailable at " + baseUrl + ". " + e.getMessage(), e);
         }
+    }
+
+    private static String parseDetailFromProblemDetail(String jsonBody) {
+        if (jsonBody == null || jsonBody.isBlank()) return null;
+        int start = jsonBody.indexOf("\"detail\":\"");
+        if (start < 0) return null;
+        start += 10;
+        int end = jsonBody.indexOf("\"", start);
+        if (end < 0) return null;
+        return jsonBody.substring(start, end).replace("\\\"", "\"");
     }
 }

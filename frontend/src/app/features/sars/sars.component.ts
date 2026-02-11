@@ -32,7 +32,7 @@ export class SarsComponent {
     this.loading = true;
     this.error = null;
     this.complianceService.getEvents('SAR', 200).subscribe({
-      next: (list) => {
+      next: (list: ComplianceEventResponse[]) => {
         // Map SAR table template properties for compatibility
         this.sars = [...(list ?? [])]
           .map((e) => ({

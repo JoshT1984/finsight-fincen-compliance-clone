@@ -112,6 +112,50 @@ public class SuspectService {
     return toResponse(suspect);
   }
 
+  /**
+   * Finds a suspect by SSN (for compliance-event matching). Normalizes and hashes SSN, then looks up by hash.
+   * Returns empty if SSN is invalid or no suspect has that SSN.
+   */
+  @Transactional(readOnly = true)
+  public java.util.Optional<Long> findSuspectIdBySsn(String ssn) {
+    if (ssn == null || ssn.isBlank()) return java.util.Optional.empty();
+    try {
+      SsnHashUtil.validateSsn(ssn);
+    } catch (IllegalArgumentException e) {
+      log.debug("Invalid SSN for lookup: {}", e.getMessage());
+      return java.util.Optional.empty();
+    }
+    String hash = SsnHashUtil.hash(ssn);
+    if (hash == null) return java.util.Optional.empty();
+    return repo.findBySsnHash(hash).map(Suspect::getId);
+  }
+
+  /**
+   * Finds a suspect by SSN, or creates one with the given name and SSN if not found (for CTR/SAR upload flow).
+   * Intended for server-to-server calls from compliance-event-service. Creates with default risk level.
+   */
+  @Transactional
+  public long findOrCreateBySsnAndName(String ssn, String primaryName) {
+    if (ssn == null || ssn.isBlank()) {
+      throw new IllegalArgumentException("SSN is required for find-or-create");
+    }
+    SsnHashUtil.validateSsn(ssn);
+    String hash = SsnHashUtil.hash(ssn);
+    return repo.findBySsnHash(hash)
+        .map(Suspect::getId)
+        .orElseGet(() -> {
+          String name = (primaryName != null && !primaryName.isBlank()) ? primaryName : "Unknown";
+          if (name.length() > 256) name = name.substring(0, 256);
+          Suspect suspect = new Suspect();
+          suspect.setPrimaryName(name);
+          suspect.setSsn(ssn);
+          suspect.setRiskLevel(DEFAULT_RISK_LEVEL);
+          Suspect saved = repo.save(suspect);
+          log.info("Created suspect with ID: {} from SSN/name (find-or-create)", saved.getId());
+          return saved.getId();
+        });
+  }
+
   public List<SuspectResponse> findByOrganizationId(Long orgId) {
     log.debug("Retrieving suspects by organization ID: {}", orgId);
     return repo.findByOrganizationsOrganizationId(orgId).stream()

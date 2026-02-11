@@ -54,7 +54,7 @@ export class CtrsComponent {
     this.ctrsError = null;
 
     this.complianceService.getEvents('CTR', 200).subscribe({
-      next: (list) => {
+      next: (list: ComplianceEventResponse[]) => {
         this.ctrs = [...(list ?? [])].sort((a, b) =>
           (b.eventTime || '').localeCompare(a.eventTime || ''),
         );
