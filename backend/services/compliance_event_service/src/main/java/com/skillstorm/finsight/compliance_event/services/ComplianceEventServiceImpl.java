@@ -15,8 +15,10 @@ import com.skillstorm.finsight.compliance_event.dtos.ComplianceEventResponse;
 import com.skillstorm.finsight.compliance_event.dtos.CreateCtrRequest;
 import com.skillstorm.finsight.compliance_event.dtos.CreateSarRequest;
 import com.skillstorm.finsight.compliance_event.dtos.CtrDetailResponse;
+import com.skillstorm.finsight.compliance_event.emitters.ComplianceEventEmitter;
 import com.skillstorm.finsight.compliance_event.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.compliance_event.exceptions.ResourceNotFoundException;
+import com.skillstorm.finsight.compliance_event.loggers.ComplianceEventLog;
 import com.skillstorm.finsight.compliance_event.mappers.ComplianceEventMapper;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEventCtrDetail;
@@ -37,19 +39,21 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     private final ComplianceEventCtrDetailRepository ctrDetailRepository;
     private final SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository;
     private final ComplianceEventMapper mapper;
+    private final ComplianceEventEmitter complianceEventEmitter;
 
     public ComplianceEventServiceImpl(
             ComplianceEventRepository complianceEventRepository,
             ComplianceEventSarDetailRepository sarDetailRepository,
             ComplianceEventCtrDetailRepository ctrDetailRepository,
             SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository,
-            ComplianceEventMapper mapper) {
+            ComplianceEventMapper mapper, ComplianceEventEmitter complianceEventEmitter) {
 
         this.complianceEventRepository = complianceEventRepository;
         this.sarDetailRepository = sarDetailRepository;
         this.ctrDetailRepository = ctrDetailRepository;
         this.suspectSnapshotRepository = suspectSnapshotRepository;
         this.mapper = mapper;
+        this.complianceEventEmitter = complianceEventEmitter;
     }
 
     @Override
@@ -81,7 +85,18 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         sar.setActivityStart(request.activityStart());
         sar.setActivityEnd(request.activityEnd());
         sar.setFormData(request.formData() == null ? Map.of() : request.formData());
-        sarDetailRepository.save(sar);
+        ComplianceEventSarDetail saved = sarDetailRepository.save(sar);
+
+        // Emitting event log for SAR creation
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "COMPLIANCE_EVENT",
+                saved.getEventId().toString(),
+                "CREATED",
+                "USER",
+                "SAR_CREATED",
+                "SAR_CREATED:" + saved.getEventId(),
+                Map.of("eventType", "SAR", "sourceSystem", request.sourceSystem())));
 
         return mapper.toResponse(event);
     }
@@ -113,7 +128,18 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ctr.setCustomerName(request.customerName());
         ctr.setTransactionTime(request.transactionTime());
         ctr.setCtrFormData(request.ctrFormData() == null ? Map.of() : request.ctrFormData());
-        ctrDetailRepository.save(ctr);
+        ComplianceEventCtrDetail saved = ctrDetailRepository.save(ctr);
+
+        // Emitting event log for CTR creation
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "COMPLIANCE_EVENT",
+                saved.getEventId().toString(),
+                "CREATED",
+                "USER",
+                "CTR_CREATED",
+                "CTR_CREATED:" + saved.getEventId(),
+                Map.of("eventType", "CTR", "sourceSystem", request.sourceSystem())));
 
         return mapper.toResponse(event);
     }
@@ -174,7 +200,19 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         }
 
         event.setSuspectSnapshot(snapshot);
-        complianceEventRepository.save(event);
+        ComplianceEvent saved = complianceEventRepository.save(event);
+
+        // Emitting event log for linking event to suspect
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "COMPLIANCE_EVENT",
+                saved.getEventId().toString(),
+                "UPDATED",
+                "USER",
+                "EVENT_LINKED_TO_SUSPECT",
+                "EVENT_LINKED_TO_SUSPECT:" + saved.getEventId(),
+                Map.of("suspectId", snapshot.getSuspectId())));
+
         return mapper.toResponse(event);
     }
 
@@ -184,7 +222,19 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ComplianceEvent event = complianceEventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Compliance event not found: " + eventId));
         event.setSuspectSnapshot(null);
-        complianceEventRepository.save(event);
+        ComplianceEvent saved = complianceEventRepository.save(event);
+
+        // Emitting event log for delinking event to suspect
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "COMPLIANCE_EVENT",
+                saved.getEventId().toString(),
+                "UPDATED",
+                "USER",
+                "EVENT_DELINKED_FROM_SUSPECT",
+                "EVENT_DELINKED_FROM_SUSPECT:" + saved.getEventId(),
+                Map.of()));
+
         return mapper.toResponse(event);
     }
 
@@ -201,30 +251,25 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ComplianceEventCtrDetail detail = ctrDetailRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("CTR detail not found for event: " + eventId));
 
-        Map<String, Object> ctrFormData =
-                detail.getCtrFormData() == null ? Map.of() : detail.getCtrFormData();
+        Map<String, Object> ctrFormData = detail.getCtrFormData() == null ? Map.of() : detail.getCtrFormData();
 
         List<Long> contributingTxnIds = extractTxnIds(ctrFormData);
 
-        List<ComplianceEventResponse> priorCtrs =
-                complianceEventRepository
-                        .findByExternalSubjectKeyAndEventTypeOrderByEventTimeDesc(
-                                event.getExternalSubjectKey(),
-                                EventType.CTR
-                        )
-                        .stream()
-                        .filter(e -> !e.getEventId().equals(eventId)) // change to getEventId() if needed
-                        .map(mapper::toResponse)
-                        .toList();
+        List<ComplianceEventResponse> priorCtrs = complianceEventRepository
+                .findByExternalSubjectKeyAndEventTypeOrderByEventTimeDesc(
+                        event.getExternalSubjectKey(),
+                        EventType.CTR)
+                .stream()
+                .filter(e -> !e.getEventId().equals(eventId)) // change to getEventId() if needed
+                .map(mapper::toResponse)
+                .toList();
 
         return new CtrDetailResponse(
                 mapper.toResponse(event),
                 ctrFormData,
                 contributingTxnIds,
-                priorCtrs
-        );
+                priorCtrs);
     }
-
 
     @Override
     @Transactional
@@ -280,7 +325,8 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         sarDetail.setActivityStart(ctrEvent.getEventTime());
         sarDetail.setActivityEnd(ctrEvent.getEventTime());
 
-        // Seed SAR formData with CTR-derived info (can be expanded to match FIN-109 fields)
+        // Seed SAR formData with CTR-derived info (can be expanded to match FIN-109
+        // fields)
         Map<String, Object> seed = new java.util.HashMap<>();
         seed.put("fromCtrEventId", ctrEventId);
         seed.put("subjectKey", subjectKey);
@@ -292,7 +338,18 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         seed.put("contributingTxnIds", ctrFormData.getOrDefault("contributingTxnIds", List.of()));
         sarDetail.setFormData(seed);
 
-        sarDetailRepository.save(sarDetail);
+        ComplianceEventSarDetail saved = sarDetailRepository.save(sarDetail);
+
+        // Emitting event log for SAR creation
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "COMPLIANCE_EVENT",
+                saved.getEventId().toString(),
+                "CREATED",
+                "SYSTEM",
+                "SAR_AUTO_GENERATED_FROM_CTR",
+                "SAR_AUTO_GENERATED_FROM_CTR:" + saved.getEventId(),
+                Map.of("eventType", "SAR", "fromCtrEventId", ctrEventId, "sourceSystem", "AUTO_FROM_CTR")));
 
         return mapper.toResponse(sarEvent);
     }
@@ -300,7 +357,8 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     @SuppressWarnings("unchecked")
     private List<Long> extractTxnIds(Map<String, Object> ctrFormData) {
         Object raw = ctrFormData.get("contributingTxnIds");
-        if (raw == null) return List.of();
+        if (raw == null)
+            return List.of();
 
         if (raw instanceof List<?> list) {
             return list.stream()

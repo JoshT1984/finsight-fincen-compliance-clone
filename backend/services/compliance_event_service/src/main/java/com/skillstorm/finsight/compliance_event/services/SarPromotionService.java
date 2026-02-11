@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillstorm.finsight.compliance_event.emitters.ComplianceEventEmitter;
+import com.skillstorm.finsight.compliance_event.loggers.ComplianceEventLog;
 import com.skillstorm.finsight.compliance_event.models.AuditAction;
 import com.skillstorm.finsight.compliance_event.models.AuditActionType;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
@@ -34,18 +36,21 @@ public class SarPromotionService {
     private final ComplianceEventLinkRepository linkRepo;
     private final AuditActionRepository auditRepo;
     private final ObjectMapper objectMapper;
+    private final ComplianceEventEmitter complianceEventEmitter;
 
     public SarPromotionService(
             ComplianceEventRepository eventRepo,
             ComplianceEventSarDetailRepository sarDetailRepo,
             ComplianceEventLinkRepository linkRepo,
             AuditActionRepository auditRepo,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            ComplianceEventEmitter complianceEventEmitter) {
         this.eventRepo = eventRepo;
         this.sarDetailRepo = sarDetailRepo;
         this.linkRepo = linkRepo;
         this.auditRepo = auditRepo;
         this.objectMapper = objectMapper;
+        this.complianceEventEmitter = complianceEventEmitter;
     }
 
     @Transactional
@@ -146,6 +151,24 @@ public class SarPromotionService {
         log.info("Auto-generated SAR eventId={} from CTR eventId={} score={}",
                 savedSar.getEventId(), ctr.getEventId(), score.score());
 
+        // Emitting event for logging
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("sourceEventType", "CTR");
+        metadata.put("sourceEventId", ctr.getEventId());
+        metadata.put("suspicionScore", score.score());
+        metadata.put("suspicionBand", score.band());
+        metadata.put("drivers", score.drivers());
+
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "SAR",
+                savedSar.getEventId().toString(),
+                "CREATED",
+                "SYSTEM",
+                "SAR_AUTO_GENERATED_FROM_CTR",
+                sarIdem,
+                metadata));
+
         return savedSar;
     }
 
@@ -164,6 +187,20 @@ public class SarPromotionService {
 
         a.setIdempotencyKey(idem);
         auditRepo.save(a);
+        Map<String, Object> metadata = Map.of(
+                "suspicionScore", score.score(),
+                "suspicionBand", score.band(),
+                "drivers", score.drivers());
+
+        complianceEventEmitter.emit(new ComplianceEventLog(
+                Instant.now(),
+                "CTR",
+                ctr.getEventId().toString(),
+                "UPDATED",
+                "SYSTEM",
+                "CTR_FLAGGED_FOR_ANALYST_REVIEW",
+                "CTR:" + ctr.getEventId() + ":FLAGGED",
+                metadata));
     }
 
     private AuditAction audit(ComplianceEvent event, String action, Map<String, Object> metadata) {
