@@ -20,6 +20,8 @@ import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictExcep
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
 import com.skillstorm.finsight.suspect_registry.models.Address;
 import com.skillstorm.finsight.suspect_registry.models.AddressType;
+import com.skillstorm.finsight.suspect_registry.models.Alias;
+import com.skillstorm.finsight.suspect_registry.models.AliasType;
 import com.skillstorm.finsight.suspect_registry.models.Organization;
 import com.skillstorm.finsight.suspect_registry.models.RiskLevel;
 import com.skillstorm.finsight.suspect_registry.models.Suspect;
@@ -28,6 +30,7 @@ import com.skillstorm.finsight.suspect_registry.models.SuspectAddressId;
 import com.skillstorm.finsight.suspect_registry.models.SuspectOrganization;
 import com.skillstorm.finsight.suspect_registry.models.SuspectOrganizationId;
 import com.skillstorm.finsight.suspect_registry.repositories.AddressRepository;
+import com.skillstorm.finsight.suspect_registry.repositories.AliasRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.OrganizationRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectAddressRepository;
 import com.skillstorm.finsight.suspect_registry.repositories.SuspectOrganizationRepository;
@@ -47,15 +50,19 @@ public class SuspectService {
   private final SuspectAddressRepository suspectAddressRepo;
   private final OrganizationRepository orgRepo;
   private final AddressRepository addressRepo;
+  private final AliasRepository aliasRepo;
+  private final AddressService addressService;
 
   public SuspectService(SuspectRepository repo, SuspectOrganizationRepository suspectOrgRepo,
       SuspectAddressRepository suspectAddressRepo, OrganizationRepository orgRepo,
-      AddressRepository addressRepo) {
+      AddressRepository addressRepo, AliasRepository aliasRepo, AddressService addressService) {
     this.repo = repo;
     this.suspectOrgRepo = suspectOrgRepo;
     this.suspectAddressRepo = suspectAddressRepo;
     this.orgRepo = orgRepo;
     this.addressRepo = addressRepo;
+    this.aliasRepo = aliasRepo;
+    this.addressService = addressService;
   }
 
   private SuspectResponse toResponse(Suspect suspect) {
@@ -110,6 +117,70 @@ public class SuspectService {
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
     
     return toResponse(suspect);
+  }
+
+  /**
+   * Finds a suspect by SSN (for compliance-event matching). Normalizes and hashes SSN, then looks up by hash.
+   * Returns empty if SSN is invalid or no suspect has that SSN.
+   */
+  @Transactional(readOnly = true)
+  public java.util.Optional<Long> findSuspectIdBySsn(String ssn) {
+    if (ssn == null || ssn.isBlank()) return java.util.Optional.empty();
+    try {
+      SsnHashUtil.validateSsn(ssn);
+    } catch (IllegalArgumentException e) {
+      log.debug("Invalid SSN for lookup: {}", e.getMessage());
+      return java.util.Optional.empty();
+    }
+    String hash = SsnHashUtil.hash(ssn);
+    if (hash == null) return java.util.Optional.empty();
+    return repo.findBySsnHash(hash).map(Suspect::getId);
+  }
+
+  /**
+   * Finds a suspect by SSN, or creates one with the given name and SSN if not found (for CTR/SAR upload flow).
+   * Intended for server-to-server calls from compliance-event-service. Creates with default risk level.
+   */
+  /**
+   * Finds a suspect by SSN, or creates one with the given name and SSN if not found (for CTR/SAR upload flow).
+   * When an existing suspect is found by SSN and the form name differs from the suspect's primary name,
+   * the form name is added as an alias (AKA) so analysts can match suspects across documents.
+   */
+  @Transactional
+  public long findOrCreateBySsnAndName(String ssn, String primaryName) {
+    if (ssn == null || ssn.isBlank()) {
+      throw new IllegalArgumentException("SSN is required for find-or-create");
+    }
+    SsnHashUtil.validateSsn(ssn);
+    String hash = SsnHashUtil.hash(ssn);
+    java.util.Optional<Suspect> existing = repo.findBySsnHash(hash);
+    if (existing.isPresent()) {
+      Suspect s = existing.get();
+      long id = s.getId();
+      if (primaryName != null && !primaryName.isBlank()) {
+        String formName = primaryName.trim();
+        String currentPrimary = s.getPrimaryName() != null ? s.getPrimaryName().trim() : "";
+        if (!formName.equalsIgnoreCase(currentPrimary) && aliasRepo.findBySuspectIdAndAliasName(id, formName).isEmpty()) {
+          Alias alias = new Alias();
+          alias.setSuspect(s);
+          alias.setAliasName(formName.length() > 256 ? formName.substring(0, 256) : formName);
+          alias.setAliasType(AliasType.AKA);
+          alias.setPrimary(false);
+          aliasRepo.save(alias);
+          log.info("Added alias '{}' for suspect ID: {} (name from CTR/SAR differed from primary)", formName, id);
+        }
+      }
+      return id;
+    }
+    String name = (primaryName != null && !primaryName.isBlank()) ? primaryName : "Unknown";
+    if (name.length() > 256) name = name.substring(0, 256);
+    Suspect suspect = new Suspect();
+    suspect.setPrimaryName(name);
+    suspect.setSsn(ssn);
+    suspect.setRiskLevel(DEFAULT_RISK_LEVEL);
+    Suspect saved = repo.save(suspect);
+    log.info("Created suspect with ID: {} from SSN/name (find-or-create)", saved.getId());
+    return saved.getId();
   }
 
   public List<SuspectResponse> findByOrganizationId(Long orgId) {
@@ -214,6 +285,26 @@ public class SuspectService {
     suspectAddressRepo.save(link);
     log.info("Linked address {} to suspect {}", request.addressId(), suspectId);
     return toResponse(repo.findById(suspectId).orElseThrow());
+  }
+
+  /**
+   * Ensures an address from a CTR/SAR form is linked to the suspect (find-or-create address, then link).
+   * Used by compliance-event-service when a CTR/SAR is uploaded with parsed address data.
+   */
+  @Transactional
+  public void ensureAddressLinked(Long suspectId, String line1, String line2, String city, String state, String postalCode, String country) {
+    if (line1 == null || line1.isBlank() || city == null || city.isBlank() || country == null || country.isBlank()) {
+      return;
+    }
+    Suspect suspect = repo.findById(suspectId)
+        .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
+    Address address = addressService.findOrCreateByComponents(line1, line2, city, state, postalCode, country);
+    if (suspectAddressRepo.existsById(new SuspectAddressId(suspectId, address.getId()))) {
+      return;
+    }
+    SuspectAddress link = new SuspectAddress(suspect, address, DEFAULT_ADDRESS_TYPE, true, Instant.now());
+    suspectAddressRepo.save(link);
+    log.info("Linked address from form to suspect {} (address ID: {})", suspectId, address.getId());
   }
 
   @Transactional

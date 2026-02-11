@@ -1,6 +1,8 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+
+import { environment } from '../../../environment/environment';
 
 import {
   TransactionService,
@@ -10,14 +12,26 @@ import {
 type Option<T extends string = string> = { value: T; label: string };
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error';
 
+type GeoapifyFeature = {
+  properties: {
+    formatted: string;
+    lat?: number;
+    lon?: number;
+  };
+};
+
+type GeoapifyResponse = {
+  features?: GeoapifyFeature[];
+};
+
 @Component({
   selector: 'app-transaction-form',
   standalone: true,
   imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './transaction-form.component.html',
-  styleUrls: ['./transaction-form.component.css'],
+  styleUrl: './transaction-form.component.css',
 })
-export class TransactionFormComponent {
+export class TransactionFormComponent implements OnInit, OnDestroy {
   @Output() cancel = new EventEmitter<void>();
 
   /**
@@ -59,27 +73,14 @@ export class TransactionFormComponent {
     { value: 'TELLER', label: 'Teller' },
   ];
 
-  locations: Option[] = [
-    { value: 'Austin TX', label: 'Austin TX' },
-    { value: 'Dallas TX', label: 'Dallas TX' },
-    { value: 'Houston TX', label: 'Houston TX' },
-    { value: 'Branch 0142', label: 'Branch 0142' },
+  // --- Location autocomplete UI state ---
+  locationSuggestions: GeoapifyFeature[] = [];
+  locationLoading = false;
+  locationErrorMsg: string | null = null;
+  private locationDebounceHandle: any | null = null;
 
-    // High-risk geography keywords (used by backend suspicion scoring)
-    { value: 'Panama', label: 'Panama (high risk)' },
-    { value: 'Cayman', label: 'Cayman (high risk)' },
-    { value: 'Bvi', label: 'BVI, British Virgin Islands (high risk)' },
-    { value: 'British Virgin', label: 'British Virgin (high risk)' },
-    { value: 'Macau', label: 'Macau (high risk)' },
-    { value: 'Hong Kong', label: 'Hong Kong (high risk)' },
-    { value: 'Dubai', label: 'Dubai (high risk)' },
-    { value: 'Uae', label: 'UAE, United Arab Emirates (high risk)' },
-    { value: 'Cyprus', label: 'Cyprus (high risk)' },
-    { value: 'Malta', label: 'Malta (high risk)' },
-
-    // Address anomaly options (used by backend suspicion scoring)
-    { value: 'No known address', label: 'No known address' },
-  ];
+  /** Keep the raw Geoapify key in one place. */
+  private readonly geoapifyApiKey: string = environment.geoapifyApiKey;
 
   constructor(
     private fb: FormBuilder,
@@ -103,6 +104,128 @@ export class TransactionFormComponent {
     this.applyDefaults();
     this.setupDerivedFields();
   }
+
+  /* =========================
+     Modal scroll lock
+     ========================= */
+
+  ngOnInit(): void {
+    document.body.classList.add('modal-open');
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
+  }
+
+  /* =========================
+     Location autocomplete
+     ========================= */
+
+  // Called from the template on every keystroke.
+  // We debounce the Geoapify request to avoid spamming the API.
+  onLocationInput(raw: string): void {
+    // Keep form control in sync
+    this.form.patchValue({ location: raw }, { emitEvent: false });
+
+    // reset submit state if user changes payload
+    if (this.submitState !== 'idle') {
+      this.submitState = 'idle';
+      this.submitErrorMsg = null;
+    }
+
+    this.locationErrorMsg = null;
+    const q = (raw || '').trim();
+
+    if (this.locationDebounceHandle) {
+      clearTimeout(this.locationDebounceHandle);
+      this.locationDebounceHandle = null;
+    }
+
+    // Short queries: clear suggestions and stop.
+    if (!q || q.length < 2) {
+      this.locationSuggestions = [];
+      this.locationLoading = false;
+      return;
+    }
+
+    this.locationDebounceHandle = setTimeout(() => {
+      this.fetchGeoapifySuggestions(q);
+    }, 250);
+  }
+
+  onLocationFocus(): void {
+    // If user focuses and already has text, show suggestions again.
+    const q = String(this.form.get('location')?.value || '').trim();
+    if (q.length >= 2 && this.locationSuggestions.length === 0) {
+      this.fetchGeoapifySuggestions(q);
+    }
+  }
+
+  onLocationBlur(): void {
+    // Allow click on a suggestion before hiding.
+    setTimeout(() => {
+      this.locationSuggestions = [];
+      this.locationLoading = false;
+    }, 120);
+  }
+
+  selectLocation(formatted: string): void {
+    this.form.patchValue({ location: formatted }, { emitEvent: false });
+    this.locationSuggestions = [];
+    this.locationLoading = false;
+    this.locationErrorMsg = null;
+
+    // reset submit state if user changes payload
+    if (this.submitState !== 'idle') {
+      this.submitState = 'idle';
+      this.submitErrorMsg = null;
+    }
+  }
+
+  private async fetchGeoapifySuggestions(query: string): Promise<void> {
+    const apiKey = String(this.geoapifyApiKey || '').trim();
+    if (!apiKey || apiKey === 'YOUR_GEOAPIFY_KEY') {
+      // Dev-friendly message; don't block typing.
+      this.locationErrorMsg =
+        'Geoapify API key not set. Add it in src/environment/environment.ts (geoapifyApiKey).';
+      this.locationSuggestions = [];
+      this.locationLoading = false;
+      return;
+    }
+
+    try {
+      this.locationLoading = true;
+
+      const url =
+        'https://api.geoapify.com/v1/geocode/autocomplete' +
+        `?text=${encodeURIComponent(query)}` +
+        `&limit=6` +
+        `&apiKey=${encodeURIComponent(apiKey)}`;
+
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Geoapify error: HTTP ${res.status}`);
+      }
+
+      const data = (await res.json()) as GeoapifyResponse;
+      this.locationSuggestions = (data.features || []).filter((f) => !!f?.properties?.formatted);
+      this.locationLoading = false;
+    } catch (e: any) {
+      console.error(e);
+      this.locationLoading = false;
+      this.locationSuggestions = [];
+      this.locationErrorMsg =
+        e?.message ?? 'Failed to fetch location suggestions. Please try again.';
+    }
+  }
+
+  /* =========================
+     Submit flow + helpers
+     ========================= */
 
   get isSubmitting(): boolean {
     return this.submitState === 'submitting';

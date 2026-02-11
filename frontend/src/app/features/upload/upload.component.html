@@ -13,6 +13,12 @@
         <div class="notice-content">
           <strong>Upload successful</strong>
           <p>{{ success.fileName }} has been uploaded.</p>
+          @if (success.documentType === 'CTR' && success.ctrId != null) {
+            <p>CTR #{{ success.ctrId }} was created from the PDF. <a routerLink="/ctrs">View CTRs</a> to see it in the list.</p>
+          }
+          @if (success.documentType === 'SAR' && success.sarId != null) {
+            <p>SAR #{{ success.sarId }} was created from the PDF. <a routerLink="/sars">View SARs</a> to see it in the list.</p>
+          }
         </div>
       </div>
     }
@@ -147,7 +153,17 @@
               <span class="notice-icon" aria-hidden="true">!</span>
               <div class="notice-content">
                 <div class="notice-title">Upload failed</div>
-                <div class="notice-body">{{ error }}</div>
+                <div class="notice-body">
+                  @if (validationErrors && validationErrors.length) {
+                    <ul class="validation-errors">
+                      @for (msg of validationErrors; track msg) {
+                        <li>{{ msg }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    {{ error }}
+                  }
+                </div>
               </div>
             </div>
           }

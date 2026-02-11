@@ -102,6 +102,19 @@
   color: #991b1b;
 }
 
+.notice-body .validation-errors {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.notice-body .validation-errors li {
+  margin-bottom: 0.35rem;
+}
+
+.notice-body .validation-errors li:last-child {
+  margin-bottom: 0;
+}
+
 /* Upload card stays as the focal element, but no page level background */
 .upload-card {
   border-radius: var(--radius);
