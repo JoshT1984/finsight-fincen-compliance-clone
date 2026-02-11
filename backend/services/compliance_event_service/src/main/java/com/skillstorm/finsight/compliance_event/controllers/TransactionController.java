@@ -4,6 +4,11 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -32,6 +37,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/transactions")
 public class TransactionController {
 
+  private static final Logger log = LoggerFactory.getLogger(TransactionController.class);
+
   private final CashTransactionRepository repo;
   private final CashTransactionMapper mapper;
   private final CtrGenerationService ctrGenerationService;
@@ -49,22 +56,46 @@ public class TransactionController {
   public Page<TransactionResponse> list(
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "50") int size) {
-    // Keep this lightweight: newest first
-    var pageable = PageRequest.of(page, Math.min(size, 500), Sort.by(Sort.Direction.DESC, "txnTime"));
+
+    var pageable = PageRequest.of(
+        page,
+        Math.min(size, 500),
+        Sort.by(Sort.Direction.DESC, "txnTime"));
+
     return repo.findAll(pageable).map(mapper::toResponse);
   }
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public TransactionResponse create(@Valid @RequestBody CreateTransactionRequest request) {
+
     CashTransaction entity = mapper.toEntity(request);
     CashTransaction saved = repo.save(entity);
 
-    // Derive subjectKey and day from saved transaction
-    java.time.LocalDate day = saved.getTxnTime().atZone(java.time.ZoneOffset.UTC).toLocalDate();
+    log.info("Transaction saved -> txnId={} extKey={} source={}:{}:{} time={} cashIn={} cashOut={}",
+        saved.getTxnId(),
+        saved.getExternalSubjectKey(),
+        saved.getSourceSystem(),
+        saved.getSourceSubjectType(),
+        saved.getSourceSubjectId(),
+        saved.getTxnTime(),
+        saved.getCashIn(),
+        saved.getCashOut());
+
+    // Derive subjectKey
     String subjectKey = (saved.getExternalSubjectKey() != null && !saved.getExternalSubjectKey().isBlank())
         ? saved.getExternalSubjectKey()
-        : String.format("%s:%s:%s", saved.getSourceSystem(), saved.getSourceSubjectType(), saved.getSourceSubjectId());
+        : String.format("%s:%s:%s",
+            saved.getSourceSystem(),
+            saved.getSourceSubjectType(),
+            saved.getSourceSubjectId());
+
+    // Derive UTC day window
+    LocalDate day = saved.getTxnTime()
+        .atZone(ZoneOffset.UTC)
+        .toLocalDate();
+
+    log.info("CTR trigger -> subjectKey={} day(UTC)={}", subjectKey, day);
 
     // Emit event for real-time processing
     String trigger = SecurityContextHolder.getContext().getAuthentication() != null
@@ -93,11 +124,13 @@ public class TransactionController {
 
     try {
       int created = ctrGenerationService.generateForSubjectDay(subjectKey, day);
-      org.slf4j.LoggerFactory.getLogger(TransactionController.class)
-          .info("CTR generation attempt subjectKey={}, day={}, created={}", subjectKey, day, created);
+
+      log.info("CTR result -> subjectKey={} day(UTC)={} created={}",
+          subjectKey, day, created);
+
     } catch (Exception e) {
-      org.slf4j.LoggerFactory.getLogger(TransactionController.class)
-          .warn("CTR generation failed (non-fatal) subjectKey={}, day={} : {}", subjectKey, day, e.getMessage(), e);
+      log.error("CTR generation FAILED -> subjectKey={} day(UTC)={}",
+          subjectKey, day, e);
     }
 
     return mapper.toResponse(saved);

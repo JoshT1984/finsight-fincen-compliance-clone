@@ -64,6 +64,21 @@ export class TransactionFormComponent {
     { value: 'Dallas TX', label: 'Dallas TX' },
     { value: 'Houston TX', label: 'Houston TX' },
     { value: 'Branch 0142', label: 'Branch 0142' },
+
+    // High-risk geography keywords (used by backend suspicion scoring)
+    { value: 'Panama', label: 'Panama (high risk)' },
+    { value: 'Cayman', label: 'Cayman (high risk)' },
+    { value: 'Bvi', label: 'BVI, British Virgin Islands (high risk)' },
+    { value: 'British Virgin', label: 'British Virgin (high risk)' },
+    { value: 'Macau', label: 'Macau (high risk)' },
+    { value: 'Hong Kong', label: 'Hong Kong (high risk)' },
+    { value: 'Dubai', label: 'Dubai (high risk)' },
+    { value: 'Uae', label: 'UAE, United Arab Emirates (high risk)' },
+    { value: 'Cyprus', label: 'Cyprus (high risk)' },
+    { value: 'Malta', label: 'Malta (high risk)' },
+
+    // Address anomaly options (used by backend suspicion scoring)
+    { value: 'No known address', label: 'No known address' },
   ];
 
   constructor(

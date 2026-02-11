@@ -29,6 +29,7 @@ public class CtrGenerationService {
     private final CashTransactionRepository txnRepo;
     private final ComplianceEventRepository eventRepo;
     private final ComplianceEventCtrDetailRepository ctrDetailRepo;
+    private final SarPromotionService sarPromotionService;
 
     private final ComplianceEventEmitter complianceEmitter;
 
@@ -39,10 +40,13 @@ public class CtrGenerationService {
             CashTransactionRepository txnRepo,
             ComplianceEventRepository eventRepo,
             ComplianceEventCtrDetailRepository ctrDetailRepo,
-            @NonNull CtrGenerationMapper mapper, ComplianceEventEmitter complianceEmitter) {
+            SarPromotionService sarPromotionService,
+            ComplianceEventEmitter complianceEmitter
+            @NonNull CtrGenerationMapper mapper) {
         this.txnRepo = txnRepo;
         this.eventRepo = eventRepo;
         this.ctrDetailRepo = ctrDetailRepo;
+        this.sarPromotionService = sarPromotionService;
         this.mapper = mapper;
         this.complianceEmitter = complianceEmitter;
     }
@@ -61,7 +65,25 @@ public class CtrGenerationService {
             LocalDate day = row.getTxnDay();
             String idem = "CTR:" + subjectKey + ":" + day;
 
-            if (eventRepo.findByIdempotencyKey(idem).isPresent()) {
+            var existingOpt = eventRepo.findByIdempotencyKey(idem);
+            if (existingOpt.isPresent()) {
+                // CTR immutable, but promotion can still be evaluated using latest day signals
+                ComplianceEvent existingCtr = existingOpt.get();
+
+                Instant dayStart = day.atStartOfDay(ZoneOffset.UTC).toInstant();
+                Instant dayEnd = day.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+                var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
+                var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
+                var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
+
+                var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals,
+                        windowSignals);
+
+                log.info("CTR already exists for subjectKey={}, day={}. Re-evaluating SAR promotion with score={}",
+                        subjectKey, day, scoreResult.score());
+
+                sarPromotionService.promoteFromCtr(existingCtr, scoreResult);
                 continue;
             }
 
@@ -72,7 +94,7 @@ public class CtrGenerationService {
             var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
             var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
 
-            var scoreResult = CtrSuspicionScoring.score(row, daySignals, windowSignals);
+            var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals, windowSignals);
 
             ComplianceEvent event = mapper.toCtrEvent(
                     row.getSubjectKey(),
@@ -84,6 +106,7 @@ public class CtrGenerationService {
 
             ComplianceEvent saved = eventRepo.save(event);
 
+            //Emits the event for logging purposes.
             complianceEmitter.emit(
                     ComplianceEventLog.ctrCreated(saved.getEventId().toString(), idem, "CTR_GENERATION",
                             Map.of(
@@ -102,12 +125,13 @@ public class CtrGenerationService {
                     scoreResult.band(),
                     scoreResult.drivers());
 
-            // eventType is DB-defaulted and insertable=false, so it may be null in-memory
-            // pre-flush.
             log.info("Saving CTR detail for eventId={}, subjectKey={}, day={}, score={}",
                     saved.getEventId(), subjectKey, day, scoreResult.score());
 
             ctrDetailRepo.save(detail);
+
+            // CTR -> SAR promotion thresholds
+            sarPromotionService.promoteFromCtr(saved, scoreResult);
 
             created++;
         }
@@ -127,8 +151,25 @@ public class CtrGenerationService {
         for (CtrAggregationRow row : rows) {
             String idem = "CTR:" + subjectKey + ":" + day;
 
-            if (eventRepo.findByIdempotencyKey(idem).isPresent()) {
-                // CTR already exists for this subject/day, skip (do not throw)
+            var existingOpt = eventRepo.findByIdempotencyKey(idem);
+            if (existingOpt.isPresent()) {
+                // CTR is immutable, but we still evaluate promotion using the latest day
+                // signals
+                ComplianceEvent existingCtr = existingOpt.get();
+
+                var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
+                var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
+                var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
+
+                var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals,
+                        windowSignals);
+
+                log.info("CTR already exists for subjectKey={}, day={}. Re-evaluating SAR promotion with score={}",
+                        subjectKey, day, scoreResult.score());
+
+                sarPromotionService.promoteFromCtr(existingCtr, scoreResult);
+
+                // No CTR created
                 continue;
             }
 
@@ -136,7 +177,7 @@ public class CtrGenerationService {
             var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
             var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
 
-            var scoreResult = CtrSuspicionScoring.score(row, daySignals, windowSignals);
+            var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals, windowSignals);
 
             ComplianceEvent event = mapper.toCtrEvent(
                     row.getSubjectKey(),
@@ -171,9 +212,56 @@ public class CtrGenerationService {
 
             ctrDetailRepo.save(detail);
 
+            // CTR -> SAR promotion thresholds
+            sarPromotionService.promoteFromCtr(saved, scoreResult);
+
             created++;
         }
 
         return created;
+    }
+
+    private CtrSuspicionScoring.ScoreResult scoreWithExternalSignals(
+            String subjectKey,
+            CtrAggregationRow row,
+            Instant dayStart,
+            Instant dayEnd,
+            com.skillstorm.finsight.compliance_event.repositories.CtrRiskSignalsRow daySignals,
+            com.skillstorm.finsight.compliance_event.repositories.CtrRiskSignalsRow windowSignals) {
+
+        // Velocity baseline: previous 30 days average daily cash total
+        Instant baselineStart = dayStart.minus(java.time.Duration.ofDays(30));
+        java.math.BigDecimal baselineAvg = null;
+
+        try {
+            baselineAvg = txnRepo.avgDailyCashTotalForSubject(subjectKey, baselineStart, dayStart);
+        } catch (Exception ignored) {
+            // Non-fatal: scoring falls back
+        }
+
+        boolean highRiskGeo = false;
+        boolean addressMismatch = false;
+
+        try {
+            var locations = txnRepo.distinctLocationsForSubjectDay(subjectKey, dayStart, dayEnd);
+
+            // High-risk geography keyword match
+            highRiskGeo = HighRiskGeography.isHighRisk(locations);
+
+            // Address anomaly from dropdown keywords
+            addressMismatch = AddressAnomaly.isUnknownOrMissing(locations);
+
+        } catch (Exception ignored) {
+            // Non-fatal
+        }
+
+        var external = new CtrSuspicionScoring.ExternalSignals(
+                addressMismatch, // +25 if true
+                false, // linkedAccounts (future wiring)
+                highRiskGeo, // +25 if true
+                baselineAvg // velocity spike calculation
+        );
+
+        return CtrSuspicionScoring.score(row, daySignals, windowSignals, external);
     }
 }
