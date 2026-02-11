@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +16,15 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitMQConfig.class);
+
+    /**
+     * Use JSON for message bodies so DocumentUploadEvent (and other POJOs) are serialized
+     * instead of requiring Serializable (SimpleMessageConverter).
+     */
+    @Bean
+    public MessageConverter jsonMessageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
 
     @Value("${finsight.rabbitmq.queues.ctr-events:finsight.ctr.events}")
     private String ctrEventsQueue;

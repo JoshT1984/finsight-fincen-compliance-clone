@@ -94,6 +94,21 @@ public class GlobalExceptionHandler {
         pd.setProperty("path", request.getRequestURI());
         return pd;
     }
+
+	/**
+	 * Handles document validation errors (e.g. missing name, amount, or date in CTR/SAR PDF).
+	 * Returns 400 with detail as a single message and optional "errors" list for the UI.
+	 */
+	@ExceptionHandler(DocumentValidationException.class)
+	public ProblemDetail handleDocumentValidation(DocumentValidationException ex, HttpServletRequest request) {
+		log.warn("Document validation failed: {}", ex.getErrors());
+		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+		pd.setTitle("Document validation failed");
+		pd.setDetail(String.join(" ", ex.getErrors()));
+		pd.setProperty("path", request.getRequestURI());
+		pd.setProperty("errors", ex.getErrors());
+		return pd;
+	}
 	
 	/**
 	 * Handles DataIntegrityViolationException (e.g., foreign key violations) by returning an HTTP 400 response.
@@ -153,5 +168,20 @@ public class GlobalExceptionHandler {
 		pd.setProperty("path", request.getRequestURI());
 		return pd;
 	}
-	
+
+	/**
+	 * Handles RuntimeException (e.g. from upload: IOException, IllegalStateException from compliance client).
+	 * Logs full stack trace to the log file so you can debug when the console switches away.
+	 */
+	@ExceptionHandler(RuntimeException.class)
+	public ProblemDetail handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
+		log.error("Request failed: {} {}", request.getMethod(), request.getRequestURI(), ex);
+		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+		pd.setTitle("Request Failed");
+		String detail = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+		if (detail == null) detail = "An unexpected error occurred. Check server logs for details.";
+		pd.setDetail(detail);
+		pd.setProperty("path", request.getRequestURI());
+		return pd;
+	}
 }

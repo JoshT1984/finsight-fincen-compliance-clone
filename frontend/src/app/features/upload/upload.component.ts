@@ -35,6 +35,8 @@ export class UploadComponent implements OnInit, OnDestroy {
   selectedFile: File | null = null;
   loading = false;
   error: string | null = null;
+  /** When present, show as bullet list (e.g. document validation errors). */
+  validationErrors: string[] | null = null;
   success: DocumentResponse | null = null;
 
   ctrOptions: ComplianceEventOption[] = [];
@@ -67,6 +69,7 @@ export class UploadComponent implements OnInit, OnDestroy {
     this.sarId = null;
     this.caseId = null;
     this.error = null;
+    this.validationErrors = null;
     this.optionsError = null;
     this.loadOptions();
   }
@@ -148,6 +151,7 @@ export class UploadComponent implements OnInit, OnDestroy {
     const file = input.files?.[0];
     this.selectedFile = file ?? null;
     this.error = null;
+    this.validationErrors = null;
     this.success = null;
   }
 
@@ -166,6 +170,7 @@ export class UploadComponent implements OnInit, OnDestroy {
 
     this.loading = true;
     this.error = null;
+    this.validationErrors = null;
     this.success = null;
 
     const ctrIdToUse = this.documentType === 'CTR' && this.ctrMode === 'new' ? null : this.ctrId;
@@ -186,7 +191,8 @@ export class UploadComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         },
         error: (err: any) => {
-          this.error = err?.error?.message || err?.message || 'Upload failed. Please try again.';
+          this.validationErrors = Array.isArray(err?.error?.errors) ? err.error.errors : null;
+          this.error = err?.error?.detail || err?.error?.message || err?.message || 'Upload failed. Please try again.';
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -205,6 +211,8 @@ export class UploadComponent implements OnInit, OnDestroy {
   reset(fileInput?: HTMLInputElement): void {
     this.selectedFile = null;
     this.error = null;
+    this.validationErrors = null;
+    this.validationErrors = null;
     this.success = null;
 
     this.ctrMode = 'new';

@@ -221,7 +221,8 @@ public class GlobalExceptionHandler {
 
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         pd.setTitle("Internal Server Error");
-        pd.setDetail("An unexpected error occurred.");
+        String message = ex.getMessage();
+        pd.setDetail(message != null && !message.isBlank() ? message : "An unexpected error occurred.");
         pd.setProperty("path", request.getRequestURI());
         return pd;
     }
