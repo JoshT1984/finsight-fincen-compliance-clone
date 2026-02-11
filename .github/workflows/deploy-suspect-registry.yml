@@ -1,0 +1,98 @@
+name: Deploy Suspect Registry Service to ECS
+
+on:
+    push:
+        branches:
+            - FinSight-Dev
+        paths:
+            - 'backend/services/suspect_registry_service/**'
+            - '.github/workflows/deploy-suspect-registry.yml'
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        env:
+            AWS_REGION: us-east-1
+            ECR_REPOSITORY: finsight/suspect-registry
+            ECS_CLUSTER: finsight-dev
+            ECS_SERVICE: finsight-suspect-registry
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up JDK 17
+              uses: actions/setup-java@v4
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Log deploy context
+              run: |
+                  set -e
+                  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) || { echo "ERROR: Failed to get AWS account ID. Check IAM credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)."; exit 1; }
+                  ECR_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest"
+                  echo "=== Deploy context ==="
+                  echo "AWS_ACCOUNT_ID: ${AWS_ACCOUNT_ID}"
+                  echo "AWS_REGION: ${AWS_REGION}"
+                  echo "ECR_REPOSITORY: ${ECR_REPOSITORY}"
+                  echo "ECR_IMAGE_URI: ${ECR_IMAGE_URI}"
+                  echo "ECS_CLUSTER: ${ECS_CLUSTER}"
+                  echo "ECS_SERVICE: ${ECS_SERVICE}"
+                  echo "================================"
+
+            - name: Log in to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build Docker image
+              run: |
+                  set -e
+                  echo "Building image for suspect_registry_service (tag: ${ECR_REPOSITORY}:latest)..."
+                  cd backend/services/suspect_registry_service || { echo "ERROR: Directory backend/services/suspect_registry_service not found. Check repo structure and paths."; exit 1; }
+                  docker build -t $ECR_REPOSITORY:latest . || { echo "ERROR: Docker build failed. Check Dockerfile and source in backend/services/suspect_registry_service."; exit 1; }
+                  echo "Docker image built successfully."
+
+            - name: Tag Docker image
+              run: |
+                  set -e
+                  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) || { echo "ERROR: Failed to get AWS account ID."; exit 1; }
+                  ECR_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest"
+                  echo "Tagging image as: ${ECR_IMAGE_URI}"
+                  docker tag $ECR_REPOSITORY:latest "$ECR_IMAGE_URI" || { echo "ERROR: Docker tag failed. Image may not have been built."; exit 1; }
+                  echo "Tagged successfully."
+
+            - name: Push Docker image to ECR
+              run: |
+                  set -e
+                  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) || { echo "ERROR: Failed to get AWS account ID."; exit 1; }
+                  ECR_IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest"
+                  echo "Pushing image to ECR: ${ECR_IMAGE_URI}"
+                  docker push "$ECR_IMAGE_URI" || { echo "ERROR: ECR push failed. Check ECR repo exists and IAM has ecr:PutImage (and ecr:GetAuthorizationToken)."; exit 1; }
+                  echo "Image pushed successfully. ECS will use this image when the service is updated."
+
+            - name: Update ECS service
+              run: |
+                  set -e
+                  echo "Triggering ECS deployment: cluster=${ECS_CLUSTER}, service=${ECS_SERVICE}"
+                  DEPLOY_OUTPUT=$(aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --force-new-deployment --output json) || { echo "ERROR: ECS update-service failed. Check service name, cluster name, and IAM has ecs:UpdateService."; exit 1; }
+                  echo "Deployment triggered. Service is rolling out new tasks."
+                  echo "Deployment status (summary):"
+                  echo "$DEPLOY_OUTPUT" | head -c 500
+                  echo ""
+                  echo "Check ECS console (cluster ${ECS_CLUSTER} -> service ${ECS_SERVICE}) for rollout status."
+
+            - name: Deploy summary
+              if: success()
+              run: |
+                  echo "=== Deploy completed successfully ==="
+                  echo "Service: ${ECS_SERVICE} (cluster: ${ECS_CLUSTER})"
+                  echo "Image: finsight/suspect-registry:latest in ECR. New tasks will pull this image."
+                  echo "================================"
