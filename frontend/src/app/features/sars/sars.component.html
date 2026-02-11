@@ -79,12 +79,16 @@
           <tbody>
             <tr *ngFor="let sar of filteredSars()">
               <td class="mono">{{ sar.sarId }}</td>
-              <td>{{ sar.subjectName }}</td>
               <td>
-                <span class="badge badge--warn">{{ sar.suspicionScore }}</span>
+                {{ sar.subjectName }}
+                <div class="muted mono" *ngIf="sar.sourceEntityId">{{ sar.sourceEntityId }}</div>
               </td>
               <td>
-                <span class="badge">{{ sar.status }}</span>
+                <span [class]="scoreClass(sar.suspicionScore)">{{ sar.suspicionScore }}</span>
+                <span class="muted" style="margin-left: 8px">{{ scoreLabel(sar.suspicionScore) }}</span>
+              </td>
+              <td>
+                <span [class]="badgeClass(sar.status)">{{ sar.status }}</span>
               </td>
               <td>{{ sar.updatedAt | date: 'medium' }}</td>
               <td>

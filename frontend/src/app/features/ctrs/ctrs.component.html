@@ -113,6 +113,7 @@
               <th>Subject Type</th>
               <th>Subject Name</th>
               <th>Suspicion Score</th>
+              <th>Promotion</th>
               <th>Time (UTC)</th>
               <th>Status</th>
               <th>Amount</th>
@@ -132,14 +133,19 @@
                   {{ ctr.subjectId }}
                 </div>
               </td>
-              <td>{{ ctr.suspicionScore != null ? ctr.suspicionScore : '-' }}</td>
+              <td>
+                <span [class]="scoreClass(ctr.suspicionScore)">
+                  {{ ctr.suspicionScore != null ? ctr.suspicionScore : '-' }}
+                </span>
+              </td>
+              <td class="mono">{{ promotionLabel(ctr.suspicionScore) }}</td>
               <td>{{ ctr.ctrTime | date: 'medium' : 'UTC' }}</td>
               <td>{{ ctr.status || '—' }}</td>
               <td>{{ ctr.amount | currency }}</td>
             </tr>
 
             <tr *ngIf="!ctrs || ctrs.length === 0">
-              <td colspan="7" class="empty">No CTRs found.</td>
+              <td colspan="8" class="empty">No CTRs found.</td>
             </tr>
           </tbody>
         </table>
