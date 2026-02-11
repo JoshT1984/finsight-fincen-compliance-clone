@@ -1,11 +1,13 @@
 package com.skillstorm.finsight.identity_auth.aspects;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -21,12 +23,20 @@ import jakarta.servlet.http.HttpServletRequest;
 @Service
 public class AuditLogger {
 
+    private static final Logger IDENTITY_SECURITY = LoggerFactory.getLogger("IDENTITY_SECURITY");
+
     private final ObjectMapper objectMapper;
-    private static final Logger AUDIT_LOG = LoggerFactory.getLogger("AUDIT_LOG");
+    private final String serviceName = "identity-service";
 
     public AuditLogger(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
+
+    /*
+     * =======================
+     * Public entry points
+     * =======================
+     */
 
     public void log(
             JoinPoint joinPoint,
@@ -34,50 +44,20 @@ public class AuditLogger {
             AuditOutcome outcome,
             Object result,
             Throwable ex) {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String userId = (auth != null) ? auth.getName() : "anonymous";
 
-            Object entity = (result != null)
-                    ? result
-                    : (joinPoint.getArgs().length > 0 ? joinPoint.getArgs()[0] : null);
+        Object target = resolveTarget(joinPoint, result);
+        String intent = resolveIntent(joinPoint);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-            String targetEntityType = entity != null
-                    ? entity.getClass().getSimpleName()
-                    : null;
-
-            Object targetUserId = extractUserId(entity);
-
-            Map<String, Object> audit = new LinkedHashMap<>();
-            audit.put("userId", userId);
-            audit.put("action", action.name());
-            audit.put("outcome", outcome.name());
-            audit.put("targetEntityType", targetEntityType);
-            audit.put("targetId", targetUserId);
-            audit.put("timestamp", Instant.now().toString());
-
-            if (outcome == AuditOutcome.FAILURE && ex != null) {
-                audit.put("errorType", ex.getClass().getSimpleName());
-            }
-
-            AUDIT_LOG.info(objectMapper.writeValueAsString(audit));
-        } catch (Exception e) {
-            AUDIT_LOG.warn("Failed to write audit log", e);
-            e.printStackTrace();
-        }
-    }
-
-    private Object extractUserId(Object entity) {
-        if (entity == null)
-            return null;
-
-        try {
-            return entity.getClass()
-                    .getMethod("getUserId")
-                    .invoke(entity);
-        } catch (Exception ignored) {
-            return null;
-        }
+        writeAuditEvent(
+                action,
+                outcome,
+                auth != null ? auth.getName() : null,
+                null,
+                null,
+                target,
+                intent,
+                ex);
     }
 
     public void logSecurityEvent(
@@ -87,28 +67,122 @@ public class AuditLogger {
             String provider,
             HttpServletRequest request,
             Throwable error) {
+
+        writeAuditEvent(
+                action,
+                outcome,
+                actorUserId,
+                provider,
+                request,
+                null,
+                null,
+                error);
+    }
+
+    /*
+     * =======================
+     * Core audit writer
+     * =======================
+     */
+
+    private void writeAuditEvent(
+            AuditAction action,
+            AuditOutcome outcome,
+            String actorUserId,
+            String provider,
+            HttpServletRequest request,
+            Object target,
+            String operation,
+            Throwable error) {
+
         try {
-            Map<String, Object> audit = new HashMap<>();
-            audit.put("userId", actorUserId != null ? actorUserId : "anonymous");
+            Map<String, Object> audit = new LinkedHashMap<>();
+
+            audit.put("timestamp", Instant.now().toString());
+            audit.put("level", outcome == AuditOutcome.FAILURE ? "ERROR" : "INFO");
+            audit.put("service", serviceName);
+            audit.put("eventType", "AUTH");
+
             audit.put("action", action.name());
             audit.put("outcome", outcome.name());
-            audit.put("provider", provider != null ? provider : "unknown");
-            audit.put("timestamp", Instant.now().toString());
+            audit.put("actorUserId", actorUserId != null ? actorUserId : "anonymous");
+
+            Map<String, Object> auth = new LinkedHashMap<>();
+
+            if (provider != null)
+                auth.put("provider", provider);
 
             if (request != null) {
-                audit.put("ipAddress", request.getRemoteAddr());
-                audit.put("userAgent", request.getHeader("User-Agent"));
+                auth.put("ipAddress", request.getRemoteAddr());
+                auth.put("userAgent", request.getHeader("User-Agent"));
             }
 
-            if (error != null) {
-                audit.put("errorType", error.getClass().getSimpleName());
+            if (!auth.isEmpty()) {
+                audit.put("auth", auth);
             }
 
-            String json = objectMapper.writeValueAsString(audit);
-            AUDIT_LOG.info(json);
+            if (operation != null) {
+                audit.put("operation", operation);
+            }
+
+            audit.put("target", buildTarget(target));
+            enrichError(audit, error);
+
+            IDENTITY_SECURITY.info(objectMapper.writeValueAsString(audit));
 
         } catch (Exception e) {
-            AUDIT_LOG.warn("Failed to write security audit log", e);
+            IDENTITY_SECURITY.warn("Failed to write audit log", e);
         }
+    }
+
+    /*
+     * =======================
+     * Helpers
+     * =======================
+     */
+
+    private Object resolveTarget(JoinPoint joinPoint, Object result) {
+        if (result != null)
+            return result;
+
+        Object[] args = joinPoint.getArgs();
+        return args.length > 0 ? args[0] : null;
+    }
+
+    private Map<String, Object> buildTarget(Object entity) {
+        if (entity == null)
+            return null;
+
+        Map<String, Object> target = new LinkedHashMap<>();
+        target.put("type", entity.getClass().getSimpleName());
+        target.put("id", extractUserId(entity));
+        return target;
+    }
+
+    private void enrichError(Map<String, Object> audit, Throwable error) {
+        if (error == null)
+            return;
+
+        Map<String, Object> err = new LinkedHashMap<>();
+        err.put("type", error.getClass().getSimpleName());
+        err.put("message", error.getMessage());
+
+        audit.put("error", err);
+    }
+
+    private Object extractUserId(Object entity) {
+        try {
+            return entity.getClass()
+                    .getMethod("getUserId")
+                    .invoke(entity);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String resolveIntent(JoinPoint joinPoint) {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        AuditIntent intent = method.getAnnotation(AuditIntent.class);
+        return intent != null ? intent.value() : null;
     }
 }
