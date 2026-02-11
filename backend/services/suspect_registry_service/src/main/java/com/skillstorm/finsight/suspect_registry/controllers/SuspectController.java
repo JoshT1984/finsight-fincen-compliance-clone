@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.skillstorm.finsight.suspect_registry.dtos.request.CreateAddressRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateSuspectRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.FindOrCreateBySsnRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectAddressRequest;
@@ -132,5 +133,17 @@ public class SuspectController {
       @Valid @RequestBody LinkSuspectAddressRequest request) {
     SuspectResponse response = service.linkAddressToSuspect(id, request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  /**
+   * Ensures an address from a CTR/SAR form is linked to the suspect (find-or-create address, then link).
+   * Used by compliance-event-service when a CTR/SAR is uploaded with parsed address data.
+   */
+  @PostMapping("/{id}/addresses/from-form")
+  public ResponseEntity<Void> ensureAddressFromForm(@PathVariable Long id,
+      @Valid @RequestBody CreateAddressRequest request) {
+    service.ensureAddressLinked(id, request.line1(), request.line2(), request.city(),
+        request.state(), request.postalCode(), request.country());
+    return ResponseEntity.noContent().build();
   }
 }

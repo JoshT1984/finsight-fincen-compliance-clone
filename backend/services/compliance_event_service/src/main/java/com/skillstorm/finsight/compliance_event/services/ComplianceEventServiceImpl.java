@@ -88,6 +88,9 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         sarDetailRepository.save(sar);
 
         tryLinkEventToSuspectBySsn(event, request.externalSubjectKey(), null);
+        if (event.getSuspectSnapshot() != null && request.formData() != null) {
+            pushParsedAddressToSuspect(event.getSuspectSnapshot().getSuspectId(), request.formData());
+        }
         return mapper.toResponse(event);
     }
 
@@ -122,12 +125,16 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ctrDetailRepository.save(ctr);
 
         tryLinkEventToSuspectBySsn(event, request.externalSubjectKey(), request.customerName());
+        if (event.getSuspectSnapshot() != null && request.ctrFormData() != null) {
+            pushParsedAddressToSuspect(event.getSuspectSnapshot().getSuspectId(), request.ctrFormData());
+        }
         return mapper.toResponse(event);
     }
 
     /**
      * If externalSubjectKey is SSN:xxxxxxxxx, finds or creates a suspect by SSN (and name when provided),
-     * then links the event to that suspect.
+     * then links the event to that suspect. When the form name differs from the suspect's primary name,
+     * the suspect registry adds it as an alias (AKA).
      */
     private void tryLinkEventToSuspectBySsn(ComplianceEvent event, String externalSubjectKey, String primaryName) {
         if (suspectRegistryClient == null) return;
@@ -142,6 +149,24 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
             event.setSuspectSnapshot(snapshot);
             complianceEventRepository.save(event);
         });
+    }
+
+    /** Pushes parsed CTR/SAR form address to the suspect registry when present in form data. */
+    private void pushParsedAddressToSuspect(long suspectId, Map<String, Object> formData) {
+        if (suspectRegistryClient == null || formData == null) return;
+        String line1 = getString(formData, "_parsedAddressLine1");
+        String city = getString(formData, "_parsedAddressCity");
+        String country = getString(formData, "_parsedAddressCountry");
+        if (line1 == null || city == null || country == null) return;
+        String line2 = getString(formData, "_parsedAddressLine2");
+        String state = getString(formData, "_parsedAddressState");
+        String postalCode = getString(formData, "_parsedAddressPostalCode");
+        suspectRegistryClient.ensureAddressForSuspect(suspectId, line1, line2, city, state, postalCode, country);
+    }
+
+    private static String getString(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        return v != null ? v.toString().trim() : null;
     }
 
     @Override

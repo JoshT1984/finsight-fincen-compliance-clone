@@ -83,4 +83,28 @@ public class SuspectRegistryClient {
         }
         return Optional.empty();
     }
+
+    /**
+     * Ensures an address from a CTR/SAR form is linked to the suspect (find-or-create address, then link).
+     * No-op if suspectRegistryClient is not configured or if any required field is missing.
+     */
+    public void ensureAddressForSuspect(long suspectId, String line1, String line2, String city, String state, String postalCode, String country) {
+        if (line1 == null || line1.isBlank() || city == null || city.isBlank() || country == null || country.isBlank()) {
+            return;
+        }
+        String url = baseUrl + "/api/suspects/" + suspectId + "/addresses/from-form";
+        try {
+            Map<String, Object> body = new java.util.HashMap<>();
+            body.put("line1", line1);
+            body.put("line2", line2 != null ? line2 : "");
+            body.put("city", city);
+            body.put("state", state != null ? state : "");
+            body.put("postalCode", postalCode != null ? postalCode : "");
+            body.put("country", country);
+            restTemplate.postForObject(url, body, Void.class);
+            log.debug("Linked address from form to suspect {}", suspectId);
+        } catch (Exception e) {
+            log.debug("Suspect registry ensure address failed for suspect {}: {}", suspectId, e.getMessage());
+        }
+    }
 }

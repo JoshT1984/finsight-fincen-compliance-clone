@@ -55,13 +55,53 @@ public class PdfExtractionService {
         if (rawText == null || rawText.isBlank()) {
             log.warn("PDF produced no extractable text (may be image-only or encrypted)");
         }
+        String text = rawText != null ? rawText : "";
+        assertPdfMatchesFinCENForm(text, documentType);
         String sourceEntityId = "PDF_" + UUID.randomUUID();
         Instant now = Instant.now();
 
         switch (documentType) {
-            case CTR -> { return parseForm104(rawText != null ? rawText : "", sourceEntityId, now); }
-            case SAR -> { return parseForm109(rawText != null ? rawText : "", sourceEntityId, now); }
+            case CTR -> { return parseForm104(text, sourceEntityId, now); }
+            case SAR -> { return parseForm109(text, sourceEntityId, now); }
             default -> throw new IllegalArgumentException("PDF extraction only supported for CTR or SAR, got: " + documentType);
+        }
+    }
+
+    /**
+     * Verifies that the extracted PDF text matches the expected FinCEN form (104 for CTR, 109 for SAR).
+     * Rejects uploads that are not the correct form type so we do not parse or store non‑conforming documents.
+     *
+     * @param rawText Combined text extracted from the PDF (page text + form field values).
+     * @param documentType CTR or SAR (expects Form 104 or Form 109 respectively).
+     * @throws DocumentValidationException if the document does not appear to be the expected form.
+     */
+    public void assertPdfMatchesFinCENForm(String rawText, DocumentType documentType) {
+        if (rawText == null) rawText = "";
+        String lower = rawText.toLowerCase();
+        List<String> errors = new ArrayList<>();
+        if (documentType == DocumentType.CTR) {
+            // FinCEN Form 104 (Currency Transaction Report) identifiers
+            boolean hasForm104 = lower.contains("fincen form 104") || lower.contains("form 104")
+                    || lower.contains("currency transaction report") || (lower.contains("ctr") && lower.contains("fincen"));
+            boolean hasCtrIndicators = lower.contains("item 26") || lower.contains("item 27") || lower.contains("item 28")
+                    || lower.contains("total cash in") || lower.contains("total cash out") || lower.contains("date of transaction");
+            if (!hasForm104 && !hasCtrIndicators) {
+                errors.add("This document does not appear to be a FinCEN Form 104 (Currency Transaction Report). " +
+                        "Please upload a valid CTR form. Expected to see form title 'FinCEN Form 104' or 'Currency Transaction Report' and form items (e.g. Item 26, 27, 28).");
+            }
+        } else if (documentType == DocumentType.SAR) {
+            // FinCEN Form 109 (SAR-MSB) identifiers
+            boolean hasForm109 = lower.contains("fincen form 109") || lower.contains("form 109")
+                    || (lower.contains("suspicious activity report") && (lower.contains("fincen") || lower.contains("msb")));
+            boolean hasSarIndicators = lower.contains("part vi") || lower.contains("suspicious activity")
+                    || lower.contains("sar") && (lower.contains("narrative") || lower.contains("suspicious"));
+            if (!hasForm109 && !hasSarIndicators) {
+                errors.add("This document does not appear to be a FinCEN Form 109 (Suspicious Activity Report). " +
+                        "Please upload a valid SAR form. Expected to see form title 'FinCEN Form 109' or 'Suspicious Activity Report' and sections such as Part VI (narrative).");
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new DocumentValidationException(errors);
         }
     }
 
@@ -141,6 +181,142 @@ public class PdfExtractionService {
             }
         }
         return null;
+    }
+
+    /**
+     * Parses Form 104 address (Items 8–10: street, city/state/ZIP, country) and puts
+     * _parsedAddressLine1, _parsedAddressCity, _parsedAddressState, _parsedAddressPostalCode,
+     * _parsedAddressCountry into ctrFormData when found.
+     */
+    private static void parseCtrAddress(String rawText, Map<String, Object> ctrFormData) {
+        if (rawText == null || rawText.isBlank() || ctrFormData == null) return;
+        // Item 8: Permanent address (Number and Street)
+        Pattern streetPattern = Pattern.compile(
+            "(?:8\\s+)?(?:permanent\\s+address|number\\s+and\\s+street|street\\s+address)\\s*:?\\s*([A-Za-z0-9\\s.,#'-]{5,120}?)(?=\\s*[\\r\\n]|\\s*9\\s|\\s*$)",
+            Pattern.CASE_INSENSITIVE);
+        Matcher streetMatcher = streetPattern.matcher(rawText);
+        if (streetMatcher.find()) {
+            String line1 = streetMatcher.group(1).trim();
+            if (line1.length() >= 5 && line1.length() <= 256 && !line1.matches("(?i).*individual.*|.*entity.*|.*organization.*")) {
+                ctrFormData.put("_parsedAddressLine1", line1);
+            }
+        }
+        // Item 9: City or town, State, and ZIP
+        Pattern cityStateZip = Pattern.compile(
+            "(?:9\\s+)?(?:city\\s+or\\s+town|city)\\s*,?\\s*([A-Za-z\\s.'-]{2,64}?)\\s*,?\\s*([A-Za-z]{2})\\s*,?\\s*([0-9]{5}(?:-[0-9]{4})?)",
+            Pattern.CASE_INSENSITIVE);
+        Matcher cszMatcher = cityStateZip.matcher(rawText);
+        if (cszMatcher.find()) {
+            ctrFormData.put("_parsedAddressCity", cszMatcher.group(1).trim());
+            ctrFormData.put("_parsedAddressState", cszMatcher.group(2).trim());
+            ctrFormData.put("_parsedAddressPostalCode", cszMatcher.group(3).trim());
+        } else {
+            // Fallback: "9" followed by city-like and state-like and zip
+            Pattern fallback = Pattern.compile(
+                "\\b9\\s+([A-Za-z][A-Za-z\\s.'-]{1,48}?)\\s+([A-Z][A-Z])\\s+([0-9]{5}(?:-[0-9]{4})?)\\b",
+                Pattern.CASE_INSENSITIVE);
+            Matcher fb = fallback.matcher(rawText);
+            if (fb.find()) {
+                ctrFormData.put("_parsedAddressCity", fb.group(1).trim());
+                ctrFormData.put("_parsedAddressState", fb.group(2).trim().toUpperCase());
+                ctrFormData.put("_parsedAddressPostalCode", fb.group(3).trim());
+            }
+        }
+        // Item 10: Country
+        Pattern countryPattern = Pattern.compile(
+            "(?:10\\s+)?(?:country)\\s*:?\\s*([A-Za-z][A-Za-z\\s.'-]{2,60}?)(?=\\s*[\\r\\n]|\\s*\\d|\\s*$)",
+            Pattern.CASE_INSENSITIVE);
+        Matcher countryMatcher = countryPattern.matcher(rawText);
+        if (countryMatcher.find()) {
+            String country = countryMatcher.group(1).trim();
+            if (country.length() <= 64 && !country.matches("(?i).*enter.*|.*see.*")) {
+                ctrFormData.put("_parsedAddressCountry", country);
+            }
+        }
+        // If we have form values section, also look for address-like line (number + street name)
+        if (!ctrFormData.containsKey("_parsedAddressLine1")) {
+            int formValues = rawText.indexOf("FORM_VALUES");
+            if (formValues >= 0 && formValues < rawText.length() - 30) {
+                String window = rawText.substring(Math.max(0, formValues - 200), rawText.length());
+                Pattern anyStreet = Pattern.compile("\\b(\\d+\\s+[A-Za-z0-9][A-Za-z0-9\\s.,#'-]{4,80}?)(?=\\s+[A-Z][A-Z]\\s+[0-9]{5}|\\s*[\\r\\n])");
+                Matcher am = anyStreet.matcher(window);
+                if (am.find()) {
+                    String line1 = am.group(1).trim();
+                    if (line1.length() <= 256) ctrFormData.put("_parsedAddressLine1", line1);
+                }
+            }
+        }
+        // Default country if we have other address parts
+        if (ctrFormData.containsKey("_parsedAddressCity") && !ctrFormData.containsKey("_parsedAddressCountry")) {
+            ctrFormData.put("_parsedAddressCountry", "USA");
+        }
+    }
+
+    /**
+     * Parses Form 109 (SAR) subject/individual address and puts _parsedAddressLine1, _parsedAddressCity,
+     * _parsedAddressState, _parsedAddressPostalCode, _parsedAddressCountry into formData when found.
+     * Uses same keys as CTR so the compliance service can push to suspect addresses.
+     */
+    private static void parseSarAddress(String rawText, Map<String, Object> formData) {
+        if (rawText == null || rawText.isBlank() || formData == null) return;
+        // SAR forms often have "Address", "Street", "Subject address" or similar
+        Pattern streetPattern = Pattern.compile(
+            "(?:address|street\\s+address|number\\s+and\\s+street|subject'?s?\\s+address)\\s*:?\\s*([A-Za-z0-9\\s.,#'-]{5,120}?)(?=\\s*[\\r\\n]|\\s*(?:city|state|zip|country)|\\s*$)",
+            Pattern.CASE_INSENSITIVE);
+        Matcher streetMatcher = streetPattern.matcher(rawText);
+        if (streetMatcher.find()) {
+            String line1 = streetMatcher.group(1).trim();
+            if (line1.length() >= 5 && line1.length() <= 256 && !line1.matches("(?i).*narrative.*|.*part\\s+vi.*")) {
+                formData.put("_parsedAddressLine1", line1);
+            }
+        }
+        // City, State, ZIP — "City", "State", "ZIP" or "City or town, State, and ZIP"
+        Pattern cityStateZip = Pattern.compile(
+            "(?:city\\s+(?:or\\s+town)?\\s*,?\\s*)?([A-Za-z][A-Za-z\\s.'-]{2,64}?)\\s*,?\\s*([A-Za-z]{2})\\s*,?\\s*([0-9]{5}(?:-[0-9]{4})?)",
+            Pattern.CASE_INSENSITIVE);
+        Matcher cszMatcher = cityStateZip.matcher(rawText);
+        if (cszMatcher.find()) {
+            formData.put("_parsedAddressCity", cszMatcher.group(1).trim());
+            formData.put("_parsedAddressState", cszMatcher.group(2).trim().toUpperCase());
+            formData.put("_parsedAddressPostalCode", cszMatcher.group(3).trim());
+        } else {
+            Pattern fallback = Pattern.compile(
+                "\\b([A-Za-z][A-Za-z\\s.'-]{1,48}?)\\s+([A-Z][A-Z])\\s+([0-9]{5}(?:-[0-9]{4})?)\\b",
+                Pattern.CASE_INSENSITIVE);
+            Matcher fb = fallback.matcher(rawText);
+            if (fb.find()) {
+                formData.put("_parsedAddressCity", fb.group(1).trim());
+                formData.put("_parsedAddressState", fb.group(2).trim().toUpperCase());
+                formData.put("_parsedAddressPostalCode", fb.group(3).trim());
+            }
+        }
+        // Country
+        Pattern countryPattern = Pattern.compile(
+            "(?:country)\\s*:?\\s*([A-Za-z][A-Za-z\\s.'-]{2,60}?)(?=\\s*[\\r\\n]|\\s*\\d|\\s*$)",
+            Pattern.CASE_INSENSITIVE);
+        Matcher countryMatcher = countryPattern.matcher(rawText);
+        if (countryMatcher.find()) {
+            String country = countryMatcher.group(1).trim();
+            if (country.length() <= 64 && !country.matches("(?i).*enter.*|.*see.*")) {
+                formData.put("_parsedAddressCountry", country);
+            }
+        }
+        // Fallback: address-like line (number + street) before city/state/zip in FORM_VALUES or nearby
+        if (!formData.containsKey("_parsedAddressLine1")) {
+            int formValues = rawText.indexOf("FORM_VALUES");
+            if (formValues >= 0 && formValues < rawText.length() - 30) {
+                String window = rawText.substring(Math.max(0, formValues - 300), rawText.length());
+                Pattern anyStreet = Pattern.compile("\\b(\\d+\\s+[A-Za-z0-9][A-Za-z0-9\\s.,#'-]{4,80}?)(?=\\s+[A-Z][A-Z]\\s+[0-9]{5}|\\s*[\\r\\n])");
+                Matcher am = anyStreet.matcher(window);
+                if (am.find()) {
+                    String line1 = am.group(1).trim();
+                    if (line1.length() <= 256) formData.put("_parsedAddressLine1", line1);
+                }
+            }
+        }
+        if (formData.containsKey("_parsedAddressCity") && !formData.containsKey("_parsedAddressCountry")) {
+            formData.put("_parsedAddressCountry", "USA");
+        }
     }
 
     /** Excludes year-like values (1900–2099) so we don't use a date year as the transaction amount. */
@@ -668,6 +844,9 @@ public class PdfExtractionService {
             externalSubjectKey = SSN_SUBJECT_PREFIX + parsedSsn;
         }
 
+        // Form 104 Items 8–10: Permanent address (street, city/state/ZIP, country) for subject enrichment
+        parseCtrAddress(rawText, ctrFormData);
+
         return new CreateCtrRequestPayload(
                 SOURCE_SYSTEM,
                 sourceEntityId,
@@ -877,6 +1056,9 @@ public class PdfExtractionService {
         }
 
         Integer severityScore = 50; // default when not derivable
+
+        // Form 109: Subject/individual address (for suspect enrichment — same keys as CTR so compliance service can push to suspect)
+        parseSarAddress(raw, formData);
 
         // SSN if present (for suspect matching) — Form 109 may have SSN in subject/individual section
         String parsedSsn = parseSsnFromText(raw);
