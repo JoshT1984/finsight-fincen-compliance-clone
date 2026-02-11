@@ -2,7 +2,6 @@ package com.skillstorm.finsight.documents_cases.services;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -16,10 +15,8 @@ import com.skillstorm.finsight.documents_cases.dtos.request.CreateCaseFileReques
 import com.skillstorm.finsight.documents_cases.dtos.request.ReferCaseRequest;
 import com.skillstorm.finsight.documents_cases.dtos.request.UpdateCaseFileRequest;
 import com.skillstorm.finsight.documents_cases.dtos.response.CaseFileResponse;
-import com.skillstorm.finsight.documents_cases.emitters.DocumentEventEmitter;
 import com.skillstorm.finsight.documents_cases.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.documents_cases.exceptions.ResourceNotFoundException;
-import com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog;
 import com.skillstorm.finsight.documents_cases.models.CaseFile;
 import com.skillstorm.finsight.documents_cases.models.CaseStatus;
 import com.skillstorm.finsight.documents_cases.repositories.CaseFileRepository;
@@ -34,20 +31,19 @@ public class CaseFileService {
 	private final CaseFileRepository repo;
 	private final DocumentRepository documentRepo;
 	private final AuditEventService auditEventService;
-	private final DocumentEventEmitter eventEmitter;
 
 	public CaseFileService(CaseFileRepository repo, DocumentRepository documentRepo,
-			AuditEventService auditEventService, DocumentEventEmitter eventEmitter) {
+			AuditEventService auditEventService) {
 		this.repo = repo;
 		this.documentRepo = documentRepo;
 		this.auditEventService = auditEventService;
-		this.eventEmitter = eventEmitter;
 	}
 
 	private CaseFileResponse toResponse(CaseFile caseFile) {
 		return new CaseFileResponse(
 				caseFile.getCaseId(),
 				caseFile.getSarId(),
+				caseFile.getCtrId(),
 				caseFile.getStatus(),
 				caseFile.getCreatedAt(),
 				caseFile.getReferredAt(),
@@ -57,39 +53,39 @@ public class CaseFileService {
 
 	@Transactional
 	public CaseFileResponse create(CreateCaseFileRequest dto) {
-		log.debug("Creating case file for SAR ID: {}", dto.sarId());
 
-		if (repo.findBySarId(dto.sarId()).isPresent()) {
+		boolean hasSar = dto.sarId() != null;
+		boolean hasCtr = dto.ctrId() != null;
+
+		if (hasSar == hasCtr) {
+			// both true or both false
+			throw new IllegalArgumentException("Exactly one of sarId or ctrId must be provided");
+		}
+
+		if (hasSar && repo.findBySarId(dto.sarId()).isPresent()) {
 			throw new ResourceConflictException("Case file with SAR ID " + dto.sarId() + " already exists");
 		}
 
+		if (hasCtr && repo.findByCtrId(dto.ctrId()).isPresent()) {
+			throw new ResourceConflictException("Case file with CTR ID " + dto.ctrId() + " already exists");
+		}
+
 		Instant now = Instant.now();
+
 		CaseFile caseFile = new CaseFile();
 		caseFile.setSarId(dto.sarId());
+		caseFile.setCtrId(dto.ctrId());
 		caseFile.setStatus(dto.status() != null ? dto.status() : CaseStatus.OPEN);
 		caseFile.setCreatedAt(now);
 		caseFile.setReferredToAgency(dto.referredToAgency());
 
-		// If referredToAgency is provided, also set referredAt timestamp
 		if (dto.referredToAgency() != null && !dto.referredToAgency().trim().isEmpty()) {
 			caseFile.setReferredAt(now);
 		}
 
 		CaseFile saved = repo.save(caseFile);
-		log.info("Created case file with ID: {} for SAR ID: {}", saved.getCaseId(), saved.getSarId());
 
-		// Create audit event
 		auditEventService.auditCreate("CASE", String.valueOf(saved.getCaseId()), saved);
-
-		// Emit the event to the DOCUMENT_LOG for compliance auditing
-		eventEmitter.emit(
-				DocumentEventLog.caseFileCreated(
-						saved.getCaseId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
-						Map.of(
-								"status", saved.getStatus(),
-								"referredToAgency", saved.getReferredToAgency(),
-								"Sar", saved.getSarId())));
 
 		return toResponse(saved);
 	}
@@ -145,18 +141,6 @@ public class CaseFileService {
 		referMetadata.put("referredAt", saved.getReferredAt().toString());
 		auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "REFER", referMetadata);
 
-		// Emit the event to the DOCUMENT_LOG for compliance auditing (modeled after
-		// create)
-		eventEmitter.emit(
-				DocumentEventLog.caseFileReferred(
-						saved.getCaseId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
-						Map.of(
-								"status", saved.getStatus(),
-								"referredToAgency", saved.getReferredToAgency(),
-								"Sar", saved.getSarId(),
-								"referredAt", saved.getReferredAt())));
-
 		return toResponse(saved);
 	}
 
@@ -177,16 +161,6 @@ public class CaseFileService {
 		java.util.Map<String, Object> closeMetadata = new java.util.HashMap<>();
 		closeMetadata.put("closedAt", saved.getClosedAt().toString());
 		auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "CLOSE", closeMetadata);
-
-		// Emit event for case file closed
-		eventEmitter.emit(
-				DocumentEventLog.caseFileClosed(
-						saved.getCaseId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
-						Map.of(
-								"status", saved.getStatus(),
-								"closedAt", saved.getClosedAt(),
-								"Sar", saved.getSarId())));
 
 		return toResponse(saved);
 	}
@@ -250,8 +224,19 @@ public class CaseFileService {
 					throw new ResourceConflictException("Case file with SAR ID " + request.sarId() + " already exists");
 				}
 			});
-			log.debug("Updating sarId from {} to {}", caseFile.getSarId(), request.sarId());
 			caseFile.setSarId(request.sarId());
+			caseFile.setCtrId(null); // enforce XOR rule at application layer too
+			updated = true;
+		}
+
+		if (request.ctrId() != null) {
+			repo.findByCtrId(request.ctrId()).ifPresent(existing -> {
+				if (!existing.getCaseId().equals(caseId)) {
+					throw new ResourceConflictException("Case file with CTR ID " + request.ctrId() + " already exists");
+				}
+			});
+			caseFile.setCtrId(request.ctrId());
+			caseFile.setSarId(null); // enforce XOR rule
 			updated = true;
 		}
 
@@ -279,17 +264,6 @@ public class CaseFileService {
 		// Create audit event for update
 		auditEventService.auditUpdate("CASE", String.valueOf(saved.getCaseId()), oldCaseFile, saved);
 
-		// Emit event for case file updated
-		eventEmitter.emit(
-				DocumentEventLog.caseFileUpdated(
-						saved.getCaseId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
-						Map.of(
-								"status", saved.getStatus(),
-								"referredToAgency", saved.getReferredToAgency(),
-								"Sar", saved.getSarId(),
-								"updatedAt", Instant.now())));
-
 		return toResponse(saved);
 	}
 
@@ -302,16 +276,6 @@ public class CaseFileService {
 
 		// Create audit event before deletion
 		auditEventService.auditDelete("CASE", String.valueOf(caseId), caseFile);
-
-		// Emit event for case file deleted
-		eventEmitter.emit(
-				DocumentEventLog.caseFileDeleted(
-						caseFile.getCaseId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
-						Map.of(
-								"status", caseFile.getStatus(),
-								"Sar", caseFile.getSarId(),
-								"deletedAt", Instant.now())));
 
 		repo.deleteById(caseId);
 		log.info("Deleted case file with ID: {}", caseId);

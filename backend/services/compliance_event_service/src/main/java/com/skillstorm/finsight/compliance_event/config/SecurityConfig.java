@@ -16,52 +16,59 @@ import com.skillstorm.finsight.compliance_event.loggers.LoggingAccessDeniedHandl
 import com.skillstorm.finsight.compliance_event.loggers.LoggingAuthenticationEntryPoint;
 
 @Configuration
+// @EnableWebSecurity
+// @Profile("!dev")
 public class SecurityConfig {
 
-    private final JwtConfig jwtConfig;
-    private final LoggingAuthenticationEntryPoint authEntryPoint;
-    private final LoggingAccessDeniedHandler accessDeniedHandler;
+        private final JwtConfig jwtConfig;
+        private final LoggingAuthenticationEntryPoint authEntryPoint;
+        private final LoggingAccessDeniedHandler accessDeniedHandler;
 
-    public SecurityConfig(JwtConfig jwtConfig, LoggingAuthenticationEntryPoint authEntryPoint,
-            LoggingAccessDeniedHandler accessDeniedHandler) {
-        this.jwtConfig = jwtConfig;
-        this.authEntryPoint = authEntryPoint;
-        this.accessDeniedHandler = accessDeniedHandler;
-    }
+        public SecurityConfig(JwtConfig jwtConfig, LoggingAuthenticationEntryPoint authEntryPoint,
+                        LoggingAccessDeniedHandler accessDeniedHandler) {
+                this.jwtConfig = jwtConfig;
+                this.authEntryPoint = authEntryPoint;
+                this.accessDeniedHandler = accessDeniedHandler;
+        }
 
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
-            throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/api/cases/**", "/api/case-notes/**")
-                        .hasAnyRole("ANALYST", "LAW_ENFORCEMENT_USER", "COMPLIANCE_USER")
-                        .requestMatchers("/api/documents/**", "/api/audit-events/**").authenticated()
-                        .anyRequest().authenticated())
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(authEntryPoint)
-                        .accessDeniedHandler(accessDeniedHandler))
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .decoder(jwtConfig.jwtDecoder(jwtConfig.jwtPublicKey()))
-                                .jwtAuthenticationConverter(jwtAuthenticationConverter)));
+        @Bean
+        SecurityFilterChain securityFilterChain(HttpSecurity http,
+                        JwtAuthenticationConverter jwtAuthenticationConverter)
+                        throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                                                .requestMatchers("/api/cases/**", "/api/case-notes/**")
+                                                .hasAnyRole("ANALYST", "LAW_ENFORCEMENT_USER", "COMPLIANCE_USER")
+                                                .requestMatchers("/api/documents/**", "/api/audit-events/**")
+                                                .authenticated()
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(ex -> ex
+                                                .authenticationEntryPoint(authEntryPoint)
+                                                .accessDeniedHandler(accessDeniedHandler))
+                                .oauth2ResourceServer(oauth2 -> oauth2
+                                                .jwt(jwt -> jwt
+                                                                .decoder(jwtConfig.jwtDecoder(jwtConfig.jwtPublicKey()))
+                                                                .jwtAuthenticationConverter(
+                                                                                jwtAuthenticationConverter)));
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200", "https://d2aq49aewiq0a8.cloudfront.net"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(
+                                List.of("http://localhost:4200", "https://d2aq49aewiq0a8.cloudfront.net"));
+                configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setAllowCredentials(true);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }

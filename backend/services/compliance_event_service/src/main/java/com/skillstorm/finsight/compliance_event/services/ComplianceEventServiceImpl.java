@@ -10,7 +10,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.skillstorm.finsight.compliance_event.client.DocumentsCasesClient;
 import com.skillstorm.finsight.compliance_event.dtos.ComplianceEventResponse;
 import com.skillstorm.finsight.compliance_event.dtos.CreateCtrRequest;
 import com.skillstorm.finsight.compliance_event.dtos.CreateSarRequest;
@@ -40,13 +43,16 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
     private final SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository;
     private final ComplianceEventMapper mapper;
     private final ComplianceEventEmitter complianceEventEmitter;
+    private final DocumentsCasesClient documentsCasesClient;
 
     public ComplianceEventServiceImpl(
             ComplianceEventRepository complianceEventRepository,
             ComplianceEventSarDetailRepository sarDetailRepository,
             ComplianceEventCtrDetailRepository ctrDetailRepository,
             SuspectSnapshotAtTimeOfEventRepository suspectSnapshotRepository,
-            ComplianceEventMapper mapper, ComplianceEventEmitter complianceEventEmitter) {
+            ComplianceEventMapper mapper,
+            ComplianceEventEmitter complianceEventEmitter,
+            DocumentsCasesClient documentsCasesClient) {
 
         this.complianceEventRepository = complianceEventRepository;
         this.sarDetailRepository = sarDetailRepository;
@@ -54,6 +60,25 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         this.suspectSnapshotRepository = suspectSnapshotRepository;
         this.mapper = mapper;
         this.complianceEventEmitter = complianceEventEmitter;
+        this.documentsCasesClient = documentsCasesClient;
+    }
+
+    /**
+     * Run the provided action after the surrounding @Transactional method
+     * successfully commits.
+     * This prevents creating a CaseFile for a SAR that later rolls back.
+     */
+    private void runAfterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 
     @Override
@@ -86,6 +111,20 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         sar.setActivityEnd(request.activityEnd());
         sar.setFormData(request.formData() == null ? Map.of() : request.formData());
         ComplianceEventSarDetail saved = sarDetailRepository.save(sar);
+
+        // Ensure a case file is created for this SAR AFTER the SAR transaction commits.
+        // This avoids creating an orphaned case if the SAR creation rolls back.
+        runAfterCommit(() -> {
+            try {
+                if (documentsCasesClient != null) {
+                    documentsCasesClient.ensureCaseForSar(saved.getEventId());
+                }
+            } catch (Exception ex) {
+                // Don't crash the request after commit; log so it can be retried/admin-created.
+                org.slf4j.LoggerFactory.getLogger(ComplianceEventServiceImpl.class)
+                        .warn("Failed to auto-create CaseFile for SAR {}: {}", saved.getEventId(), ex.getMessage());
+            }
+        });
 
         // Emitting event log for SAR creation
         complianceEventEmitter.emit(new ComplianceEventLog(
@@ -260,7 +299,7 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
                         event.getExternalSubjectKey(),
                         EventType.CTR)
                 .stream()
-                .filter(e -> !e.getEventId().equals(eventId)) // change to getEventId() if needed
+                .filter(e -> !e.getEventId().equals(eventId))
                 .map(mapper::toResponse)
                 .toList();
 
@@ -325,8 +364,7 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         sarDetail.setActivityStart(ctrEvent.getEventTime());
         sarDetail.setActivityEnd(ctrEvent.getEventTime());
 
-        // Seed SAR formData with CTR-derived info (can be expanded to match FIN-109
-        // fields)
+        // Seed SAR formData with CTR-derived info
         Map<String, Object> seed = new java.util.HashMap<>();
         seed.put("fromCtrEventId", ctrEventId);
         seed.put("subjectKey", subjectKey);
@@ -339,6 +377,20 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         sarDetail.setFormData(seed);
 
         ComplianceEventSarDetail saved = sarDetailRepository.save(sarDetail);
+
+        // Ensure a case file is created for this auto-generated SAR AFTER the
+        // transaction commits.
+        runAfterCommit(() -> {
+            try {
+                if (documentsCasesClient != null) {
+                    documentsCasesClient.ensureCaseForSar(saved.getEventId());
+                }
+            } catch (Exception ex) {
+                org.slf4j.LoggerFactory.getLogger(ComplianceEventServiceImpl.class)
+                        .warn("Failed to auto-create CaseFile for auto-generated SAR {}: {}", saved.getEventId(),
+                                ex.getMessage());
+            }
+        });
 
         // Emitting event log for SAR creation
         complianceEventEmitter.emit(new ComplianceEventLog(
@@ -359,32 +411,35 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         Object raw = ctrFormData.get("contributingTxnIds");
         if (raw == null)
             return List.of();
-
         if (raw instanceof List<?> list) {
             return list.stream()
-                    .map(v -> v instanceof Number n ? n.longValue() : tryParseLong(v))
+                    .map(v -> {
+                        if (v instanceof Number n)
+                            return n.longValue();
+                        try {
+                            return Long.parseLong(String.valueOf(v));
+                        } catch (Exception e) {
+                            return null;
+                        }
+                    })
                     .filter(v -> v != null)
                     .toList();
         }
-
         return List.of();
     }
 
-    private Long tryParseLong(Object v) {
-        try {
-            return Long.parseLong(String.valueOf(v));
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
     private void assertNoDuplicateSource(String sourceSystem, String sourceEntityId) {
-        boolean exists = complianceEventRepository
-                .findBySourceSystemAndSourceEntityId(sourceSystem, sourceEntityId, PageRequest.of(0, 1))
-                .hasContent();
+        if (sourceSystem == null || sourceEntityId == null)
+            return;
 
-        if (exists) {
+        var page = complianceEventRepository.findBySourceSystemAndSourceEntityId(
+                sourceSystem,
+                sourceEntityId,
+                PageRequest.of(0, 1));
+
+        if (page != null && page.hasContent()) {
             throw new ResourceConflictException("Compliance event already exists for sourceSystem + sourceEntityId");
         }
     }
+
 }

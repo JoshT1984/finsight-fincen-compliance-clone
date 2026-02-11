@@ -81,11 +81,18 @@
               <td class="mono">{{ sar.sarId }}</td>
               <td>
                 {{ sar.subjectName }}
-                <div class="muted mono" *ngIf="sar.sourceEntityId">{{ sar.sourceEntityId }}</div>
+                <div
+                  class="muted mono"
+                  *ngIf="sar.sourceEntityId && sar.sourceEntityId !== sar.subjectName"
+                >
+                  {{ sar.sourceEntityId }}
+                </div>
               </td>
               <td>
                 <span [class]="scoreClass(sar.suspicionScore)">{{ sar.suspicionScore }}</span>
-                <span class="muted" style="margin-left: 8px">{{ scoreLabel(sar.suspicionScore) }}</span>
+                <span class="muted" style="margin-left: 8px">{{
+                  scoreLabel(sar.suspicionScore)
+                }}</span>
               </td>
               <td>
                 <span [class]="badgeClass(sar.status)">{{ sar.status }}</span>
