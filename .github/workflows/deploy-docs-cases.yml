@@ -1,12 +1,12 @@
-name: Deploy Suspect Registry Service to ECS
+name: Deploy Docs Cases Service to ECS
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'backend/services/suspect_registry_service/**'
-            - '.github/workflows/deploy-suspect-registry.yml'
+            - 'backend/services/documents_cases_service/**'
+            - '.github/workflows/deploy-docs-cases.yml'
     workflow_dispatch:
 
 jobs:
@@ -14,9 +14,9 @@ jobs:
         runs-on: ubuntu-latest
         env:
             AWS_REGION: us-east-1
-            ECR_REPOSITORY: finsight/suspect-registry
+            ECR_REPOSITORY: finsight/docs-cases
             ECS_CLUSTER: finsight-dev
-            ECS_SERVICE: finsight-suspect-registry
+            ECS_SERVICE: finsight-docs-cases-dev
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -55,9 +55,9 @@ jobs:
             - name: Build Docker image
               run: |
                   set -e
-                  echo "Building image for suspect_registry_service (tag: ${ECR_REPOSITORY}:latest)..."
-                  cd backend/services/suspect_registry_service || { echo "ERROR: Directory backend/services/suspect_registry_service not found. Check repo structure and paths."; exit 1; }
-                  docker build -t $ECR_REPOSITORY:latest . || { echo "ERROR: Docker build failed. Check Dockerfile and source in backend/services/suspect_registry_service."; exit 1; }
+                  echo "Building image for documents_cases_service (tag: ${ECR_REPOSITORY}:latest)..."
+                  cd backend/services/documents_cases_service || { echo "ERROR: Directory backend/services/documents_cases_service not found. Check repo structure and paths."; exit 1; }
+                  docker build -t $ECR_REPOSITORY:latest . || { echo "ERROR: Docker build failed. Check Dockerfile and source in backend/services/documents_cases_service."; exit 1; }
                   echo "Docker image built successfully."
 
             - name: Tag Docker image
@@ -94,5 +94,5 @@ jobs:
               run: |
                   echo "=== Deploy completed successfully ==="
                   echo "Service: ${ECS_SERVICE} (cluster: ${ECS_CLUSTER})"
-                  echo "Image: finsight/suspect-registry:latest in ECR. New tasks will pull this image."
+                  echo "Image: finsight/docs-cases:latest in ECR. New tasks will pull this image."
                   echo "================================"
