@@ -3,7 +3,7 @@ name: Deploy Suspect Registry Service to ECS
 on:
     push:
         branches:
-            - Finsight-Dev
+            - FinSight-Dev
         paths:
             - 'backend/services/suspect_registry_service/**'
             - '.github/workflows/deploy-suspect-registry.yml'
