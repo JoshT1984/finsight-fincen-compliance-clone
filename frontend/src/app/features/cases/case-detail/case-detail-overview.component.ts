@@ -1,8 +1,9 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ConfirmDialogComponent, ConfirmDialogMode } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CasesService, CaseFileResponse } from '../../../shared/services/cases.service';
+import { RoleService } from '../../../shared/services/role.service';
 
 @Component({
   selector: 'app-case-detail-overview',
@@ -12,6 +13,8 @@ import { CasesService, CaseFileResponse } from '../../../shared/services/cases.s
   styleUrls: ['./case-detail-overview.component.css'],
 })
 export class CaseDetailOverviewComponent {
+  private roleService = inject(RoleService);
+
   caseData: CaseFileResponse | null = null;
   showConfirmDialog = false;
   confirmDialogTitle = '';
@@ -45,11 +48,14 @@ export class CaseDetailOverviewComponent {
   }
 
   canRefer(): boolean {
-    return this.caseData?.status === 'OPEN';
+    return this.roleService.isAnalyst() && this.caseData?.status === 'OPEN';
   }
 
   canClose(): boolean {
-    return this.caseData?.status === 'OPEN' || this.caseData?.status === 'REFERRED';
+    return (
+      this.roleService.isAnalyst() &&
+      (this.caseData?.status === 'OPEN' || this.caseData?.status === 'REFERRED')
+    );
   }
 
   openReferDialog(): void {

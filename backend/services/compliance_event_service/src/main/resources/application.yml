@@ -50,3 +50,7 @@ management:
 logging:
     level:
         root: info
+
+jwt:
+    public-key: ${JWT_PUBLIC_KEY_PATH:file:/run/secrets/jwt_public.pem}
+    private-key: ${JWT_PRIVATE_KEY_PATH:file:/run/secrets/jwt_private.pem}
