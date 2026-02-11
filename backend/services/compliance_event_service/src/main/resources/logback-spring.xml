@@ -1,66 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- ===================== -->
-    <!-- Compliance Appender -->
-    <!-- ===================== -->
-    <appender name="COMPLIANCE_FILE"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+  <!-- Default: local dev writes under project folder -->
+  <property name="COMPLIANCE_LOG_DIR" value="logs/compliance"/>
 
-        <file>/var/log/audit/compliance/compliance_event.log</file>
+  <!-- If you want to override from env: COMPLIANCE_LOG_DIR=/var/log/audit/compliance -->
+  <springProperty scope="context"
+                  name="COMPLIANCE_LOG_DIR"
+                  source="COMPLIANCE_LOG_DIR"
+                  defaultValue="logs/compliance"/>
 
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/audit/compliance/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
+  <appender name="COMPLIANCE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${COMPLIANCE_LOG_DIR}/compliance_event.log</file>
 
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-    </appender>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${COMPLIANCE_LOG_DIR}/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
 
-    <logger name="COMPLIANCE_LOG"
-            level="INFO"
-            additivity="false">
-        <appender-ref ref="COMPLIANCE_FILE"/>
-    </logger>
+    <encoder>
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <!-- ===================== -->
-    <!-- Security Appender -->
-    <!-- ===================== -->
-    <appender name="SECURITY_FILE"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+  <logger name="COMPLIANCE_LOG" level="INFO" additivity="false">
+    <appender-ref ref="COMPLIANCE_FILE"/>
+  </logger>
 
-        <file>/var/log/audit/compliance/security_compliance_event.log</file>
+  <appender name="SECURITY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${COMPLIANCE_LOG_DIR}/security_compliance_event.log</file>
 
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/audit/compliance/security.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${COMPLIANCE_LOG_DIR}/security.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
 
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-    </appender>
+    <encoder>
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <logger name="COMPLIANCE_SECURITY"
-            level="INFO"
-            additivity="false">
-        <appender-ref ref="SECURITY_FILE"/>
-    </logger>
+  <logger name="COMPLIANCE_SECURITY" level="INFO" additivity="false">
+    <appender-ref ref="SECURITY_FILE"/>
+  </logger>
 
-    <!-- ===================== -->
-    <!-- Normal App Logging -->
-    <!-- ===================== -->
-    <appender name="CONSOLE"
-              class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-    </root>
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
 
 </configuration>
