@@ -81,7 +81,6 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private refreshToken() {
-    // withCredentials ONLY belongs here if refresh uses cookies
     return this.http.post<{ accessToken: string }>(
       `${this.apiBaseUrl}/auth/refresh`,
       {},

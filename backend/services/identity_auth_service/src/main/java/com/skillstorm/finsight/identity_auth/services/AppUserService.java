@@ -4,6 +4,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.skillstorm.finsight.identity_auth.aspects.AuditIntent;
 import com.skillstorm.finsight.identity_auth.exceptions.EmailAlreadyExistsException;
 import com.skillstorm.finsight.identity_auth.exceptions.PasswordNotStrongEnoughException;
 import com.skillstorm.finsight.identity_auth.exceptions.UserNotFoundException;
@@ -96,6 +97,7 @@ public class AppUserService {
         return appUserRepository.save(user);
     }
 
+    @AuditIntent("PROFILE_UPDATE")
     @Transactional
     public AppUser updateUser(String userId, UpdateUserDto user) {
         AppUser foundUser = findById(userId).orElseThrow(() -> new UserNotFoundException("User does not exist"));
@@ -117,6 +119,7 @@ public class AppUserService {
         return foundUser;
     }
 
+    @AuditIntent("PASSWORD_RESET")
     @Transactional
     public AppUser updateUserPassword(String userId, ChangePasswordDto passwordDto) {
         AppUser foundUser = findById(userId).orElseThrow(() -> new UserNotFoundException("User does not exist"));
@@ -126,6 +129,7 @@ public class AppUserService {
         return foundUser;
     }
 
+    @AuditIntent("UPDATE_EMAIL")
     @Transactional
     public AppUser updateUserEmail(String userId, ChangeEmailDto emailDto) {
         if (appUserRepository.existsByEmail(emailDto.getNewEmail())) {

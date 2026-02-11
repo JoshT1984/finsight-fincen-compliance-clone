@@ -35,7 +35,8 @@
                   type="button"
                   class="audit-metadata-toggle"
                   (click)="toggleMetadataExpanded(ev.auditId)"
-                  [attr.aria-expanded]="isMetadataExpanded(ev.auditId)">
+                  [attr.aria-expanded]="isMetadataExpanded(ev.auditId)"
+                >
                   {{ isMetadataExpanded(ev.auditId) ? 'Hide metadata' : 'View metadata' }}
                 </button>
                 @if (isMetadataExpanded(ev.auditId)) {

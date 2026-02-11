@@ -52,8 +52,15 @@ export class TransactionService {
     return this.http
       .get<{ content?: TransactionResponse[] } | TransactionResponse[]>(this.apiUrl, { params })
       .pipe(
-        // Accept either Spring Page or raw array
         map((res: any) => (Array.isArray(res) ? res : (res?.content ?? []))),
+        map((rows: TransactionResponse[]) =>
+          rows.map((t) => ({
+            ...t,
+            subjectKey:
+              t.externalSubjectKey ??
+              `${t.sourceSystem}:${t.sourceSubjectType}:${t.sourceSubjectId}`,
+          })),
+        ),
       );
   }
 

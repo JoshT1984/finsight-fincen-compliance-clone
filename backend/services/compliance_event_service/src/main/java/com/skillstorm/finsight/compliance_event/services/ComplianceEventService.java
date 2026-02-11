@@ -42,4 +42,6 @@ public interface ComplianceEventService {
     ComplianceEventResponse unlinkEventFromSuspect(Long eventId);
 
     CtrDetailResponse getCtrDetail(Long eventId);
+
+    ComplianceEventResponse generateSarFromCtr(Long ctrEventId);
 }
