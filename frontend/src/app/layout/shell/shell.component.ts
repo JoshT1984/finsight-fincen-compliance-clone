@@ -8,7 +8,7 @@ import { IdentityService } from '../../shared/services/identity.service';
 import { LoginDialogService } from '../../shared/services/loginDialog.service';
 import { LoginDialogComponent } from '../../shared/login-dialog/login-dialog.component';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { CommonModule, } from '@angular/common';
 
 @Component({
   selector: 'app-shell',
