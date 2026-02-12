@@ -45,79 +45,36 @@ public class CaseFile {
     @Column(name = "referred_to_agency", length = 128)
     private String referredToAgency;
 
-    public CaseFile() {
-    }
+    public CaseFile() {}
 
-    public Long getCaseId() {
-        return caseId;
-    }
+    public Long getCaseId() { return caseId; }
+    public void setCaseId(Long caseId) { this.caseId = caseId; }
 
-    public void setCaseId(Long caseId) {
-        this.caseId = caseId;
-    }
+    public Long getSarId() { return sarId; }
+    public void setSarId(Long sarId) { this.sarId = sarId; }
 
-    public Long getSarId() {
-        return sarId;
-    }
+    public Long getCtrId() { return ctrId; }
+    public void setCtrId(Long ctrId) { this.ctrId = ctrId; }
 
-    public void setSarId(Long sarId) {
-        this.sarId = sarId;
-    }
+    public CaseStatus getStatus() { return status; }
+    public void setStatus(CaseStatus status) { this.status = status; }
 
-    public Long getCtrId() {
-        return ctrId;
-    }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public void setCtrId(Long ctrId) {
-        this.ctrId = ctrId;
-    }
+    public Instant getReferredAt() { return referredAt; }
+    public void setReferredAt(Instant referredAt) { this.referredAt = referredAt; }
 
-    public CaseStatus getStatus() {
-        return status;
-    }
+    public Instant getClosedAt() { return closedAt; }
+    public void setClosedAt(Instant closedAt) { this.closedAt = closedAt; }
 
-    public void setStatus(CaseStatus status) {
-        this.status = status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getReferredAt() {
-        return referredAt;
-    }
-
-    public void setReferredAt(Instant referredAt) {
-        this.referredAt = referredAt;
-    }
-
-    public Instant getClosedAt() {
-        return closedAt;
-    }
-
-    public void setClosedAt(Instant closedAt) {
-        this.closedAt = closedAt;
-    }
-
-    public String getReferredToAgency() {
-        return referredToAgency;
-    }
-
-    public void setReferredToAgency(String referredToAgency) {
-        this.referredToAgency = referredToAgency;
-    }
+    public String getReferredToAgency() { return referredToAgency; }
+    public void setReferredToAgency(String referredToAgency) { this.referredToAgency = referredToAgency; }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         CaseFile caseFile = (CaseFile) o;
         return Objects.equals(caseId, caseFile.caseId);
     }

@@ -1,10 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { ComplianceEventsService } from '../../services/compliance-events.service';
 import { TransactionService } from '../../shared/services/transaction.service';
 import { TransactionFormComponent } from './transaction-form.component';
+import { RoleService } from '../../shared/services/role.service';
 
 import { of } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
@@ -66,10 +68,22 @@ export class CtrsComponent implements OnInit {
     private complianceEventsService: ComplianceEventsService,
     private transactionService: TransactionService,
     private cdr: ChangeDetectorRef,
+    public roleService: RoleService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
-    this.refreshTransactions();
+    // Compliance users should only view CTRs and upload PDFs.
+    // Analysts can add transactions and use them to enrich CTR subject names.
+    if (this.roleService.isComplianceUser()) {
+      this.fetchCtrs();
+    } else {
+      this.refreshTransactions();
+    }
+  }
+
+  canUploadCtr(): boolean {
+    return this.roleService.isComplianceUser();
   }
 
   private pickFirstString(...values: unknown[]): string | null {
@@ -225,6 +239,12 @@ export class CtrsComponent implements OnInit {
   }
 
   refreshTransactions(): void {
+    if (this.roleService.isComplianceUser()) {
+      // Compliance: read-only view, no ledger access.
+      this.fetchCtrs();
+      return;
+    }
+
     this.loadingTxns = true;
     this.txnsError = null;
 
@@ -371,7 +391,8 @@ export class CtrsComponent implements OnInit {
   }
 
   goToUploadCtr(): void {
-    // optional: route later
+    if (!this.canUploadCtr()) return;
+    this.router.navigate(['/upload'], { queryParams: { documentType: 'CTR' } });
   }
 
   trackByEventId = (_: number, item: CtrRowVm) => item?.ctrId ?? _;

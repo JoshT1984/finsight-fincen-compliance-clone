@@ -7,6 +7,7 @@
     <p><strong>Email:</strong> {{ profile.email }}</p>
     <p><strong>Phone:</strong> {{ profile.phone }}</p>
     <p><strong>Role:</strong> {{ profile.roleName }}</p>
+    <p><strong>Organization:</strong> {{ profile.organizationName }}</p>
   </div>
   <button *ngIf="profile && !editMode && !editPasswordMode" class="btn" (click)="startEdit()">
     Edit Profile
@@ -24,6 +25,9 @@
       <input [(ngModel)]="profile.email" name="email" />
     </label>
     <label class="form-label">Phone: <input [(ngModel)]="profile.phone" name="phone" /></label>
+    <label class="form-label"
+      >Organization: <input [(ngModel)]="profile.organizationName" name="organizationName"
+    /></label>
     <div *ngIf="profileError" class="error">
       {{ profileError }}
     </div>

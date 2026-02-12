@@ -8,6 +8,7 @@
 
     <div class="ctaRow">
       <button
+        *ngIf="!roleService.isComplianceUser()"
         class="btn primary"
         type="button"
         (click)="openTransactionForm()"
@@ -16,19 +17,30 @@
         {{ justSubmittedLabel ? 'Submitted' : 'Add Cash Transaction' }}
       </button>
 
-      <button class="btn ghost" type="button" (click)="goToUploadCtr()">Upload CTR PDF</button>
+      <button
+        *ngIf="canUploadCtr()"
+        class="btn ghost"
+        type="button"
+        (click)="goToUploadCtr()"
+      >
+        Upload CTR PDF
+      </button>
       <button class="btn ghost" type="button" (click)="refreshTransactions()">Refresh</button>
     </div>
 
-    <p *ngIf="submitSuccess" class="notice notice--success">Transaction added successfully.</p>
-    <p *ngIf="submitError" class="notice notice--error">{{ submitError }}</p>
+    <p *ngIf="!roleService.isComplianceUser() && submitSuccess" class="notice notice--success">
+      Transaction added successfully.
+    </p>
+    <p *ngIf="!roleService.isComplianceUser() && submitError" class="notice notice--error">
+      {{ submitError }}
+    </p>
   </section>
 
   <section class="content" aria-label="CTRs content">
     <!-- ========================= -->
     <!-- Cash Transactions Table -->
     <!-- ========================= -->
-    <div class="card">
+    <div class="card" *ngIf="!roleService.isComplianceUser()">
       <div class="card__header">
         <div>
           <div class="tag">Ledger</div>
@@ -158,14 +170,14 @@
     <!-- Modal overlay for Add Transaction -->
     <!-- ========================= -->
     <div
-      *ngIf="showTransactionForm"
+      *ngIf="!roleService.isComplianceUser() && showTransactionForm"
       class="modalBackdrop"
       role="presentation"
       (click)="closeTransactionForm()"
     ></div>
 
     <div
-      *ngIf="showTransactionForm"
+      *ngIf="!roleService.isComplianceUser() && showTransactionForm"
       class="modal"
       role="dialog"
       aria-modal="true"

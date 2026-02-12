@@ -13,9 +13,9 @@
   <!-- File: persists so you can read logs even when Eclipse switches consoles -->
   <property name="LOG_PATH" value="${LOG_PATH:-logs}"/>
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${LOG_PATH}/documents-cases-service.log</file>
+    <file>${LOG_PATH}/suspect-registry-service.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_PATH}/documents-cases-service.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <fileNamePattern>${LOG_PATH}/suspect-registry-service.%d{yyyy-MM-dd}.log</fileNamePattern>
       <maxHistory>7</maxHistory>
     </rollingPolicy>
     <encoder>
@@ -25,30 +25,27 @@
   </appender>
 
   <!-- Audit / Security file -->
-    <appender name="DOCUMENT_FILE"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
+  <appender name="SUSPECT_REGISTRY_FILE"
+            class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/var/log/audit/suspect_registry.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>/var/log/audit/suspect_registry.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <!-- JSON only, no Logback metadata -->
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
 
-        <file>/var/log/audit/documents_cases.log</file>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/audit/documents_cases.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
-
-        <encoder>
-            <!-- JSON only, no Logback metadata -->
-            <pattern>%msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Only your audit logger writes to file -->
-    <logger name="DOCUMENT_EVENT" level="INFO" additivity="false">
-        <appender-ref ref="DOCUMENT_FILE"/>
-    </logger>
+  <!-- Only your audit logger writes to file -->
+  <logger name="SUSPECT_REGISTRY_EVENT" level="INFO" additivity="false">
+    <appender-ref ref="SUSPECT_REGISTRY_FILE"/>
+  </logger>
 
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
   </root>
-  <logger name="com.skillstorm.finsight.documents_cases" level="DEBUG"/>
+  <logger name="com.skillstorm.finsight.suspect_registry" level="DEBUG"/>
 </configuration>

@@ -69,8 +69,6 @@ public class DocumentsCasesClient {
                 log.info("CaseFile already exists for {} {} (409)", type, id);
                 return;
             }
-
-            // 🔥 DO NOT THROW — log and continue
             log.warn("Case service returned error for {} {} - status={} body={}",
                     type,
                     id,

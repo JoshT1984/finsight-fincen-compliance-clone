@@ -95,8 +95,15 @@ export class IdentityService {
   }
 
   saveProfileUpdates(updatedProfile: ProfileModel): Observable<ProfileModel> {
+    // Backend expects UpdateUserDto (firstName, lastName, phone, email).
+    const payload = {
+      firstName: updatedProfile.firstName,
+      lastName: updatedProfile.lastName,
+      phone: updatedProfile.phone,
+      email: updatedProfile.email,
+    };
     return this.http
-      .put<ProfileModel>(`${this.apiBaseUrl}/api/users/me`, updatedProfile, {
+      .put<ProfileModel>(`${this.apiBaseUrl}/api/users/me`, payload, {
         withCredentials: true,
       })
       .pipe(

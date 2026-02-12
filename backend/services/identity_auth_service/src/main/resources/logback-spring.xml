@@ -26,12 +26,12 @@
     </appender>
 
     <!-- Only your audit logger writes to file -->
-    <logger name="IDENTITY_SECURITY" level="INFO" additivity="false">
+    <logger name="IDENTITY_SECURITY" level="INFO">
         <appender-ref ref="IDENTITY_SECURITY_FILE"/>
     </logger>
 
     <!-- Everything else basically ignored -->
-    <root level="ERROR">
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
 
