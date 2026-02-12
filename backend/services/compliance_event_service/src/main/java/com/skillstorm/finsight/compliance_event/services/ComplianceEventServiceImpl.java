@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,12 +89,15 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ComplianceEventSarDetail saved = sarDetailRepository.save(sar);
 
         // Emitting event log for SAR creation
+        String trigger = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
         complianceEventEmitter.emit(new ComplianceEventLog(
                 Instant.now(),
                 "COMPLIANCE_EVENT",
                 saved.getEventId().toString(),
                 "CREATED",
-                "USER",
+                trigger.isBlank() ? "UNKNOWN" : trigger,
                 "SAR_CREATED",
                 "SAR_CREATED:" + saved.getEventId(),
                 Map.of("eventType", "SAR", "sourceSystem", request.sourceSystem())));
@@ -131,12 +135,15 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ComplianceEventCtrDetail saved = ctrDetailRepository.save(ctr);
 
         // Emitting event log for CTR creation
+        String trigger = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
         complianceEventEmitter.emit(new ComplianceEventLog(
                 Instant.now(),
                 "COMPLIANCE_EVENT",
                 saved.getEventId().toString(),
                 "CREATED",
-                "USER",
+                trigger.isBlank() ? "UNKNOWN" : trigger,
                 "CTR_CREATED",
                 "CTR_CREATED:" + saved.getEventId(),
                 Map.of("eventType", "CTR", "sourceSystem", request.sourceSystem())));
@@ -203,12 +210,15 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ComplianceEvent saved = complianceEventRepository.save(event);
 
         // Emitting event log for linking event to suspect
+        String trigger = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
         complianceEventEmitter.emit(new ComplianceEventLog(
                 Instant.now(),
                 "COMPLIANCE_EVENT",
                 saved.getEventId().toString(),
                 "UPDATED",
-                "USER",
+                trigger.isBlank() ? "UNKNOWN" : trigger,
                 "EVENT_LINKED_TO_SUSPECT",
                 "EVENT_LINKED_TO_SUSPECT:" + saved.getEventId(),
                 Map.of("suspectId", snapshot.getSuspectId())));
@@ -225,12 +235,15 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         ComplianceEvent saved = complianceEventRepository.save(event);
 
         // Emitting event log for delinking event to suspect
+        String trigger = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
         complianceEventEmitter.emit(new ComplianceEventLog(
                 Instant.now(),
                 "COMPLIANCE_EVENT",
                 saved.getEventId().toString(),
                 "UPDATED",
-                "USER",
+                trigger.isBlank() ? "UNKNOWN" : trigger,
                 "EVENT_DELINKED_FROM_SUSPECT",
                 "EVENT_DELINKED_FROM_SUSPECT:" + saved.getEventId(),
                 Map.of()));

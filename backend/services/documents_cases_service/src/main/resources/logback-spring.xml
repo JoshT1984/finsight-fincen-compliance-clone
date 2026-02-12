@@ -28,10 +28,10 @@
     <appender name="DOCUMENT_FILE"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
 
-        <file>/var/log/audit/documents_cases.log</file>
+        <file>/var/log/audit/document_cases.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/audit/documents_cases.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>/var/log/audit/document_cases.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>7</maxHistory>
         </rollingPolicy>
 
