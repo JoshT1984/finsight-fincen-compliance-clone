@@ -1,7 +1,10 @@
 package com.skillstorm.finsight.documents_cases.services;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,12 +14,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.skillstorm.finsight.documents_cases.emitters.DocumentEventEmitter;
 
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CopyObjectResponse;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -87,6 +92,33 @@ public class S3Service {
     }
 
     /**
+     * Reads an object from S3 as an input stream. The caller is responsible for
+     * closing the returned stream.
+     *
+     * @param storagePath The S3 key/path to the document (e.g., "case/123/doc.pdf")
+     * @return InputStream of the object content; must be closed by the caller
+     * @throws IOException if the key is invalid or the object cannot be read
+     */
+    public InputStream getObjectStream(String storagePath) throws IOException {
+        String key = extractKey(storagePath);
+        if (key == null || key.isEmpty()) {
+            throw new IOException("Invalid storage path - could not extract S3 key from: " + storagePath);
+        }
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            ResponseInputStream<GetObjectResponse> stream = s3Client.getObject(getObjectRequest);
+            log.debug("Opened S3 object stream for key: {}", key);
+            return stream;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            log.error("S3 error reading object - bucket: {}, key: {}", bucketName, key, e);
+            throw new IOException("Failed to read file from S3: " + e.awsErrorDetails().errorMessage(), e);
+        }
+    }
+
+    /**
      * Uploads a file to S3.
      * 
      * @param file        The multipart file to upload
@@ -109,34 +141,35 @@ public class S3Service {
                     putObjectRequest,
                     RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
             log.info("Successfully uploaded file to S3: {} (ETag: {})", s3Key, response.eTag());
+            Map<String, Object> uploadMetadata = new HashMap<>();
+            uploadMetadata.put("fileName", file.getOriginalFilename());
+            uploadMetadata.put("fileSize", file.getSize());
+            uploadMetadata.put("contentType", contentType);
+            uploadMetadata.put("bucket", bucketName);
+            uploadMetadata.put("eTag", response.eTag());
             // Emit event for S3 upload
             eventEmitter.emit(
                     com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog.s3Upload(
                             s3Key,
                             com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
                                     .orElse(null).toString(),
-                            java.util.Map.of(
-                                    "fileName", file.getOriginalFilename(),
-                                    "fileSize", file.getSize(),
-                                    "contentType", contentType,
-                                    "bucket", bucketName,
-                                    "eTag", response.eTag())));
+                            uploadMetadata));
             return s3Key;
         } catch (Exception e) {
             log.error("Failed to upload file to S3: {}", s3Key, e);
+            Map<String, Object> uploadFailedMetadata = new HashMap<>();
+            uploadFailedMetadata.put("fileName", file != null ? file.getOriginalFilename() : null);
+            uploadFailedMetadata.put("fileSize", file != null ? file.getSize() : null);
+            uploadFailedMetadata.put("contentType", contentType);
+            uploadFailedMetadata.put("bucket", bucketName);
+            uploadFailedMetadata.put("error", e.getMessage());
             // Emit event for S3 upload failure
             eventEmitter.emit(
                 com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog.s3UploadFailed(
                     s3Key,
                     com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
                         .orElse(null).toString(),
-                    java.util.Map.of(
-                        "fileName", file != null ? file.getOriginalFilename() : null,
-                        "fileSize", file != null ? file.getSize() : null,
-                        "contentType", contentType,
-                        "bucket", bucketName,
-                        "error", e.getMessage()
-                    )
+                    uploadFailedMetadata
                 )
             );
             throw new IOException("Failed to upload file to S3: " + e.getMessage(), e);
@@ -167,13 +200,14 @@ public class S3Service {
             s3Client.deleteObject(deleteObjectRequest);
             log.info("Successfully deleted file from S3 - bucket: {}, key: {}", bucketName, key);
             // Emit event for S3 delete
+            Map<String, Object> deleteMetadata = new HashMap<>();
+            deleteMetadata.put("bucket", bucketName);
             eventEmitter.emit(
                     com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog.s3Delete(
                             key,
                             com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
                                     .orElse(null).toString(),
-                            java.util.Map.of(
-                                    "bucket", bucketName)));
+                            deleteMetadata));
         } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
             log.error("S3 error deleting file - bucket: {}, key: {}, error code: {}, error message: {}",
                     bucketName, key, e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage(), e);
@@ -214,17 +248,18 @@ public class S3Service {
             CopyObjectResponse response = s3Client.copyObject(copyRequest);
             log.info("Successfully copied file in S3 from '{}' to '{}' (ETag: {})",
                     cleanSourceKey, cleanDestinationKey, response.copyObjectResult().eTag());
+            Map<String, Object> copyMetadata = new HashMap<>();
+            copyMetadata.put("bucket", bucketName);
+            copyMetadata.put("sourceKey", cleanSourceKey);
+            copyMetadata.put("destinationKey", cleanDestinationKey);
+            copyMetadata.put("eTag", response.copyObjectResult().eTag());
             // Emit event for S3 copy
             eventEmitter.emit(
                     com.skillstorm.finsight.documents_cases.loggers.DocumentEventLog.s3Copy(
                             cleanSourceKey + " -> " + cleanDestinationKey,
                             com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
                                     .orElse(null).toString(),
-                            java.util.Map.of(
-                                    "bucket", bucketName,
-                                    "sourceKey", cleanSourceKey,
-                                    "destinationKey", cleanDestinationKey,
-                                    "eTag", response.copyObjectResult().eTag())));
+                            copyMetadata));
             // Delete the source file after successful copy
             deleteFile(cleanSourceKey);
             log.info("Deleted source file after copy: {}", cleanSourceKey);

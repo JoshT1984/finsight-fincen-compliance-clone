@@ -36,6 +36,13 @@ export interface CaseNoteResponse {
   createdAt: string;
 }
 
+/** Request payload for creating a case note. */
+export interface CreateCaseNoteRequest {
+  caseId: number;
+  authorUserId: string;
+  noteText: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -85,5 +92,10 @@ export class CasesService {
   /** Fetch case notes for a case. */
   getCaseNotes(caseId: number): Observable<CaseNoteResponse[]> {
     return this.http.get<CaseNoteResponse[]>(`${this.caseNotesUrl}/case/${caseId}`);
+  }
+
+  /** Create a case note for a case. */
+  createCaseNote(request: CreateCaseNoteRequest): Observable<CaseNoteResponse> {
+    return this.http.post<CaseNoteResponse>(this.caseNotesUrl, request);
   }
 }

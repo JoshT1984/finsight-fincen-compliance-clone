@@ -7,6 +7,15 @@
 } @else if (documents.length === 0) {
   <p class="case-section__empty">No documents uploaded for this case.</p>
 } @else {
+  <div class="case-section__actions">
+    <button
+      type="button"
+      class="case-section__download-all"
+      (click)="downloadAllDocuments()"
+      [disabled]="downloadingAll">
+      {{ downloadingAll ? 'Downloading…' : 'Download all' }}
+    </button>
+  </div>
   <div class="case-section__table-wrapper">
     <table class="case-section__table">
       <thead>
