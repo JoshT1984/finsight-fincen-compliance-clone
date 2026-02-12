@@ -14,9 +14,8 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, Long> {
 
     Optional<CaseFile> findBySarId(Long sarId);
 
-    /**
-     * Cases visible to law enforcement: REFERRED or CLOSED with a referral at some point.
-     */
+    Optional<CaseFile> findByCtrId(Long ctrId);
+
     @Query("SELECT c FROM CaseFile c WHERE c.status = 'REFERRED' OR (c.status = 'CLOSED' AND c.referredAt IS NOT NULL)")
     List<CaseFile> findVisibleToLawEnforcement();
 }

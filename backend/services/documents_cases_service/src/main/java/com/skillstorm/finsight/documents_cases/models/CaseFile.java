@@ -1,8 +1,16 @@
 package com.skillstorm.finsight.documents_cases.models;
 
-import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.Objects;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "case_file")
@@ -13,8 +21,13 @@ public class CaseFile {
     @Column(name = "case_id")
     private Long caseId;
 
-    @Column(name = "sar_id", nullable = false, unique = true)
+    // Nullable: SAR-backed cases
+    @Column(name = "sar_id", unique = true)
     private Long sarId;
+
+    // Nullable: CTR-backed analyst review cases
+    @Column(name = "ctr_id", unique = true)
+    private Long ctrId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 32)
@@ -35,15 +48,6 @@ public class CaseFile {
     public CaseFile() {
     }
 
-    public CaseFile(Long caseId, Long sarId, CaseStatus status, Instant createdAt, Instant referredAt, Instant closedAt, String referredToAgency) {
-        this.caseId = caseId;
-        this.sarId = sarId;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.referredAt = referredAt;
-        this.closedAt = closedAt;
-        this.referredToAgency = referredToAgency;
-    }
     public Long getCaseId() {
         return caseId;
     }
@@ -58,6 +62,14 @@ public class CaseFile {
 
     public void setSarId(Long sarId) {
         this.sarId = sarId;
+    }
+
+    public Long getCtrId() {
+        return ctrId;
+    }
+
+    public void setCtrId(Long ctrId) {
+        this.ctrId = ctrId;
     }
 
     public CaseStatus getStatus() {
@@ -102,8 +114,10 @@ public class CaseFile {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         CaseFile caseFile = (CaseFile) o;
         return Objects.equals(caseId, caseFile.caseId);
     }
@@ -111,18 +125,5 @@ public class CaseFile {
     @Override
     public int hashCode() {
         return Objects.hash(caseId);
-    }
-
-    @Override
-    public String toString() {
-        return "CaseFile{" +
-                "caseId=" + caseId +
-                ", sarId=" + sarId +
-                ", status=" + status +
-                ", createdAt=" + createdAt +
-                ", referredAt=" + referredAt +
-                ", closedAt=" + closedAt +
-                ", referredToAgency='" + referredToAgency + '\'' +
-                '}';
     }
 }
