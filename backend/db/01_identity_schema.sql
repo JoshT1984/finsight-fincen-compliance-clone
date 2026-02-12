@@ -20,6 +20,15 @@ CREATE TABLE IF NOT EXISTS role (
   UNIQUE KEY uq_role_role_name (role_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS organization (
+  organization_id VARCHAR(36) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (organization_id),
+  UNIQUE KEY uq_organization_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS app_user (
   user_id VARCHAR(36) NOT NULL,
   email VARCHAR(320) NOT NULL,
@@ -72,15 +81,6 @@ CREATE TABLE IF NOT EXISTS oauth_identity (
     FOREIGN KEY (user_id) REFERENCES app_user(user_id)
     ON DELETE CASCADE
     ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE IF NOT EXISTS organization (
-  organization_id VARCHAR(36) NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (organization_id),
-  UNIQUE KEY uq_organization_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Seed roles per MVP Section 4: Analyst, Compliance User, Law Enforcement User

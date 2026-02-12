@@ -16,7 +16,6 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
 
-    @Autowired
     public OrganizationController(OrganizationService organizationService) {
         this.organizationService = organizationService;
     }
@@ -40,7 +39,8 @@ public class OrganizationController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Organization> updateOrganization(@PathVariable String id, @RequestBody Organization organization) {
+    public ResponseEntity<Organization> updateOrganization(@PathVariable String id,
+            @RequestBody Organization organization) {
         Optional<Organization> existing = organizationService.findById(id);
         if (existing.isEmpty()) {
             return ResponseEntity.notFound().build();

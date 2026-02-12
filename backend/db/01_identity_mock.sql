@@ -37,7 +37,7 @@ SELECT role_id, role_name FROM role;
 -- Users (use deterministic UUIDs so other services can reference them)
 -- NOTE: password_hash is just mock, not real bcrypt.
 INSERT INTO app_user
-  (user_id, email, password_hash, first_name, last_name, phone, is_active, deleted, deleted_at, role_id, organization_id)
+  (user_id, email, password_hash, first_name, last_name, phone, is_active, deleted, created_at, updated_at, deleted_at, role_id, organization_id)
 VALUES
   (UUID(), 'matthew.wright9630@gmail.com',
  '$2a$12$5P/qyGmiJEX1PAwNklkiVe2CqsrTIRqIQEDS0OMEFUxHrS00zpNJS',

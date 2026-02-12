@@ -40,6 +40,10 @@ public class AppUser {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
     public AppUser() {
     }
 
@@ -55,7 +59,7 @@ public class AppUser {
     }
 
     public AppUser(String userId, String email, String passwordHash, String firstName, String lastName, String phone,
-            boolean isActive, Timestamp createdAt, Timestamp updatedAt, Role role) {
+            boolean isActive, Timestamp createdAt, Timestamp updatedAt, Role role, Organization organization) {
         this.userId = userId;
         this.email = email;
         this.passwordHash = passwordHash;
@@ -66,6 +70,7 @@ public class AppUser {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.role = role;
+        this.organization = organization;
     }
 
     // Getters and setters for all fields
@@ -151,6 +156,14 @@ public class AppUser {
         this.role = role;
     }
 
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -165,6 +178,7 @@ public class AppUser {
         // createdAt and updatedAt are managed by JPA lifecycle, not included in
         // hashCode
         result = prime * result + ((role == null) ? 0 : role.hashCode());
+        result = prime * result + ((organization == null) ? 0 : organization.hashCode());
         return result;
     }
 
@@ -215,6 +229,11 @@ public class AppUser {
                 return false;
         } else if (!role.equals(other.role))
             return false;
+        if (organization == null) {
+            if (other.organization != null)
+                return false;
+        } else if (!organization.equals(other.organization))
+            return false;
         return true;
     }
 
@@ -222,7 +241,7 @@ public class AppUser {
     public String toString() {
         return "AppUser [userId=" + userId + ", email=" + email + ", passwordHash=" + passwordHash + ", firstName="
                 + firstName + ", lastName=" + lastName + ", phone=" + phone + ", isActive=" + isActive + ", role="
-                + role + "]";
+                + role + ", organization=" + (organization != null ? organization.getOrganizationId() : null) + "]";
     }
 
 }
