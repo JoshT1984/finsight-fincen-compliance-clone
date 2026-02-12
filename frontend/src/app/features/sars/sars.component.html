@@ -7,12 +7,25 @@
     </p>
 
     <div class="ctaRow">
-      <button class="btn primary" type="button" (click)="goToCases()">Go to Case Queue</button>
-      <button class="btn ghost" type="button" (click)="goToUploadSar()">Upload SAR PDF</button>
+      <button
+        *ngIf="roleService.isAnalyst()"
+        class="btn primary"
+        type="button"
+        (click)="goToCases()"
+      >
+        Go to Case Queue
+      </button>
+      <button *ngIf="canUploadSar()" class="btn ghost" type="button" (click)="goToUploadSar()">
+        Upload SAR PDF
+      </button>
       <button class="btn ghost" type="button" (click)="refresh()">Refresh</button>
     </div>
 
-    <div class="ctaRow" style="margin-top: 12px; gap: 10px; flex-wrap: wrap">
+    <div
+      *ngIf="roleService.isAnalyst()"
+      class="ctaRow"
+      style="margin-top: 12px; gap: 10px; flex-wrap: wrap"
+    >
       <label class="muted" style="display: flex; align-items: center; gap: 8px">
         <span>Generate from CTR</span>
         <select
@@ -81,18 +94,44 @@
               <td class="mono">{{ sar.sarId }}</td>
               <td>
                 {{ sar.subjectName }}
-                <div class="muted mono" *ngIf="sar.sourceEntityId">{{ sar.sourceEntityId }}</div>
+                <div
+                  class="muted mono"
+                  *ngIf="sar.sourceEntityId && sar.sourceEntityId !== sar.subjectName"
+                >
+                  {{ sar.sourceEntityId }}
+                </div>
               </td>
               <td>
                 <span [class]="scoreClass(sar.suspicionScore)">{{ sar.suspicionScore }}</span>
-                <span class="muted" style="margin-left: 8px">{{ scoreLabel(sar.suspicionScore) }}</span>
+                <span class="muted" style="margin-left: 8px">{{
+                  scoreLabel(sar.suspicionScore)
+                }}</span>
               </td>
               <td>
-                <span [class]="badgeClass(sar.status)">{{ sar.status }}</span>
+                <button
+                  *ngIf="canOpenCasesFromSar() && (sar.status || '').toUpperCase() === 'DRAFT'"
+                  type="button"
+                  class="badgeLink"
+                  [class]="badgeClass(sar.status)"
+                  (click)="openSar(sar.sarId)"
+                >
+                  {{ sar.status }}
+                </button>
+                <span
+                  *ngIf="!(canOpenCasesFromSar() && (sar.status || '').toUpperCase() === 'DRAFT')"
+                  [class]="badgeClass(sar.status)"
+                  >{{ sar.status }}</span
+                >
               </td>
               <td>{{ sar.updatedAt | date: 'medium' }}</td>
               <td>
-                <button class="btn ghost" type="button" (click)="openSar(sar.sarId)">Open</button>
+                <button
+                  class="btn ghost"
+                  type="button"
+                  (click)="goToCases()"
+                >
+                  Open
+                </button>
               </td>
             </tr>
 

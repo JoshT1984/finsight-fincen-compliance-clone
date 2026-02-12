@@ -36,10 +36,12 @@ export interface CaseNoteResponse {
   createdAt: string;
 }
 
-/** Request payload for creating a case note. */
 export interface CreateCaseNoteRequest {
   caseId: number;
-  authorUserId: string;
+  noteText: string;
+}
+
+export interface UpdateCaseNoteRequest {
   noteText: string;
 }
 
@@ -94,8 +96,20 @@ export class CasesService {
     return this.http.get<CaseNoteResponse[]>(`${this.caseNotesUrl}/case/${caseId}`);
   }
 
-  /** Create a case note for a case. */
-  createCaseNote(request: CreateCaseNoteRequest): Observable<CaseNoteResponse> {
-    return this.http.post<CaseNoteResponse>(this.caseNotesUrl, request);
+  /** Create a new case note (ANALYST only). */
+  createCaseNote(caseId: number, noteText: string): Observable<CaseNoteResponse> {
+    const payload: CreateCaseNoteRequest = { caseId, noteText };
+    return this.http.post<CaseNoteResponse>(this.caseNotesUrl, payload);
+  }
+
+  /** Update a case note (ANALYST only). */
+  updateCaseNote(noteId: number, noteText: string): Observable<CaseNoteResponse> {
+    const payload: UpdateCaseNoteRequest = { noteText };
+    return this.http.patch<CaseNoteResponse>(`${this.caseNotesUrl}/${noteId}`, payload);
+  }
+
+  /** Delete a case note (ANALYST only). */
+  deleteCaseNote(noteId: number): Observable<void> {
+    return this.http.delete<void>(`${this.caseNotesUrl}/${noteId}`);
   }
 }

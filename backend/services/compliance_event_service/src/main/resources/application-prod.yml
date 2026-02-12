@@ -50,9 +50,6 @@ management:
       exposure:
         include: health,info
 
-# FIX: this is the missing property that crashed JwtConfig in your logs.
-# Provide it via a secret/env var in prod.
-# If you store the PEM with literal "\n", Spring can still handle it if your JwtConfig normalizes newlines.
 jwt:
   public-key: ${JWT_PUBLIC_KEY_PATH:file:/run/secrets/jwt_public.pem}
   private-key: ${JWT_PRIVATE_KEY_PATH:file:/run/secrets/jwt_private.pem}
@@ -60,3 +57,11 @@ jwt:
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET}
+
+finsight:
+  suspect-registry:
+    url: ${SUSPECT_REGISTRY_URL}
+
+  # NEW: must be set in prod environment/task definition
+  documents-cases:
+    url: ${DOCUMENTS_CASES_URL}

@@ -1,11 +1,22 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { RoleService } from '../../shared/services/role.service';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RouterLink],
+  imports: [CommonModule, RouterLink],
   templateUrl: './landing.component.html',
   styleUrls: ['./landing.component.css'],
 })
-export class LandingComponent {}
+export class LandingComponent {
+  constructor(
+    public roleService: RoleService,
+    private router: Router,
+  ) {}
+
+  goToUpload(): void {
+    this.router.navigate(['/upload']);
+  }
+}

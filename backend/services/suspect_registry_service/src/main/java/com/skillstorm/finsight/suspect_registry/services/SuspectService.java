@@ -16,8 +16,10 @@ import com.skillstorm.finsight.suspect_registry.dtos.request.LinkSuspectOrganiza
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchSuspectRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.LinkedOrganizationResponse;
 import com.skillstorm.finsight.suspect_registry.dtos.response.SuspectResponse;
+import com.skillstorm.finsight.suspect_registry.emitters.SuspectRegistryEventEmitter;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
+import com.skillstorm.finsight.suspect_registry.loggers.SuspectRegistryEventLog;
 import com.skillstorm.finsight.suspect_registry.models.Address;
 import com.skillstorm.finsight.suspect_registry.models.AddressType;
 import com.skillstorm.finsight.suspect_registry.models.Alias;
@@ -40,11 +42,11 @@ import com.skillstorm.finsight.suspect_registry.util.SsnHashUtil;
 
 @Service
 public class SuspectService {
-  
+
   private static final Logger log = LoggerFactory.getLogger(SuspectService.class);
   private static final RiskLevel DEFAULT_RISK_LEVEL = RiskLevel.UNKNOWN;
   private static final AddressType DEFAULT_ADDRESS_TYPE = AddressType.UNKNOWN;
-  
+
   private final SuspectRepository repo;
   private final SuspectOrganizationRepository suspectOrgRepo;
   private final SuspectAddressRepository suspectAddressRepo;
@@ -52,10 +54,12 @@ public class SuspectService {
   private final AddressRepository addressRepo;
   private final AliasRepository aliasRepo;
   private final AddressService addressService;
+  private final SuspectRegistryEventEmitter eventEmitter;
 
   public SuspectService(SuspectRepository repo, SuspectOrganizationRepository suspectOrgRepo,
       SuspectAddressRepository suspectAddressRepo, OrganizationRepository orgRepo,
-      AddressRepository addressRepo, AliasRepository aliasRepo, AddressService addressService) {
+      AddressRepository addressRepo, AliasRepository aliasRepo, AddressService addressService,
+      SuspectRegistryEventEmitter eventEmitter) {
     this.repo = repo;
     this.suspectOrgRepo = suspectOrgRepo;
     this.suspectAddressRepo = suspectAddressRepo;
@@ -63,6 +67,7 @@ public class SuspectService {
     this.addressRepo = addressRepo;
     this.aliasRepo = aliasRepo;
     this.addressService = addressService;
+    this.eventEmitter = eventEmitter;
   }
 
   private SuspectResponse toResponse(Suspect suspect) {
@@ -73,8 +78,7 @@ public class SuspectService {
         suspect.getSsn(),
         suspect.getRiskLevel(),
         suspect.getCreatedAt(),
-        suspect.getUpdatedAt()
-    );
+        suspect.getUpdatedAt());
   }
 
   @Transactional
@@ -91,7 +95,7 @@ public class SuspectService {
         throw new ResourceConflictException("Suspect with SSN already exists");
       }
     }
-    
+
     RiskLevel risk = request.riskLevel() != null ? request.riskLevel() : DEFAULT_RISK_LEVEL;
     Suspect suspect = new Suspect();
     suspect.setPrimaryName(request.primaryName());
@@ -100,6 +104,16 @@ public class SuspectService {
     suspect.setRiskLevel(risk);
     Suspect saved = repo.save(suspect);
     log.info("Created suspect with ID: {}", saved.getId());
+    eventEmitter.emit(
+        SuspectRegistryEventLog.suspectCreated(
+            String.valueOf(saved.getId()),
+            "USER",
+            java.util.Map.of(
+                "primaryName", saved.getPrimaryName(),
+                "dob", saved.getDob(),
+                "ssn", saved.getSsn(),
+                "riskLevel", saved.getRiskLevel(),
+                "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
     return toResponse(saved);
   }
 
@@ -112,20 +126,22 @@ public class SuspectService {
 
   public SuspectResponse findById(Long suspectId) {
     log.debug("Retrieving suspect with ID: {}", suspectId);
-    
+
     Suspect suspect = repo.findById(suspectId)
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
-    
+
     return toResponse(suspect);
   }
 
   /**
-   * Finds a suspect by SSN (for compliance-event matching). Normalizes and hashes SSN, then looks up by hash.
+   * Finds a suspect by SSN (for compliance-event matching). Normalizes and hashes
+   * SSN, then looks up by hash.
    * Returns empty if SSN is invalid or no suspect has that SSN.
    */
   @Transactional(readOnly = true)
   public java.util.Optional<Long> findSuspectIdBySsn(String ssn) {
-    if (ssn == null || ssn.isBlank()) return java.util.Optional.empty();
+    if (ssn == null || ssn.isBlank())
+      return java.util.Optional.empty();
     try {
       SsnHashUtil.validateSsn(ssn);
     } catch (IllegalArgumentException e) {
@@ -133,18 +149,24 @@ public class SuspectService {
       return java.util.Optional.empty();
     }
     String hash = SsnHashUtil.hash(ssn);
-    if (hash == null) return java.util.Optional.empty();
+    if (hash == null)
+      return java.util.Optional.empty();
     return repo.findBySsnHash(hash).map(Suspect::getId);
   }
 
   /**
-   * Finds a suspect by SSN, or creates one with the given name and SSN if not found (for CTR/SAR upload flow).
-   * Intended for server-to-server calls from compliance-event-service. Creates with default risk level.
+   * Finds a suspect by SSN, or creates one with the given name and SSN if not
+   * found (for CTR/SAR upload flow).
+   * Intended for server-to-server calls from compliance-event-service. Creates
+   * with default risk level.
    */
   /**
-   * Finds a suspect by SSN, or creates one with the given name and SSN if not found (for CTR/SAR upload flow).
-   * When an existing suspect is found by SSN and the form name differs from the suspect's primary name,
-   * the form name is added as an alias (AKA) so analysts can match suspects across documents.
+   * Finds a suspect by SSN, or creates one with the given name and SSN if not
+   * found (for CTR/SAR upload flow).
+   * When an existing suspect is found by SSN and the form name differs from the
+   * suspect's primary name,
+   * the form name is added as an alias (AKA) so analysts can match suspects
+   * across documents.
    */
   @Transactional
   public long findOrCreateBySsnAndName(String ssn, String primaryName) {
@@ -160,7 +182,8 @@ public class SuspectService {
       if (primaryName != null && !primaryName.isBlank()) {
         String formName = primaryName.trim();
         String currentPrimary = s.getPrimaryName() != null ? s.getPrimaryName().trim() : "";
-        if (!formName.equalsIgnoreCase(currentPrimary) && aliasRepo.findBySuspectIdAndAliasName(id, formName).isEmpty()) {
+        if (!formName.equalsIgnoreCase(currentPrimary)
+            && aliasRepo.findBySuspectIdAndAliasName(id, formName).isEmpty()) {
           Alias alias = new Alias();
           alias.setSuspect(s);
           alias.setAliasName(formName.length() > 256 ? formName.substring(0, 256) : formName);
@@ -173,13 +196,21 @@ public class SuspectService {
       return id;
     }
     String name = (primaryName != null && !primaryName.isBlank()) ? primaryName : "Unknown";
-    if (name.length() > 256) name = name.substring(0, 256);
+    if (name.length() > 256)
+      name = name.substring(0, 256);
     Suspect suspect = new Suspect();
     suspect.setPrimaryName(name);
     suspect.setSsn(ssn);
     suspect.setRiskLevel(DEFAULT_RISK_LEVEL);
     Suspect saved = repo.save(suspect);
     log.info("Created suspect with ID: {} from SSN/name (find-or-create)", saved.getId());
+    eventEmitter.emit(
+        SuspectRegistryEventLog.suspectCreated(
+            String.valueOf(saved.getId()),
+            "SYSTEM",
+            java.util.Map.of(
+                "primaryName", saved.getPrimaryName(),
+                "riskLevel", saved.getRiskLevel())));
     return saved.getId();
   }
 
@@ -217,9 +248,18 @@ public class SuspectService {
     Suspect suspect = repo.findById(suspectId)
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + suspectId + " not found"));
     boolean updated = false;
-    if (request.primaryName() != null) { suspect.setPrimaryName(request.primaryName()); updated = true; }
-    if (request.dob() != null) { suspect.setDob(request.dob()); updated = true; }
-    if (request.ssn() != null) { suspect.setSsn(request.ssn()); updated = true; }
+    if (request.primaryName() != null) {
+      suspect.setPrimaryName(request.primaryName());
+      updated = true;
+    }
+    if (request.dob() != null) {
+      suspect.setDob(request.dob());
+      updated = true;
+    }
+    if (request.ssn() != null) {
+      suspect.setSsn(request.ssn());
+      updated = true;
+    }
     if (request.riskLevel() != null) {
       suspect.setRiskLevel(request.riskLevel());
       updated = true;
@@ -228,7 +268,7 @@ public class SuspectService {
       log.warn("No fields to update for suspect with ID: {}", suspectId);
       return toResponse(suspect);
     }
-    
+
     // Check for SSN uniqueness if SSN is being updated
     if (request.ssn() != null && !request.ssn().isBlank()) {
       SsnHashUtil.validateSsn(request.ssn());
@@ -241,9 +281,18 @@ public class SuspectService {
         });
       }
     }
-    
+
     Suspect saved = repo.save(suspect);
     log.info("Updated suspect with ID: {}", saved.getId());
+    eventEmitter.emit(
+        SuspectRegistryEventLog.suspectUpdated(
+            String.valueOf(saved.getId()),
+            "USER",
+            java.util.Map.of(
+                "primaryName", saved.getPrimaryName(),
+                "dob", saved.getDob(),
+                "riskLevel", saved.getRiskLevel(),
+                "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
     return toResponse(saved);
   }
 
@@ -288,11 +337,14 @@ public class SuspectService {
   }
 
   /**
-   * Ensures an address from a CTR/SAR form is linked to the suspect (find-or-create address, then link).
-   * Used by compliance-event-service when a CTR/SAR is uploaded with parsed address data.
+   * Ensures an address from a CTR/SAR form is linked to the suspect
+   * (find-or-create address, then link).
+   * Used by compliance-event-service when a CTR/SAR is uploaded with parsed
+   * address data.
    */
   @Transactional
-  public void ensureAddressLinked(Long suspectId, String line1, String line2, String city, String state, String postalCode, String country) {
+  public void ensureAddressLinked(Long suspectId, String line1, String line2, String city, String state,
+      String postalCode, String country) {
     if (line1 == null || line1.isBlank() || city == null || city.isBlank() || country == null || country.isBlank()) {
       return;
     }
@@ -316,7 +368,19 @@ public class SuspectService {
     if (!repo.existsById(suspectId)) {
       throw new ResourceNotFoundException("Suspect with ID " + suspectId + " not found");
     }
+    Suspect suspect = repo.findById(suspectId).orElse(null);
     repo.deleteById(suspectId);
     log.info("Deleted suspect with ID: {}", suspectId);
+    if (suspect != null) {
+      eventEmitter.emit(
+          SuspectRegistryEventLog.suspectDeleted(
+              String.valueOf(suspectId),
+              "USER",
+              java.util.Map.of(
+                  "primaryName", suspect.getPrimaryName(),
+                  "dob", suspect.getDob(),
+                  "riskLevel", suspect.getRiskLevel(),
+                  "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
+    }
   }
 }

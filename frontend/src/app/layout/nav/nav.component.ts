@@ -13,6 +13,7 @@ const ALL_NAV_LINKS = [
   { path: '/registry', label: 'Registry' },
   { path: '/documents', label: 'Documents' },
   { path: '/upload', label: 'Upload' },
+  { path: '/officer', label: 'Officer Review' },
 ] as const;
 
 @Component({
@@ -37,18 +38,29 @@ export class NavComponent {
     const home = { path: this.homePath || '/dashboard', label: 'Home' };
 
     if (role === ROLES.COMPLIANCE_USER) {
+      // Compliance users can upload PDFs, and READ-only view SARs/CTRs.
+      // They should not have access to cases, registry, or the documents browser.
       const allowed = ALL_NAV_LINKS.filter(
-        (l) => l.path === '/ctrs' || l.path === '/sars' || l.path === '/documents' || l.path === '/upload'
+        (l) => l.path === '/ctrs' || l.path === '/sars' || l.path === '/upload',
       );
       return [home, ...allowed];
     }
     if (role === ROLES.ANALYST) {
-      return [home, ...ALL_NAV_LINKS];
+      // Analysts should have: HOME, CASES, SARS, CTRS, REGISTRY, DOCUMENTS.
+      // (No Upload and no Officer Review.)
+      const allowed = ALL_NAV_LINKS.filter(
+        (l) =>
+          l.path === '/cases' ||
+          l.path === '/sars' ||
+          l.path === '/ctrs' ||
+          l.path === '/registry' ||
+          l.path === '/documents',
+      );
+      return [home, ...allowed];
     }
-    // LAW_ENFORCEMENT_USER or unknown: minimal set
-    const leLinks = ALL_NAV_LINKS.filter(
-      (l) => l.path === '/cases' || l.path === '/documents'
-    );
+    // LAW_ENFORCEMENT_USER (or unknown): minimal set.
+    // Per requirements, officers should only review referred cases and download documents.
+    const leLinks = ALL_NAV_LINKS.filter((l) => l.path === '/officer' || l.path === '/documents');
     return [home, ...leLinks];
   }
 }
