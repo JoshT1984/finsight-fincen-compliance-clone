@@ -1,8 +1,11 @@
 package com.skillstorm.finsight.documents_cases.services;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -13,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.skillstorm.finsight.documents_cases.dtos.compliance.CreateCtrRequestPayload;
+import com.skillstorm.finsight.documents_cases.dtos.compliance.CreateSarRequestPayload;
 import com.skillstorm.finsight.documents_cases.dtos.request.CreateDocumentRequest;
 import com.skillstorm.finsight.documents_cases.dtos.request.UpdateDocumentRequest;
 import com.skillstorm.finsight.documents_cases.dtos.response.DocumentDownloadUrlResponse;
@@ -37,14 +42,16 @@ public class DocumentService {
     private final ComplianceEventServiceClient complianceEventClient;
     private final AuditEventService auditEventService;
     private final DocumentEventPublisher documentEventPublisher;
-    
-    public DocumentService(DocumentRepository repo, S3Service s3Service, CaseFileRepository caseFileRepo, ComplianceEventServiceClient complianceEventClient, AuditEventService auditEventService, DocumentEventPublisher documentEventPublisher) {
+    private final PdfExtractionService pdfExtractionService;
+
+    public DocumentService(DocumentRepository repo, S3Service s3Service, CaseFileRepository caseFileRepo, ComplianceEventServiceClient complianceEventClient, AuditEventService auditEventService, DocumentEventPublisher documentEventPublisher, PdfExtractionService pdfExtractionService) {
     	this.repo = repo;
     	this.s3Service = s3Service;
     	this.caseFileRepo = caseFileRepo;
     	this.complianceEventClient = complianceEventClient;
     	this.auditEventService = auditEventService;
     	this.documentEventPublisher = documentEventPublisher;
+    	this.pdfExtractionService = pdfExtractionService;
     }
     
     private DocumentResponse toResponse(Document document) {
@@ -89,17 +96,21 @@ public class DocumentService {
     		}
     	}
     	
-    	// Create CTR/SAR records if IDs not provided
+    	// Create CTR/SAR records if IDs not provided (minimal payload when no file)
     	Long finalCtrId = dto.ctrId();
     	Long finalSarId = dto.sarId();
     	
     	if (dto.documentType() == DocumentType.CTR && finalCtrId == null) {
-    		// Create CTR record
-    		finalCtrId = complianceEventClient.createCtrRecord();
+    		String sourceEntityId = "DOC_" + UUID.randomUUID();
+    		Instant now = Instant.now();
+    		CreateCtrRequestPayload payload = new CreateCtrRequestPayload("PDF_IMPORT", sourceEntityId, null, now, BigDecimal.ZERO, "(No file)", now, Map.of());
+    		finalCtrId = complianceEventClient.createCtr(payload);
     		log.info("Created CTR record with ID: {}", finalCtrId);
     	} else if (dto.documentType() == DocumentType.SAR && finalSarId == null) {
-    		// Create SAR record
-    		finalSarId = complianceEventClient.createSarRecord();
+    		String sourceEntityId = "DOC_" + UUID.randomUUID();
+    		Instant now = Instant.now();
+    		CreateSarRequestPayload payload = new CreateSarRequestPayload("PDF_IMPORT", sourceEntityId, null, now, null, "(No file)", null, null, Map.of(), 50);
+    		finalSarId = complianceEventClient.createSar(payload);
     		log.info("Created SAR record with ID: {}", finalSarId);
     	}
     	
@@ -537,19 +548,33 @@ public class DocumentService {
     		if (sarId != null || caseId != null) {
     			throw new IllegalArgumentException("CTR documents can only have ctrId, not sarId or caseId");
     		}
-    		// Create CTR record if ctrId not provided
+    		// Create CTR from PDF extraction if ctrId not provided
     		if (ctrId == null) {
-    			ctrId = complianceEventClient.createCtrRecord();
-    			log.info("Created CTR record with ID: {}", ctrId);
+    			validatePdfForUpload(file, "CTR");
+    			try (InputStream is = file.getInputStream()) {
+    				Object parsed = pdfExtractionService.extractAndParse(is, documentType);
+    				CreateCtrRequestPayload payload = (CreateCtrRequestPayload) parsed;
+    				pdfExtractionService.validateCtrPayload(payload);
+    				log.info("CTR PDF extraction: customerName={}, totalAmount={}, transactionTime={}",
+    						payload.customerName(), payload.totalAmount(), payload.transactionTime());
+    				ctrId = complianceEventClient.createCtr(payload);
+    			}
+    			log.info("Created CTR record from PDF with ID: {}", ctrId);
     		}
     	} else if (documentType == DocumentType.SAR) {
     		if (ctrId != null) {
     			throw new IllegalArgumentException("SAR documents cannot have ctrId");
     		}
-    		// Create SAR record if sarId not provided
+    		// Create SAR from PDF extraction if sarId not provided
     		if (sarId == null) {
-    			sarId = complianceEventClient.createSarRecord();
-    			log.info("Created SAR record with ID: {}", sarId);
+    			validatePdfForUpload(file, "SAR");
+    			try (InputStream is = file.getInputStream()) {
+    				Object parsed = pdfExtractionService.extractAndParse(is, documentType);
+    				CreateSarRequestPayload payload = (CreateSarRequestPayload) parsed;
+    				pdfExtractionService.validateSarPayload(payload);
+    				sarId = complianceEventClient.createSar(payload);
+    			}
+    			log.info("Created SAR record from PDF with ID: {}", sarId);
     		}
     		// caseId is optional for SAR documents - if not provided, auto-create case
     		if (caseId == null) {
@@ -673,6 +698,20 @@ public class DocumentService {
     	String timestamp = String.valueOf(Instant.now().toEpochMilli());
     	
     	return String.format("%s/%d/%s-%s", prefix, id, timestamp, sanitizedFilename);
+    }
+
+    /**
+     * Validates that the uploaded file is a PDF when creating a new CTR or SAR from extraction.
+     */
+    private void validatePdfForUpload(MultipartFile file, String documentTypeLabel) {
+    	String contentType = file.getContentType();
+    	String name = file.getOriginalFilename();
+    	boolean contentTypePdf = contentType != null && contentType.toLowerCase().contains("pdf");
+    	boolean extensionPdf = name != null && name.toLowerCase().endsWith(".pdf");
+    	if (!contentTypePdf && !extensionPdf) {
+    		throw new IllegalArgumentException(
+    			documentTypeLabel + " creation from upload requires a PDF file. Got content type: " + contentType + ", filename: " + name);
+    	}
     }
 
 }

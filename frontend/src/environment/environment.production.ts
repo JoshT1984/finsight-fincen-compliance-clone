@@ -13,4 +13,6 @@ export const environment = {
   complianceApiBaseUrl: '',
   /** Identity and Authorization microservice. Use '' for same-origin, or full URL for AWS. */
   identityApiBaseUrl: '',
+  /** Geoapify API key (set for your deployed environment if you want autocomplete in prod). */
+  geoapifyApiKey: '',
 };
