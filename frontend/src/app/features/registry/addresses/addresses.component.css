@@ -1,9 +1,3 @@
-.addresses-container {
-  margin-left: 51px !important;
-  margin-right: 51px !important;
-  max-width: 1440px !important;
-}
-
 .addresses-header {
   display: flex;
   align-items: center;
