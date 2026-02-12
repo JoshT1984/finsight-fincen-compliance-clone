@@ -44,6 +44,7 @@ public class AppUserController {
     public ResponseEntity<AppUserDto> getCurrentUser(Authentication authentication) {
         String userId = authentication.getName();
         Optional<AppUser> user = appUserService.findById(userId);
+        System.out.println(user);
         return user.map(u -> ResponseEntity.ok(AppUserMapper.toDto(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

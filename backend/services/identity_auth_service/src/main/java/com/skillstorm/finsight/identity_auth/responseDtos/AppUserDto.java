@@ -8,5 +8,5 @@ public record AppUserDto(
                 String userId,
                 Integer roleId,
                 String roleName,
-                String organizationId) {
+                String organizationName) {
 }

@@ -6,6 +6,5 @@ export interface ProfileModel {
   phone: string;
   roleId: number | null;
   roleName: string;
-  organizationId: string | null;
   organizationName: string | null;
 }

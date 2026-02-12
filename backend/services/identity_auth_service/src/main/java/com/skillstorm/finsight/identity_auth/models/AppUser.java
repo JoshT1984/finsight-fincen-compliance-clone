@@ -40,7 +40,7 @@ public class AppUser {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "organization_id")
     private Organization organization;
 

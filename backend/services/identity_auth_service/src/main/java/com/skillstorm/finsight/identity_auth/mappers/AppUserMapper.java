@@ -23,7 +23,7 @@ public class AppUserMapper {
                 user.getUserId(), // String
                 (user.getRole() != null ? user.getRole().getRoleId() : null),
                 (user.getRole() != null ? user.getRole().getRoleName() : null),
-                (user.getOrganization() != null ? user.getOrganization().getOrganizationId() : null));
+                (user.getOrganization() != null ? user.getOrganization().getName() : null));
     }
 
     public AppUser toEntity(AppUserDto dto) {
