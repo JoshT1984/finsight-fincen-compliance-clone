@@ -2,7 +2,10 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
+import {
+  BreadcrumbsComponent,
+  BreadcrumbItem,
+} from '../../../shared/breadcrumbs/breadcrumbs.component';
 import { ProperCasePipe } from '../../../shared/pipes/proper-case.pipe';
 import {
   OrganizationService,
@@ -11,12 +14,19 @@ import {
   PatchOrganizationRequest,
 } from '../../../shared/services/organization.service';
 
-const ORGANIZATION_TYPES = ['CARTEL', 'GANG', 'TERRORIST', 'FRAUD_RING', 'MONEY_LAUNDERING', 'OTHER'];
+const ORGANIZATION_TYPES = [
+  'CARTEL',
+  'GANG',
+  'TERRORIST',
+  'FRAUD_RING',
+  'MONEY_LAUNDERING',
+  'OTHER',
+];
 
 @Component({
   selector: 'app-organization-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbsComponent, ProperCasePipe],
+  imports: [CommonModule, FormsModule, BreadcrumbsComponent, ProperCasePipe],
   templateUrl: './organization-form.component.html',
   styleUrls: ['./organization-form.component.css'],
 })
