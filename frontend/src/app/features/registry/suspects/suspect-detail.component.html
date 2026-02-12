@@ -1,9 +1,8 @@
-<div class="container suspect-detail-container">
+<div class="container">
   <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
   <div class="suspect-detail-header">
     <h1>Suspect details</h1>
     <div class="header-actions">
-      <a routerLink="/registry/suspects" class="back-link">Back to Suspects</a>
       @if (suspect) {
         <a [routerLink]="['/registry/suspects', suspect.suspectId, 'edit']" class="btn-secondary"
           >Edit</a
