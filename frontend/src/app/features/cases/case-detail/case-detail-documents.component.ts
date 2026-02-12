@@ -17,6 +17,7 @@ export class CaseDetailDocumentsComponent implements OnInit {
   loading = false;
   error: string | null = null;
   downloadingId: number | null = null;
+  downloadingAll = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -72,6 +73,28 @@ export class CaseDetailDocumentsComponent implements OnInit {
       },
       error: () => {
         this.downloadingId = null;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  downloadAllDocuments(): void {
+    if (this.downloadingAll || this.caseId === 0) return;
+    this.downloadingAll = true;
+    this.cdr.detectChanges();
+    this.documentsService.downloadCaseDocumentsZip(this.caseId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `case-${this.caseId}-documents.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.downloadingAll = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.downloadingAll = false;
         this.cdr.detectChanges();
       },
     });

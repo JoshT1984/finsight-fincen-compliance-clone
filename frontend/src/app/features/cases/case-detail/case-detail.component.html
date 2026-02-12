@@ -6,7 +6,15 @@
   } @else if (caseId != null) {
     <div id="cases-header">
       <h1>Case #{{ caseId }}</h1>
+      <button type="button" class="create-note-btn" (click)="openCreateNoteDialog()">
+        Create Note
+      </button>
     </div>
+    @if (createNoteFeedback) {
+      <div class="case-note-feedback" [class.feedback-success]="createNoteFeedbackSuccess">
+        {{ createNoteFeedback }}
+      </div>
+    }
     <div class="cases-page">
       <app-side-nav
         [navItems]="caseDetailNavItems"
@@ -16,5 +24,40 @@
         <router-outlet></router-outlet>
       </div>
     </div>
+
+    @if (showCreateNoteDialog) {
+      <div class="case-note-dialog">
+        <div class="case-note-dialog__overlay" (click)="closeCreateNoteDialog()"></div>
+        <div class="case-note-dialog__content">
+          <h2>Create case note</h2>
+          <label for="case-note-text">Note</label>
+          <textarea
+            id="case-note-text"
+            rows="7"
+            [value]="noteText"
+            (input)="noteText = $any($event.target).value"
+            [disabled]="createNoteLoading"></textarea>
+          @if (createNoteError) {
+            <p class="case-note-dialog__error">{{ createNoteError }}</p>
+          }
+          <div class="case-note-dialog__actions">
+            <button
+              type="button"
+              class="btn-confirm-dialog btn-cancel"
+              (click)="closeCreateNoteDialog()"
+              [disabled]="createNoteLoading">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn-confirm-dialog btn-confirm"
+              (click)="submitCreateNote()"
+              [disabled]="createNoteLoading">
+              {{ createNoteLoading ? 'Creating...' : 'Create Note' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   }
 </div>

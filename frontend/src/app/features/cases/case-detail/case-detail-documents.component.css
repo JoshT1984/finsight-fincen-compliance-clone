@@ -14,6 +14,30 @@
   margin: 0;
 }
 
+.case-section__actions {
+  margin-bottom: 0.75rem;
+}
+
+.case-section__download-all {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--navy-800);
+  background: var(--sky-050);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.case-section__download-all:hover:not(:disabled) {
+  background: var(--sky-200);
+}
+
+.case-section__download-all:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
 .case-section__table-wrapper {
   overflow-x: auto;
 }

@@ -25,12 +25,14 @@ export class App implements OnInit {
   ngOnInit(): void {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        // Add .landing-page-bg only on landing route
-        if (event.urlAfterRedirects === '/' || event.url === '/') {
-          this.renderer.addClass(this.document.body, 'landing-page-bg');
-        } else {
-          this.renderer.removeClass(this.document.body, 'landing-page-bg');
-        }
+        // Defer DOM update to avoid triggering change detection in the same tick
+        setTimeout(() => {
+          if (event.urlAfterRedirects === '/' || event.url === '/') {
+            this.renderer.addClass(this.document.body, 'landing-page-bg');
+          } else {
+            this.renderer.removeClass(this.document.body, 'landing-page-bg');
+          }
+        }, 0);
       }
     });
   }
