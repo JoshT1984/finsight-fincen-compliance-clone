@@ -62,7 +62,6 @@ export class OfficerReviewComponent implements OnInit {
     // Pull SAR events so we can show suspicion score + subject label alongside cases.
     this.complianceEventsService.getSarEvents(0, 500).subscribe({
       next: (res) => {
-        console.log('Officer SAR events:', res);
         const content: ComplianceEventDto[] = Array.isArray(res?.content) ? res.content : [];
 
         const idx: Record<number, { suspicionScore: number | null; subjectLabel: string }> = {};
@@ -115,7 +114,6 @@ export class OfficerReviewComponent implements OnInit {
       next: (cases) => {
         const mapped: OfficerCaseRow[] = (cases ?? [])
           .map((c: any): OfficerCaseRow | null => {
-            console.log(c.referredToAgency === this.profile?.organizationName);
             const caseId = typeof c?.caseId === 'number' ? c.caseId : Number(c?.caseId);
             if (!Number.isFinite(caseId)) return null;
 
