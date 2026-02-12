@@ -5,7 +5,8 @@
     <div
       class="case-overview__feedback"
       [class.feedback-success]="feedbackSuccess"
-      [class.feedback-error]="!feedbackSuccess">
+      [class.feedback-error]="!feedbackSuccess"
+    >
       @if (feedbackSuccess) {
         <span class="feedback-icon" aria-hidden="true">✅</span>
       }
@@ -15,21 +16,23 @@
 
   <dl class="case-overview__dl">
     <dt>Case ID</dt>
-    <dd>{{ caseData?.caseId }}</dd>
+    <dd>{{ caseData.caseId }}</dd>
     <dt>SAR ID</dt>
-    <dd>{{ caseData?.sarId ?? '—' }}</dd>
+    <dd>{{ caseData.sarId ?? '—' }}</dd>
     <dt>Status</dt>
     <dd>
-      <span class="case-status case-status-{{ caseData?.status | lowercase }}">{{ caseData?.status }}</span>
+      <span class="case-status case-status-{{ caseData.status | lowercase }}">{{
+        caseData.status
+      }}</span>
     </dd>
     <dt>Created</dt>
-    <dd>{{ formatDate(caseData?.createdAt ?? null) }}</dd>
+    <dd>{{ formatDate(caseData.createdAt) }}</dd>
     <dt>Referred At</dt>
-    <dd>{{ formatDate(caseData?.referredAt ?? null) }}</dd>
+    <dd>{{ formatDate(caseData.referredAt) }}</dd>
     <dt>Closed At</dt>
-    <dd>{{ formatDate(caseData?.closedAt ?? null) }}</dd>
+    <dd>{{ formatDate(caseData.closedAt) }}</dd>
     <dt>Referred To</dt>
-    <dd>{{ caseData?.referredToAgency ?? '—' }}</dd>
+    <dd>{{ caseData.referredToAgency ?? '—' }}</dd>
   </dl>
 
   <div class="case-overview__actions">
@@ -50,6 +53,7 @@
     confirmText="Confirm"
     cancelText="Cancel"
     (confirm)="onConfirm($event)"
-    (cancel)="onCancel()">
+    (cancel)="onCancel()"
+  >
   </app-confirm-dialog>
 }
