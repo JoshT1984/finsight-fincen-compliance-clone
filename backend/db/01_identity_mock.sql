@@ -18,17 +18,15 @@ INSERT INTO role(role_name) VALUES ('COMPLIANCE_USER')
 INSERT INTO role(role_name) VALUES ('LAW_ENFORCEMENT_USER')
   ON DUPLICATE KEY UPDATE role_name = role_name;
 
-INSERT INTO organization (organization_id, name) VALUES
-  ('org-1234-5678-9012-345678901234', 'Fincen Analytics Team')
-  ON DUPLICATE KEY UPDATE name = name,
-  ('org-2345-6789-0123-456789012345', 'Chase Bank 5')
-  ON DUPLICATE KEY UPDATE name = name,
-  ('org-3456-7890-1234-567890123456', 'Old National Bank')
-  ON DUPLICATE KEY UPDATE name = name,
-  ('org-4567-8901-2345-678901234567', 'National Financial Crimes Task Force (NFCTF)')
-  ON DUPLICATE KEY UPDATE name = name,
+INSERT INTO organization (organization_id, name)
+VALUES
+  ('org-1234-5678-9012-345678901234', 'Fincen Analytics Team'),
+  ('org-2345-6789-0123-456789012345', 'Chase Bank 5'),
+  ('org-3456-7890-1234-567890123456', 'Old National Bank'),
+  ('org-4567-8901-2345-678901234567', 'National Financial Crimes Task Force (NFCTF)'),
   ('org-5678-9012-3456-789012345678', 'Interstate Economic Crimes Bureau (IECB)')
-  ON DUPLICATE KEY UPDATE name = name;
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name);
 
 -- Map role ids
 -- (If you prefer fixed role_ids, insert with explicit role_id values instead)
