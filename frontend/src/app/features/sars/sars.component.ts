@@ -6,6 +6,8 @@ import { Router, RouterModule } from '@angular/router';
 import { ComplianceService } from '../../shared/services/compliance.service';
 import { ComplianceEventsService } from '../../services/compliance-events.service';
 import { TransactionService } from '../../shared/services/transaction.service';
+import { CasesService } from '../../shared/services/cases.service';
+import { RoleService } from '../../shared/services/role.service';
 
 import {
   SubjectNameLookup,
@@ -47,15 +49,26 @@ export class SarsComponent {
   generateError: string | null = null;
 
   private transactionNameMap: SubjectNameLookup = {};
+  private sarToCaseId: Record<number, number> = {};
 
   constructor(
     private complianceService: ComplianceService,
     private cdr: ChangeDetectorRef,
     private complianceEventsService: ComplianceEventsService,
     private transactionService: TransactionService,
+    private casesService: CasesService,
+    public roleService: RoleService,
     private router: Router,
   ) {
     this.refresh();
+  }
+
+  canUploadSar(): boolean {
+    return this.roleService.isComplianceUser();
+  }
+
+  canOpenCasesFromSar(): boolean {
+    return this.roleService.isAnalyst();
   }
 
   // =========================
@@ -64,6 +77,27 @@ export class SarsComponent {
   refresh(): void {
     this.loading = true;
     this.error = null;
+
+    // Analysts can open a SAR by routing directly to its auto-generated case overview.
+    // This map is best-effort; if it fails, we still render SARs.
+    if (this.roleService.isAnalyst()) {
+      this.casesService.getAll().subscribe({
+        next: (cases) => {
+          const map: Record<number, number> = {};
+          for (const c of cases ?? []) {
+            if (typeof c?.sarId === 'number' && typeof c?.caseId === 'number') {
+              map[c.sarId] = c.caseId;
+            }
+          }
+          this.sarToCaseId = map;
+        },
+        error: () => {
+          this.sarToCaseId = {};
+        },
+      });
+    } else {
+      this.sarToCaseId = {};
+    }
 
     this.transactionService.getTransactions(0, 300).subscribe({
       next: (res: any) => {
@@ -184,7 +218,17 @@ export class SarsComponent {
         this.sars = mappedRows;
         this.loading = false;
 
-        this.loadCtrOptions();
+        // Analysts can open a SAR directly into the generated Case overview.
+        // (Compliance users do not have access to cases.)
+        this.loadSarCaseMapIfNeeded();
+
+        // Only analysts can auto-generate SAR drafts from CTRs in the MVP UI.
+        if (this.roleService.isAnalyst()) {
+          this.loadCtrOptions();
+        } else {
+          this.ctrOptions = [];
+          this.selectedCtrId = null;
+        }
         this.cdr.detectChanges();
       },
       error: (err: unknown) => {
@@ -193,6 +237,30 @@ export class SarsComponent {
           'Could not load SARs. If the compliance-event service is offline, you can still upload SAR PDFs to create records.';
         this.sars = [];
         this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private loadSarCaseMapIfNeeded(): void {
+    if (!this.roleService.isAnalyst()) {
+      this.sarToCaseId = {};
+      return;
+    }
+
+    this.casesService.getAll().subscribe({
+      next: (cases) => {
+        const map: Record<number, number> = {};
+        for (const c of cases ?? []) {
+          if (typeof c?.sarId === 'number' && typeof c?.caseId === 'number') {
+            map[c.sarId] = c.caseId;
+          }
+        }
+        this.sarToCaseId = map;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.sarToCaseId = {};
         this.cdr.detectChanges();
       },
     });
@@ -263,6 +331,12 @@ export class SarsComponent {
   }
 
   openSar(id: number): void {
+    const caseId = this.sarToCaseId[id];
+    if (this.roleService.isAnalyst() && typeof caseId === 'number' && caseId > 0) {
+      this.router.navigate(['/cases', caseId, 'overview']);
+      return;
+    }
+    // Compliance users do not have access to cases. Use the read-only SAR detail view.
     this.router.navigate(['/sars', id]);
   }
 

@@ -20,6 +20,8 @@ public interface ComplianceEventService {
 
     ComplianceEventResponse getById(Long eventId);
 
+    
+
     Page<ComplianceEventResponse> search(
             EventType eventType,
             EventStatus status,

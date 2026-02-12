@@ -14,18 +14,22 @@ public class AppUserMapper {
     }
 
     public static AppUserDto toDto(AppUser user) {
+
         return new AppUserDto(
-                user.getUserId(),
-                user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getPhone(),
-                user.getRole() != null ? user.getRole().getRoleName() : null);
+                user.getEmail(),
+                user.getUserId(), // String
+                (user.getRole() != null ? user.getRole().getRoleId() : null),
+                (user.getRole() != null ? user.getRole().getRoleName() : null));
     }
 
     public AppUser toEntity(AppUserDto dto) {
+
         AppUser user = new AppUser();
-        user.setUserId(dto.userId());
+
+        user.setUserId(dto.userId()); // String matches model
         user.setEmail(dto.email());
         user.setFirstName(dto.firstName());
         user.setLastName(dto.lastName());
@@ -35,6 +39,7 @@ public class AppUserMapper {
         if (role == null) {
             throw new IllegalArgumentException("Role not found: " + dto.roleName());
         }
+
         user.setRole(role);
 
         return user;

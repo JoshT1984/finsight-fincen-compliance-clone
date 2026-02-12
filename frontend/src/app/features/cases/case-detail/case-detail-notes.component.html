@@ -1,5 +1,22 @@
 <p class="category-label">Notes</p>
 
+@if (canEdit()) {
+  <div class="noteComposer">
+    <textarea
+      class="noteComposer__textarea"
+      rows="3"
+      [(ngModel)]="newNoteText"
+      placeholder="Add investigative note..."
+      [disabled]="saving"
+    ></textarea>
+    <div class="noteComposer__actions">
+      <button class="btn primary" type="button" (click)="addNote()" [disabled]="saving">
+        Add note
+      </button>
+    </div>
+  </div>
+}
+
 @if (loading) {
   <p class="case-section__loading">Loading notes...</p>
 } @else if (error) {
@@ -21,7 +38,38 @@
           <tr>
             <td class="case-section__date">{{ formatDate(note.createdAt) }}</td>
             <td class="case-section__author">{{ getAuthorDisplay(note.authorUserId) }}</td>
-            <td class="case-section__text">{{ note.noteText }}</td>
+            <td class="case-section__text">
+              @if (editingNoteId === note.noteId && canEdit()) {
+                <textarea
+                  class="editTextarea"
+                  rows="3"
+                  [(ngModel)]="editText"
+                  [disabled]="saving"
+                ></textarea>
+                <div class="rowActions">
+                  <button class="btn primary" type="button" (click)="saveEdit(note.noteId)" [disabled]="saving">
+                    Save
+                  </button>
+                  <button class="btn ghost" type="button" (click)="cancelEdit()" [disabled]="saving">
+                    Cancel
+                  </button>
+                </div>
+              } @else {
+                <div class="noteRow">
+                  <div class="noteText">{{ note.noteText }}</div>
+                  @if (canEdit()) {
+                    <div class="rowActions">
+                      <button class="btn ghost" type="button" (click)="startEdit(note)" [disabled]="saving">
+                        Edit
+                      </button>
+                      <button class="btn danger" type="button" (click)="deleteNote(note.noteId)" [disabled]="saving">
+                        Delete
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </td>
           </tr>
         }
       </tbody>

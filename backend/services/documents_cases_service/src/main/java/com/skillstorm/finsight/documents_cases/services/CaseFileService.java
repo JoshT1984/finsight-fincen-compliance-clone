@@ -135,11 +135,15 @@ public class CaseFileService {
 		log.info("Referred case file with ID: {} (SAR ID: {}) to agency: {}",
 				saved.getCaseId(), saved.getSarId(), saved.getReferredToAgency());
 
-		// Create audit event for refer action
-		java.util.Map<String, Object> referMetadata = new java.util.HashMap<>();
-		referMetadata.put("referredToAgency", saved.getReferredToAgency());
-		referMetadata.put("referredAt", saved.getReferredAt().toString());
-		auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "REFER", referMetadata);
+		// Create audit event for refer action (do not block referral if audit fails)
+		try {
+			java.util.Map<String, Object> referMetadata = new java.util.HashMap<>();
+			referMetadata.put("referredToAgency", saved.getReferredToAgency());
+			referMetadata.put("referredAt", saved.getReferredAt() != null ? saved.getReferredAt().toString() : null);
+			auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "REFER", referMetadata);
+		} catch (Exception ex) {
+			log.warn("Audit logging failed for CASE REFER (caseId={}): {}", saved.getCaseId(), ex.getMessage());
+		}
 
 		return toResponse(saved);
 	}

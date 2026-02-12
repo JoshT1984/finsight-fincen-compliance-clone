@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -32,8 +33,23 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/api/cases/**", "/api/case-notes/**")
+                        // CASES: all roles can READ; only analysts can change state (refer/close)
+                        .requestMatchers(HttpMethod.GET, "/api/cases/**")
                         .hasAnyRole("ANALYST", "LAW_ENFORCEMENT_USER", "COMPLIANCE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/cases/*/refer", "/api/cases/*/close")
+                        .hasRole("ANALYST")
+                        .requestMatchers(HttpMethod.POST, "/api/cases/**")
+                        .hasRole("ANALYST")
+
+                        // CASE NOTES: all roles can READ; only analysts can create/update/delete
+                        .requestMatchers(HttpMethod.GET, "/api/case-notes/**")
+                        .hasAnyRole("ANALYST", "LAW_ENFORCEMENT_USER", "COMPLIANCE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/case-notes/**")
+                        .hasRole("ANALYST")
+                        .requestMatchers(HttpMethod.PATCH, "/api/case-notes/**")
+                        .hasRole("ANALYST")
+                        .requestMatchers(HttpMethod.DELETE, "/api/case-notes/**")
+                        .hasRole("ANALYST")
                         .requestMatchers("/api/documents/**", "/api/audit-events/**").authenticated()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

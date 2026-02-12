@@ -1,0 +1,107 @@
+<div class="container">
+  <section class="hero" aria-label="Officer review intro">
+    <h2>Officer Review</h2>
+    <p class="muted">
+      Review referred cases with compiled subject context and supporting SAR details. Upload and
+      editing actions are restricted.
+    </p>
+
+    <div class="ctaRow">
+      <button class="btn ghost" type="button" (click)="refresh()" [disabled]="loading">
+        Refresh
+      </button>
+    </div>
+
+    <span
+      *ngIf="error"
+      class="notice notice--error"
+      style="margin-top: 12px; display: inline-block"
+    >
+      {{ error }}
+    </span>
+  </section>
+
+  <section class="content" aria-label="Officer review content">
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Queue</div>
+          <h3>Referred cases</h3>
+          <p class="muted">
+            Cases appear here when an analyst refers them to law enforcement. Open a case to view
+            the compiled summary.
+          </p>
+        </div>
+
+        <div class="card__tools">
+          <label class="search">
+            <span class="search__label">Search</span>
+            <input
+              class="search__input"
+              type="search"
+              [value]="query"
+              (input)="onQuery($any($event.target).value)"
+              placeholder="Case ID, SAR ID, subject, status…"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Case ID</th>
+              <th>Subject</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Referred</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let row of filteredRows()">
+              <td class="mono">{{ row.caseId }}</td>
+
+              <td>
+                {{ row.subjectLabel || 'Case ' + row.caseId }}
+                <div class="muted mono" *ngIf="row.sarId">SAR {{ row.sarId }}</div>
+              </td>
+
+              <td>
+                <span [class]="scoreClass(row.suspicionScore)">{{
+                  row.suspicionScore ?? '—'
+                }}</span>
+                <span class="muted" style="margin-left: 8px">{{
+                  scoreLabel(row.suspicionScore)
+                }}</span>
+              </td>
+
+              <td>
+                <span [class]="badgeClass(row.status)">{{ row.status || '—' }}</span>
+              </td>
+
+              <td>
+                <span class="pill pill--ok" *ngIf="row.referredToAgency === true">Yes</span>
+                <span class="pill pill--muted" *ngIf="row.referredToAgency !== true">No</span>
+              </td>
+
+              <td>
+                <a class="btn ghost" [routerLink]="['/cases', row.caseId, 'overview']"> Open </a>
+              </td>
+            </tr>
+
+            <tr *ngIf="!loading && filteredRows().length === 0">
+              <td colspan="6" class="empty">No referred cases found.</td>
+            </tr>
+
+            <tr *ngIf="loading">
+              <td colspan="6" class="empty">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
