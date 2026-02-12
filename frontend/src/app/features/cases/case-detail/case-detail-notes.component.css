@@ -59,3 +59,45 @@
   word-break: break-word;
   min-width: 0;
 }
+
+.noteComposer {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: #fafafa;
+}
+
+.noteComposer__textarea,
+.editTextarea {
+  width: 100%;
+  resize: vertical;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  font: inherit;
+}
+
+.noteComposer__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.noteRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.noteText {
+  flex: 1;
+}
+
+.rowActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ import com.skillstorm.finsight.compliance_event.emitters.ComplianceEventEmitter;
 import com.skillstorm.finsight.compliance_event.loggers.ComplianceEventLog;
 import com.skillstorm.finsight.compliance_event.mappers.CtrGenerationMapper;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
+import com.skillstorm.finsight.compliance_event.models.EventType;
 import com.skillstorm.finsight.compliance_event.repositories.CashTransactionRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventCtrDetailRepository;
 import com.skillstorm.finsight.compliance_event.repositories.ComplianceEventRepository;
@@ -43,6 +45,7 @@ public class CtrGenerationService {
                         SarPromotionService sarPromotionService,
                         ComplianceEventEmitter complianceEmitter,
                         @NonNull CtrGenerationMapper mapper) {
+
                 this.txnRepo = txnRepo;
                 this.eventRepo = eventRepo;
                 this.ctrDetailRepo = ctrDetailRepo;
@@ -57,87 +60,15 @@ public class CtrGenerationService {
                 Instant toTime = to.atStartOfDay(ZoneOffset.UTC).toInstant();
 
                 List<CtrAggregationRow> rows = txnRepo.aggregateCtrCandidates(fromTime, toTime);
+                log.info("CTR generate range -> from={} to={} candidates={}", from, to, rows.size());
 
                 int created = 0;
 
                 for (CtrAggregationRow row : rows) {
                         String subjectKey = row.getSubjectKey();
                         LocalDate day = row.getTxnDay();
-                        String idem = "CTR:" + subjectKey + ":" + day;
 
-                        var existingOpt = eventRepo.findByIdempotencyKey(idem);
-                        if (existingOpt.isPresent()) {
-                                // CTR immutable, but promotion can still be evaluated using latest day signals
-                                ComplianceEvent existingCtr = existingOpt.get();
-
-                                Instant dayStart = day.atStartOfDay(ZoneOffset.UTC).toInstant();
-                                Instant dayEnd = day.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-
-                                var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
-                                var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
-                                var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart,
-                                                dayEnd);
-
-                                var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd,
-                                                daySignals,
-                                                windowSignals);
-
-                                log.info("CTR already exists for subjectKey={}, day={}. Re-evaluating SAR promotion with score={}",
-                                                subjectKey, day, scoreResult.score());
-
-                                sarPromotionService.promoteFromCtr(existingCtr, scoreResult);
-                                continue;
-                        }
-
-                        Instant dayStart = day.atStartOfDay(ZoneOffset.UTC).toInstant();
-                        Instant dayEnd = day.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-
-                        var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
-                        var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
-                        var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
-
-                        var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals,
-                                        windowSignals);
-
-                        ComplianceEvent event = mapper.toCtrEvent(
-                                        row.getSubjectKey(),
-                                        row.getSourceSubjectType(),
-                                        row.getTxnDay(),
-                                        row.getTotalCashAmount(),
-                                        scoreResult.score(),
-                                        idem);
-
-                        ComplianceEvent saved = eventRepo.save(event);
-
-                        // Emits the event for logging purposes.
-                        complianceEmitter.emit(
-                                        ComplianceEventLog.ctrCreated(saved.getEventId().toString(), idem,
-                                                        "CTR_GENERATION",
-                                                        Map.of(
-                                                                        "subjectKey", row.getSubjectKey(),
-                                                                        "day", row.getTxnDay().toString(),
-                                                                        "totalCashAmount", row.getTotalCashAmount(),
-                                                                        "score", scoreResult.score())));
-
-                        List<Long> txnIds = txnRepo.findTxnIdsForSubjectDay(subjectKey, dayStart, dayEnd);
-
-                        var detail = mapper.toCtrDetail(
-                                        saved,
-                                        row,
-                                        txnIds,
-                                        scoreResult.score(),
-                                        scoreResult.band(),
-                                        scoreResult.drivers());
-
-                        log.info("Saving CTR detail for eventId={}, subjectKey={}, day={}, score={}",
-                                        saved.getEventId(), subjectKey, day, scoreResult.score());
-
-                        ctrDetailRepo.save(detail);
-
-                        // CTR -> SAR promotion thresholds
-                        sarPromotionService.promoteFromCtr(saved, scoreResult);
-
-                        created++;
+                        created += generateSingleRow(subjectKey, day, row);
                 }
 
                 return created;
@@ -151,83 +82,135 @@ public class CtrGenerationService {
                 List<CtrAggregationRow> rows = txnRepo.aggregateCtrCandidatesForSubjectDay(subjectKey, dayStart,
                                 dayEnd);
 
+                log.info("CTR generateForSubjectDay -> subjectKey={} day={} rows={}", subjectKey, day, rows.size());
+
                 int created = 0;
 
                 for (CtrAggregationRow row : rows) {
-                        String idem = "CTR:" + subjectKey + ":" + day;
-
-                        var existingOpt = eventRepo.findByIdempotencyKey(idem);
-                        if (existingOpt.isPresent()) {
-                                // CTR is immutable, but we still evaluate promotion using the latest day
-                                // signals
-                                ComplianceEvent existingCtr = existingOpt.get();
-
-                                var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
-                                var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
-                                var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart,
-                                                dayEnd);
-
-                                var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd,
-                                                daySignals,
-                                                windowSignals);
-
-                                log.info("CTR already exists for subjectKey={}, day={}. Re-evaluating SAR promotion with score={}",
-                                                subjectKey, day, scoreResult.score());
-
-                                sarPromotionService.promoteFromCtr(existingCtr, scoreResult);
-
-                                // No CTR created
-                                continue;
-                        }
-
-                        var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
-                        var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
-                        var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
-
-                        var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals,
-                                        windowSignals);
-
-                        ComplianceEvent event = mapper.toCtrEvent(
-                                        row.getSubjectKey(),
-                                        row.getSourceSubjectType(),
-                                        row.getTxnDay(),
-                                        row.getTotalCashAmount(),
-                                        scoreResult.score(),
-                                        idem);
-
-                        ComplianceEvent saved = eventRepo.save(event);
-
-                        complianceEmitter.emit(
-                                        ComplianceEventLog.ctrCreated(saved.getEventId().toString(), idem,
-                                                        "CTR_GENERATION",
-                                                        Map.of(
-                                                                        "subjectKey", row.getSubjectKey(),
-                                                                        "day", row.getTxnDay().toString(),
-                                                                        "totalCashAmount", row.getTotalCashAmount(),
-                                                                        "score", scoreResult.score())));
-
-                        List<Long> txnIds = txnRepo.findTxnIdsForSubjectDay(subjectKey, dayStart, dayEnd);
-
-                        var detail = mapper.toCtrDetail(
-                                        saved,
-                                        row,
-                                        txnIds,
-                                        scoreResult.score(),
-                                        scoreResult.band(),
-                                        scoreResult.drivers());
-
-                        log.info("Saving CTR detail for eventId={}, subjectKey={}, day={}, score={}",
-                                        saved.getEventId(), subjectKey, day, scoreResult.score());
-
-                        ctrDetailRepo.save(detail);
-
-                        // CTR -> SAR promotion thresholds
-                        sarPromotionService.promoteFromCtr(saved, scoreResult);
-
-                        created++;
+                        created += generateSingleRow(subjectKey, day, row);
                 }
 
                 return created;
+        }
+
+        /**
+         * Handles both range generation and single-day generation consistently.
+         */
+        private int generateSingleRow(String subjectKey, LocalDate day, CtrAggregationRow row) {
+                Instant dayStart = day.atStartOfDay(ZoneOffset.UTC).toInstant();
+                Instant dayEnd = day.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+                // Old idempotency key (kept for backward compatibility + log correlation)
+                String idem = "CTR:" + subjectKey + ":" + day;
+
+                // ✅ Deterministic idempotency check:
+                // First check “does a CTR already exist for this subject+UTC day”
+                Optional<ComplianceEvent> existingByDay = eventRepo.findCtrForSubjectDay(EventType.CTR, subjectKey,
+                                dayStart, dayEnd);
+                if (existingByDay.isPresent()) {
+                        ComplianceEvent existingCtr = existingByDay.get();
+
+                        log.info("CTR already exists (by subject+day) -> eventId={} subjectKey={} day={}",
+                                        existingCtr.getEventId(), subjectKey, day);
+
+                        reEvaluatePromotion(existingCtr, subjectKey, day, row, dayStart, dayEnd);
+                        return 0;
+                }
+
+                // ✅ FIX: Only treat this idempotency key as “existing” if it is a CTR.
+                var existingByIdem = eventRepo.findByIdempotencyKeyAndEventType(idem, EventType.CTR);
+                if (existingByIdem.isPresent()) {
+                        ComplianceEvent existingCtr = existingByIdem.get();
+
+                        log.info("CTR already exists (by idempotencyKey+eventType) -> eventId={} idem={} subjectKey={} day={}",
+                                        existingCtr.getEventId(), idem, subjectKey, day);
+
+                        reEvaluatePromotion(existingCtr, subjectKey, day, row, dayStart, dayEnd);
+                        return 0;
+                }
+
+                // Compute signals and score
+                var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
+                var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
+                var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
+
+                var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals,
+                                windowSignals);
+
+                log.info("Creating CTR -> subjectKey={} day={} totalCashAmount={} score={}",
+                                subjectKey, day, row.getTotalCashAmount(), scoreResult.score());
+
+                ComplianceEvent event = mapper.toCtrEvent(
+                                row.getSubjectKey(),
+                                row.getSourceSubjectType(),
+                                row.getTxnDay(),
+                                row.getTotalCashAmount(),
+                                scoreResult.score(),
+                                idem);
+
+                ComplianceEvent saved = eventRepo.save(event);
+
+                // Emit for logging purposes
+                complianceEmitter.emit(
+                                ComplianceEventLog.ctrCreated(saved.getEventId().toString(), idem,
+                                                "CTR_GENERATION",
+                                                Map.of(
+                                                                "subjectKey", row.getSubjectKey(),
+                                                                "day", row.getTxnDay().toString(),
+                                                                "totalCashAmount", row.getTotalCashAmount(),
+                                                                "score", scoreResult.score())));
+
+                // Attach txn IDs and save detail
+                List<Long> txnIds = txnRepo.findTxnIdsForSubjectDay(subjectKey, dayStart, dayEnd);
+
+                var detail = mapper.toCtrDetail(
+                                saved,
+                                row,
+                                txnIds,
+                                scoreResult.score(),
+                                scoreResult.band(),
+                                scoreResult.drivers());
+
+                log.info("Saving CTR detail -> eventId={} subjectKey={} day={} score={}",
+                                saved.getEventId(), subjectKey, day, scoreResult.score());
+
+                ctrDetailRepo.save(detail);
+
+                // ✅ Promotion should not be allowed to kill CTR creation.
+                try {
+                        sarPromotionService.promoteFromCtr(saved, scoreResult);
+                } catch (Exception e) {
+                        log.warn("CTR created but SAR promotion (and/or case creation) failed -> ctrEventId={} reason={}",
+                                        saved.getEventId(), e.toString());
+                }
+
+                return 1;
+        }
+
+        private void reEvaluatePromotion(
+                        ComplianceEvent existingCtr,
+                        String subjectKey,
+                        LocalDate day,
+                        CtrAggregationRow row,
+                        Instant dayStart,
+                        Instant dayEnd) {
+
+                var daySignals = txnRepo.riskSignalsForSubjectDay(subjectKey, dayStart, dayEnd);
+                var windowStart = dayStart.minus(java.time.Duration.ofHours(72));
+                var windowSignals = txnRepo.riskSignalsForSubjectWindow(subjectKey, windowStart, dayEnd);
+
+                var scoreResult = scoreWithExternalSignals(subjectKey, row, dayStart, dayEnd, daySignals,
+                                windowSignals);
+
+                log.info("Re-evaluating SAR promotion from existing CTR -> eventId={} subjectKey={} day={} score={}",
+                                existingCtr.getEventId(), subjectKey, day, scoreResult.score());
+
+                try {
+                        sarPromotionService.promoteFromCtr(existingCtr, scoreResult);
+                } catch (Exception e) {
+                        log.warn("Re-evaluation promotion failed -> ctrEventId={} reason={}",
+                                        existingCtr.getEventId(), e.toString());
+                }
         }
 
         private CtrSuspicionScoring.ScoreResult scoreWithExternalSignals(

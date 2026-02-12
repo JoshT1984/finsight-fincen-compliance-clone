@@ -57,15 +57,28 @@ public class CaseFileService {
 
 	@Transactional
 	public CaseFileResponse create(CreateCaseFileRequest dto) {
-		log.debug("Creating case file for SAR ID: {}", dto.sarId());
 
-		if (repo.findBySarId(dto.sarId()).isPresent()) {
+		boolean hasSar = dto.sarId() != null;
+		boolean hasCtr = dto.ctrId() != null;
+
+		if (hasSar == hasCtr) {
+			// both true or both false
+			throw new IllegalArgumentException("Exactly one of sarId or ctrId must be provided");
+		}
+
+		if (hasSar && repo.findBySarId(dto.sarId()).isPresent()) {
 			throw new ResourceConflictException("Case file with SAR ID " + dto.sarId() + " already exists");
 		}
 
+		if (hasCtr && repo.findByCtrId(dto.ctrId()).isPresent()) {
+			throw new ResourceConflictException("Case file with CTR ID " + dto.ctrId() + " already exists");
+		}
+
 		Instant now = Instant.now();
+
 		CaseFile caseFile = new CaseFile();
 		caseFile.setSarId(dto.sarId());
+		caseFile.setCtrId(dto.ctrId());
 		caseFile.setStatus(dto.status() != null ? dto.status() : CaseStatus.OPEN);
 		caseFile.setCreatedAt(now);
 		caseFile.setReferredToAgency(dto.referredToAgency());
@@ -139,23 +152,15 @@ public class CaseFileService {
 		log.info("Referred case file with ID: {} (SAR ID: {}) to agency: {}",
 				saved.getCaseId(), saved.getSarId(), saved.getReferredToAgency());
 
-		// Create audit event for refer action
-		java.util.Map<String, Object> referMetadata = new java.util.HashMap<>();
-		referMetadata.put("referredToAgency", saved.getReferredToAgency());
-		referMetadata.put("referredAt", saved.getReferredAt().toString());
-		auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "REFER", referMetadata);
-
-		// Emit the event to the DOCUMENT_LOG for compliance auditing (modeled after
-		// create)
-		eventEmitter.emit(
-				DocumentEventLog.caseFileReferred(
-						saved.getCaseId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
-						Map.of(
-								"status", saved.getStatus(),
-								"referredToAgency", saved.getReferredToAgency(),
-								"Sar", saved.getSarId(),
-								"referredAt", saved.getReferredAt())));
+		// Create audit event for refer action (do not block referral if audit fails)
+		try {
+			java.util.Map<String, Object> referMetadata = new java.util.HashMap<>();
+			referMetadata.put("referredToAgency", saved.getReferredToAgency());
+			referMetadata.put("referredAt", saved.getReferredAt() != null ? saved.getReferredAt().toString() : null);
+			auditEventService.auditAction("CASE", String.valueOf(saved.getCaseId()), "REFER", referMetadata);
+		} catch (Exception ex) {
+			log.warn("Audit logging failed for CASE REFER (caseId={}): {}", saved.getCaseId(), ex.getMessage());
+		}
 
 		return toResponse(saved);
 	}
@@ -250,8 +255,19 @@ public class CaseFileService {
 					throw new ResourceConflictException("Case file with SAR ID " + request.sarId() + " already exists");
 				}
 			});
-			log.debug("Updating sarId from {} to {}", caseFile.getSarId(), request.sarId());
 			caseFile.setSarId(request.sarId());
+			caseFile.setCtrId(null); // enforce XOR rule at application layer too
+			updated = true;
+		}
+
+		if (request.ctrId() != null) {
+			repo.findByCtrId(request.ctrId()).ifPresent(existing -> {
+				if (!existing.getCaseId().equals(caseId)) {
+					throw new ResourceConflictException("Case file with CTR ID " + request.ctrId() + " already exists");
+				}
+			});
+			caseFile.setCtrId(request.ctrId());
+			caseFile.setSarId(null); // enforce XOR rule
 			updated = true;
 		}
 

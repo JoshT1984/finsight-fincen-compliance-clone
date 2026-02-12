@@ -3,12 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 
-import {
-  ComplianceService,
-  ComplianceEventResponse,
-} from '../../shared/services/compliance.service';
+import { ComplianceService } from '../../shared/services/compliance.service';
 import { ComplianceEventsService } from '../../services/compliance-events.service';
 import { TransactionService } from '../../shared/services/transaction.service';
+import { CasesService } from '../../shared/services/cases.service';
+import { RoleService } from '../../shared/services/role.service';
 
 import {
   SubjectNameLookup,
@@ -16,6 +15,17 @@ import {
   pickFirstString,
   resolveSubjectName,
 } from '../../shared/utils/subject-name.util';
+
+type SarRow = {
+  sarId: number; // NOT optional
+  subjectName: string; // NOT optional
+  sourceEntityId: string | null; // NOT optional (but can be null)
+  status: string | null; // NOT optional (but can be null)
+  suspicionScore: number | null; // NOT optional (but can be null)
+  eventTime: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
 
 @Component({
   selector: 'app-sars',
@@ -25,7 +35,7 @@ import {
   imports: [CommonModule, FormsModule, RouterModule],
 })
 export class SarsComponent {
-  sars: ComplianceEventResponse[] = [];
+  sars: SarRow[] = [];
   loading = false;
   error: string | null = null;
 
@@ -39,15 +49,26 @@ export class SarsComponent {
   generateError: string | null = null;
 
   private transactionNameMap: SubjectNameLookup = {};
+  private sarToCaseId: Record<number, number> = {};
 
   constructor(
     private complianceService: ComplianceService,
     private cdr: ChangeDetectorRef,
     private complianceEventsService: ComplianceEventsService,
     private transactionService: TransactionService,
+    private casesService: CasesService,
+    public roleService: RoleService,
     private router: Router,
   ) {
     this.refresh();
+  }
+
+  canUploadSar(): boolean {
+    return this.roleService.isComplianceUser();
+  }
+
+  canOpenCasesFromSar(): boolean {
+    return this.roleService.isAnalyst();
   }
 
   // =========================
@@ -57,7 +78,27 @@ export class SarsComponent {
     this.loading = true;
     this.error = null;
 
-    // 1) Load transactions first to build a subject-name lookup (best display names)
+    // Analysts can open a SAR by routing directly to its auto-generated case overview.
+    // This map is best-effort; if it fails, we still render SARs.
+    if (this.roleService.isAnalyst()) {
+      this.casesService.getAll().subscribe({
+        next: (cases) => {
+          const map: Record<number, number> = {};
+          for (const c of cases ?? []) {
+            if (typeof c?.sarId === 'number' && typeof c?.caseId === 'number') {
+              map[c.sarId] = c.caseId;
+            }
+          }
+          this.sarToCaseId = map;
+        },
+        error: () => {
+          this.sarToCaseId = {};
+        },
+      });
+    } else {
+      this.sarToCaseId = {};
+    }
+
     this.transactionService.getTransactions(0, 300).subscribe({
       next: (res: any) => {
         const rows: any[] = Array.isArray(res?.content)
@@ -96,7 +137,6 @@ export class SarsComponent {
       },
       error: (err: unknown) => {
         console.error(err);
-        // Fallback: still load SARs even if transactions fail
         this.transactionNameMap = {};
         this.loadSarsWithLookup();
       },
@@ -104,13 +144,18 @@ export class SarsComponent {
   }
 
   private loadSarsWithLookup(): void {
-    // IMPORTANT: use the paged ComplianceEventsService (matches backend)
     this.complianceEventsService.getSarEvents(0, 200).subscribe({
-      next: (page) => {
-        const rows = Array.isArray(page?.content) ? page.content : [];
+      next: (page: any) => {
+        const rows: any[] = Array.isArray(page?.content) ? page.content : [];
 
-        this.sars = rows
-          .map((e: any) => {
+        const mappedRows: SarRow[] = rows
+          .map((e: any): SarRow | null => {
+            // SAR ID must be a number. If it isn't present, skip the row.
+            const rawId = e?.eventId ?? e?.id ?? e?.sarId;
+            const sarId = typeof rawId === 'number' ? rawId : Number(rawId);
+            if (!Number.isFinite(sarId)) return null;
+
+            // Resolve subject name using transaction lookup + event fields
             const subjectIdRaw =
               pickFirstString(
                 e?.subjectId,
@@ -131,36 +176,59 @@ export class SarsComponent {
               ],
             });
 
-            // Build a ComplianceEventResponse-compatible object for your existing template
-            const mapped: ComplianceEventResponse = {
-              eventId: e.eventId ?? e.id,
-              eventType: e.eventType ?? e.event_type ?? 'SAR',
-              status: e.status ?? null,
-              sourceEntityId: e.sourceEntityId ?? e.source_entity_id ?? null,
-              severityScore: e.severityScore ?? e.severity_score ?? null,
-              eventTime: e.eventTime ?? e.event_time ?? null,
-              createdAt: e.createdAt ?? e.created_at ?? null,
+            // Normalize score to (number | null) always
+            const rawScore =
+              e?.severityScore ?? e?.severity_score ?? e?.suspicionScore ?? e?.suspicion_score;
 
-              // extra template compatibility fields
-              sarId: e.eventId ?? e.id,
-              subjectName: resolved.subjectName,
-              updatedAt: e.eventTime ?? e.event_time ?? e.createdAt ?? e.created_at ?? null,
-            } as any;
+            const suspicionScore: number | null =
+              typeof rawScore === 'number'
+                ? rawScore
+                : rawScore != null && !Number.isNaN(Number(rawScore))
+                  ? Number(rawScore)
+                  : null;
 
-            return mapped;
+            const eventTime = (e?.eventTime ?? e?.event_time ?? null) as string | null;
+            const createdAt = (e?.createdAt ?? e?.created_at ?? null) as string | null;
+            const updatedAt = (e?.updatedAt ??
+              e?.updated_at ??
+              e?.eventTime ??
+              e?.event_time ??
+              e?.createdAt ??
+              e?.created_at ??
+              null) as string | null;
+
+            return {
+              sarId,
+              subjectName: resolved.subjectName ?? `SAR ${sarId}`,
+              sourceEntityId: (e?.sourceEntityId ?? e?.source_entity_id ?? null) as string | null,
+              status: (e?.status ?? null) as string | null,
+              suspicionScore,
+              eventTime,
+              createdAt,
+              updatedAt,
+            };
           })
+          .filter((r: SarRow | null): r is SarRow => r !== null)
           .sort((a, b) =>
             String(b.eventTime || b.createdAt || '').localeCompare(
               String(a.eventTime || a.createdAt || ''),
             ),
           );
 
+        this.sars = mappedRows;
         this.loading = false;
 
-        // Load CTR dropdown after SARs are loaded
-        this.loadCtrOptions();
+        // Analysts can open a SAR directly into the generated Case overview.
+        // (Compliance users do not have access to cases.)
+        this.loadSarCaseMapIfNeeded();
 
-        // Force UI update (prevents “only shows after refresh” symptoms)
+        // Only analysts can auto-generate SAR drafts from CTRs in the MVP UI.
+        if (this.roleService.isAnalyst()) {
+          this.loadCtrOptions();
+        } else {
+          this.ctrOptions = [];
+          this.selectedCtrId = null;
+        }
         this.cdr.detectChanges();
       },
       error: (err: unknown) => {
@@ -174,6 +242,30 @@ export class SarsComponent {
     });
   }
 
+  private loadSarCaseMapIfNeeded(): void {
+    if (!this.roleService.isAnalyst()) {
+      this.sarToCaseId = {};
+      return;
+    }
+
+    this.casesService.getAll().subscribe({
+      next: (cases) => {
+        const map: Record<number, number> = {};
+        for (const c of cases ?? []) {
+          if (typeof c?.sarId === 'number' && typeof c?.caseId === 'number') {
+            map[c.sarId] = c.caseId;
+          }
+        }
+        this.sarToCaseId = map;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.sarToCaseId = {};
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
   // =========================
   // CTR dropdown for SAR generation
   // =========================
@@ -181,11 +273,9 @@ export class SarsComponent {
     this.complianceService.getCtrOptions().subscribe({
       next: (opts: Array<{ id: number; label: string }> | null) => {
         this.ctrOptions = opts ?? [];
-
         if (this.ctrOptions.length && this.selectedCtrId == null) {
           this.selectedCtrId = this.ctrOptions[0].id;
         }
-
         this.cdr.detectChanges();
       },
       error: () => {
@@ -216,7 +306,7 @@ export class SarsComponent {
         this.generating = false;
 
         let message = 'Failed to auto-generate SAR.';
-        if (err && typeof err === 'object' && 'error' in err) {
+        if (err && typeof err === 'object' && err !== null && 'error' in err) {
           const e = err as any;
           message = e?.error?.message ?? e?.message ?? message;
         }
@@ -240,54 +330,60 @@ export class SarsComponent {
     this.router.navigate(['/cases']);
   }
 
+  openSar(id: number): void {
+    const caseId = this.sarToCaseId[id];
+    if (this.roleService.isAnalyst() && typeof caseId === 'number' && caseId > 0) {
+      this.router.navigate(['/cases', caseId, 'overview']);
+      return;
+    }
+    // Compliance users do not have access to cases. Use the read-only SAR detail view.
+    this.router.navigate(['/sars', id]);
+  }
+
   // =========================
-  // Filtering
+  // Search + Filtering
   // =========================
-  filteredSars(): ComplianceEventResponse[] {
-    const q = (this.query || this.search).trim().toLowerCase();
+  onQuery(q: string): void {
+    this.query = q ?? '';
+  }
+
+  filteredSars(): SarRow[] {
+    const q = (this.query ?? '').trim().toLowerCase();
     if (!q) return this.sars;
 
     return this.sars.filter((s) => {
-      const sev = s.severityScore != null ? String(s.severityScore) : '';
-      return (
-        String(s.eventId).includes(q) ||
-        String((s as any).sarId ?? '').includes(q) ||
-        (s.status || '').toLowerCase().includes(q) ||
-        (s.sourceEntityId || '').toLowerCase().includes(q) ||
-        ((s as any).subjectName || '').toLowerCase().includes(q) ||
-        sev.includes(q)
-      );
+      const id = String(s.sarId).toLowerCase();
+      const subj = String(s.subjectName ?? '').toLowerCase();
+      const src = String(s.sourceEntityId ?? '').toLowerCase();
+      const status = String(s.status ?? '').toLowerCase();
+      return id.includes(q) || subj.includes(q) || src.includes(q) || status.includes(q);
     });
   }
 
-  onQuery(val: string): void {
-    this.query = val;
-  }
-
-  openSar(_id: any): void {
-    // Optional: route to SAR detail page later
-  }
-
-  badgeClass(status: string | null | undefined): string {
-    const s = (status || '').toUpperCase();
-    if (s.includes('SUBMIT')) return 'badge badge--good';
-    if (s.includes('DRAFT')) return 'badge badge--warn';
+  // =========================
+  // UI Helpers
+  // =========================
+  badgeClass(status: string | null): string {
+    const s = (status ?? '').toUpperCase();
+    if (s === 'SUBMITTED') return 'badge badge--success';
+    if (s === 'DRAFT') return 'badge badge--warn';
+    if (s === 'REJECTED') return 'badge badge--danger';
     return 'badge';
   }
 
-  scoreClass(score: number | string | null | undefined): string {
-    const n = typeof score === 'number' ? score : score != null ? Number(score) : NaN;
-    if (!Number.isFinite(n)) return 'badge';
-    if (n >= 60) return 'badge badge--good';
-    if (n >= 40) return 'badge badge--warn';
-    return 'badge';
+  scoreClass(score: number | null): string {
+    const v = typeof score === 'number' ? score : null;
+    if (v == null) return 'pill pill--muted';
+    if (v >= 80) return 'pill pill--danger';
+    if (v >= 50) return 'pill pill--warn';
+    return 'pill pill--ok';
   }
 
-  scoreLabel(score: number | string | null | undefined): string {
-    const n = typeof score === 'number' ? score : score != null ? Number(score) : NaN;
-    if (!Number.isFinite(n)) return '—';
-    if (n >= 60) return 'Auto';
-    if (n >= 40) return 'Review';
-    return 'CTR';
+  scoreLabel(score: number | null): string {
+    const v = typeof score === 'number' ? score : null;
+    if (v == null) return '—';
+    if (v >= 80) return 'High';
+    if (v >= 50) return 'Medium';
+    return 'Low';
   }
 }

@@ -20,6 +20,15 @@ CREATE TABLE IF NOT EXISTS role (
   UNIQUE KEY uq_role_role_name (role_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS organization (
+  organization_id VARCHAR(36) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (organization_id),
+  UNIQUE KEY uq_organization_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS app_user (
   user_id VARCHAR(36) NOT NULL,
   email VARCHAR(320) NOT NULL,
@@ -36,14 +45,19 @@ CREATE TABLE IF NOT EXISTS app_user (
   deleted_at TIMESTAMP NULL DEFAULT NULL,
 
   role_id INT NOT NULL,
+  organization_id VARCHAR(36) NULL,          -- optional FK to an organization table if needed
 
   PRIMARY KEY (user_id),
   UNIQUE KEY uq_app_user_email (email),
   KEY idx_app_user_role_id (role_id),
-
+  KEY idx_app_user_organization_id (organization_id),
   CONSTRAINT fk_app_user_role
     FOREIGN KEY (role_id) REFERENCES role(role_id)
     ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  CONSTRAINT fk_app_user_organization
+    FOREIGN KEY (organization_id) REFERENCES organization(organization_id)
+    ON DELETE SET NULL
     ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

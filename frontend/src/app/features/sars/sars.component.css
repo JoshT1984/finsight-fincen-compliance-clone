@@ -179,6 +179,19 @@
   padding: 18px 12px;
 }
 
+/* Clickable status badge (DRAFT for analysts) */
+.badgeLink {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+}
+
+.badgeLink:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 860px) {
   .card__header {
     flex-direction: column;

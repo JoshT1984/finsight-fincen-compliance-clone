@@ -121,6 +121,13 @@ export class ComplianceEventsService {
   }
 
   // ====================================================
+  // Event by ID
+  // ====================================================
+  getEventById(eventId: number): Observable<ComplianceEventDto> {
+    return this.http.get<ComplianceEventDto>(`${this.apiUrl}/${eventId}`);
+  }
+
+  // ====================================================
   // CTR Detail
   // ====================================================
   getCtrDetail(eventId: number): Observable<CtrDetailResponse> {

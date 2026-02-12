@@ -1,41 +1,102 @@
 <div class="container">
-  <section class="hero" aria-label="Overview">
-    <h2>Compliance workflow, built for demo</h2>
-    <p>
-      This is a clean UI shell using your FINCEN-inspired palette. Swap the cards below with your
-      real routes (CTRs, SARs, Cases, Uploads, Audit).
+  <section class="hero" aria-label="Landing intro">
+    <h2>FinSight</h2>
+    <p class="muted" *ngIf="roleService.isAnalyst()">
+      Investigation dashboard for reviewing SAR drafts, managing cases, updating investigative
+      notes, and coordinating referrals.
     </p>
 
-    <div class="ctaRow">
-      <a class="btn primary" routerLink="/cases">Go to Cases</a>
-      <a class="btn ghost" routerLink="/documents">Upload CTR/SAR PDF</a>
-      <a class="btn ghost" routerLink="/ctrs">View CTRs</a>
+    <p class="muted" *ngIf="roleService.isComplianceUser()">
+      Compliance dashboard for CTR and SAR intake, document uploads, and report monitoring.
+      Investigation and registry actions are restricted.
+    </p>
+
+    <p class="muted" *ngIf="roleService.isLawEnforcement()">
+      Officer review dashboard for referred cases, with compiled suspect context and supporting SAR
+      details. Upload and editing actions are restricted.
+    </p>
+  </section>
+
+  <!-- ========================= -->
+  <!-- ANALYST (role_id = 1) -->
+  <!-- ========================= -->
+  <section *ngIf="roleService.isAnalyst()" class="content" aria-label="Analyst actions">
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Analyst</div>
+          <h3>Investigation Workflow</h3>
+          <p class="muted">
+            Review SAR drafts, manage case queue, add investigative notes, and refer cases to law
+            enforcement.
+          </p>
+        </div>
+      </div>
+
+      <div class="ctaRow" style="gap: 10px; flex-wrap: wrap">
+        <a class="btn primary" routerLink="/cases">Go to Case Queue</a>
+        <a class="btn ghost" routerLink="/sars">View SARs</a>
+        <a class="btn ghost" routerLink="/ctrs">View CTRs</a>
+        <a class="btn ghost" routerLink="/registry">Suspect Registry</a>
+        <a class="btn ghost" routerLink="/documents">Documents</a>
+      </div>
     </div>
   </section>
 
-  <section class="grid" aria-label="Key areas">
-    <a routerLink="/ctrs" class="card">
-      <div class="tag">CTRs</div>
-      <h3>Currency Transaction Reports</h3>
-      <p>Browse daily aggregated CTRs, view totals, and drill into linked activity.</p>
-    </a>
+  <!-- ========================= -->
+  <!-- COMPLIANCE USER (role_id = 2) -->
+  <!-- ========================= -->
+  <section *ngIf="roleService.isComplianceUser()" class="content" aria-label="Compliance actions">
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Compliance</div>
+          <h3>Upload and View</h3>
+          <p class="muted">
+            Upload CTR and SAR PDFs and view generated reports. Editing and investigation actions
+            are restricted.
+          </p>
+        </div>
+      </div>
 
-    <a routerLink="/sars" class="card">
-      <div class="tag">SARs</div>
-      <h3>Suspicious Activity Reports</h3>
-      <p>Review SAR drafts/submissions with explainable rule hits and narratives.</p>
-    </a>
+      <div class="ctaRow" style="gap: 10px; flex-wrap: wrap">
+        <a class="btn primary" routerLink="/ctrs">View CTRs</a>
+        <a class="btn ghost" routerLink="/sars">View SARs</a>
 
-    <a routerLink="/cases" class="card">
-      <div class="tag">Cases</div>
-      <h3>Case Management</h3>
-      <p>Work a queue of cases with notes, referral actions, and status tracking.</p>
-    </a>
+        <!-- Upload entry point -->
+        <button class="btn ghost" type="button" (click)="goToUpload()">
+          Upload CTR or SAR PDF
+        </button>
+      </div>
+    </div>
+  </section>
 
-    <a routerLink="/registry" class="card">
-      <div class="tag">Registry</div>
-      <h3>Registry</h3>
-      <p>Manage suspects, organizations, and addresses used across cases and reports.</p>
-    </a>
+  <!-- ========================= -->
+  <!-- LAW ENFORCEMENT (role_id = 3) -->
+  <!-- ========================= -->
+  <section
+    *ngIf="roleService.isLawEnforcement()"
+    class="content"
+    aria-label="Law enforcement actions"
+  >
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <div class="tag">Law Enforcement</div>
+          <h3>Officer Review</h3>
+          <p class="muted">
+            Review referred cases with compiled suspect and SAR context. Upload and editing actions
+            are restricted.
+          </p>
+        </div>
+      </div>
+
+      <div class="ctaRow" style="gap: 10px; flex-wrap: wrap">
+        <a class="btn primary" routerLink="/officer">Open Officer Review Queue</a>
+
+        <!-- OPTIONAL: only include this if LE should see general cases list -->
+        <!-- <a class="btn ghost" routerLink="/cases">View Cases</a> -->
+      </div>
+    </div>
   </section>
 </div>

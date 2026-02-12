@@ -26,7 +26,7 @@ export class ProfileComponent implements OnInit {
     this.identityService.profile$.subscribe((profile) => {
       this.profile = profile;
       if (!profile) {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/dashboard']);
       } else {
         this.updateProviderLinks();
       }

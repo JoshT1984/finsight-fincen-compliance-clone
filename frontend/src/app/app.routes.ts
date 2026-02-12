@@ -11,6 +11,7 @@ import { DocumentsComponent } from './features/documents/documents.component';
 import { LandingComponent } from './features/landing/landing.component';
 import { PublicLandingComponent } from './features/public-landing/public-landing.component';
 import { SarsComponent } from './features/sars/sars.component';
+import { SarDetailComponent } from './features/sars/sar-detail.component';
 import { ShellComponent } from './layout/shell/shell.component';
 import { UploadComponent } from './features/upload/upload.component';
 import { ProfileComponent } from './features/profile/profile.component';
@@ -28,6 +29,7 @@ import { publicLandingGuard } from './shared/guards/public-landing.guard';
 import { roleGuard } from './shared/guards/role.guard';
 import { LinkAccountComponent } from './features/link-account/link-account.component';
 import { OauthCallbackComponent } from './features/oauth-callback/oauth-callback.component';
+import { OfficerReviewComponent } from './features/officer/officer-review.component';
 
 export const routes: Routes = [
   {
@@ -48,13 +50,15 @@ export const routes: Routes = [
         path: 'cases',
         component: CasesComponent,
         canActivate: [authGuard, roleGuard],
-        data: { allowedRoles: ['ANALYST', 'LAW_ENFORCEMENT_USER'] },
+        // Officers should not see the full case queue; they review referred cases via /officer.
+        data: { allowedRoles: ['ANALYST'] },
       },
       {
         path: 'cases/:id',
         component: CaseDetailComponent,
         resolve: { case: caseResolver },
         canActivate: [authGuard, roleGuard],
+        // Officers can open specific referred cases (linked from /officer).
         data: { allowedRoles: ['ANALYST', 'LAW_ENFORCEMENT_USER'] },
         children: [
           { path: '', redirectTo: 'overview', pathMatch: 'full' },
@@ -71,6 +75,12 @@ export const routes: Routes = [
         data: { allowedRoles: ['ANALYST', 'COMPLIANCE_USER'] },
       },
       {
+        path: 'sars/:id',
+        component: SarDetailComponent,
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'COMPLIANCE_USER'] },
+      },
+      {
         path: 'ctrs',
         component: CtrsComponent,
         canActivate: [authGuard, roleGuard],
@@ -79,13 +89,20 @@ export const routes: Routes = [
       {
         path: 'documents',
         component: DocumentsComponent,
-        canActivate: [authGuard],
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['ANALYST', 'LAW_ENFORCEMENT_USER'] },
       },
       {
         path: 'upload',
         component: UploadComponent,
         canActivate: [authGuard, roleGuard],
-        data: { allowedRoles: ['ANALYST', 'COMPLIANCE_USER'] },
+        data: { allowedRoles: ['COMPLIANCE_USER'] },
+      },
+      {
+        path: 'officer',
+        component: OfficerReviewComponent,
+        canActivate: [authGuard, roleGuard],
+        data: { allowedRoles: ['LAW_ENFORCEMENT_USER'] },
       },
       {
         path: 'profile',
