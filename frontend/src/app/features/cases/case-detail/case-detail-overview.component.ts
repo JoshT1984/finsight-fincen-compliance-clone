@@ -1,6 +1,8 @@
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { ConfirmDialogComponent, ConfirmDialogMode } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CasesService, CaseFileResponse } from '../../../shared/services/cases.service';
 import { RoleService } from '../../../shared/services/role.service';
@@ -12,8 +14,9 @@ import { RoleService } from '../../../shared/services/role.service';
   templateUrl: './case-detail-overview.component.html',
   styleUrls: ['./case-detail-overview.component.css'],
 })
-export class CaseDetailOverviewComponent {
+export class CaseDetailOverviewComponent implements OnDestroy {
   private roleService = inject(RoleService);
+  private destroy$ = new Subject<void>();
 
   caseData: CaseFileResponse | null = null;
   showConfirmDialog = false;
@@ -30,10 +33,15 @@ export class CaseDetailOverviewComponent {
     private cdr: ChangeDetectorRef,
   ) {
     this.caseData = this.route.parent?.snapshot.data['case'] ?? null;
-    this.route.parent?.data.subscribe((data) => {
+    this.route.parent?.data.pipe(takeUntil(this.destroy$)).subscribe((data) => {
       this.caseData = data['case'] ?? null;
       this.cdr.detectChanges();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   get caseId(): number {

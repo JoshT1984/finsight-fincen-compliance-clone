@@ -41,7 +41,7 @@ public class ComplianceEventServiceClient {
         String url = baseUrl + "/api/compliance-events/ctr";
         log.debug("Creating CTR via {}", url);
         String userId = com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
-                .orElse(null).toString();
+                .map(Object::toString).orElse("anonymous");
         try {
             ComplianceEventResponsePayload response = restTemplate.postForObject(url, request,
                     ComplianceEventResponsePayload.class);
@@ -86,7 +86,7 @@ public class ComplianceEventServiceClient {
                         java.util.Map.of(
                                 "success", success,
                                 "payload", request,
-                                "eventId", eventId,
+                                "eventId", eventId != null ? eventId : "N/A",
                                 "timestamp", java.time.Instant.now())));
     }
 
@@ -100,7 +100,7 @@ public class ComplianceEventServiceClient {
         String url = baseUrl + "/api/compliance-events/sar";
         log.debug("Creating SAR via {}", url);
         String userId = com.skillstorm.finsight.documents_cases.utils.SecurityContextUtils.getCurrentUserId()
-                .orElse(null).toString();
+                .map(Object::toString).orElse("anonymous");
         try {
             ComplianceEventResponsePayload response = restTemplate.postForObject(url, request,
                     ComplianceEventResponsePayload.class);
@@ -145,7 +145,7 @@ public class ComplianceEventServiceClient {
                         java.util.Map.of(
                                 "success", success,
                                 "payload", request,
-                                "eventId", eventId,
+                                "eventId", eventId != null ? eventId : "N/A",
                                 "timestamp", java.time.Instant.now())));
     }
 

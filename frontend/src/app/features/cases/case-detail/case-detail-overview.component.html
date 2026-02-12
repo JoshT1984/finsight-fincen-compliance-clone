@@ -15,21 +15,21 @@
 
   <dl class="case-overview__dl">
     <dt>Case ID</dt>
-    <dd>{{ caseData.caseId }}</dd>
+    <dd>{{ caseData?.caseId }}</dd>
     <dt>SAR ID</dt>
-    <dd>{{ caseData.sarId ?? '—' }}</dd>
+    <dd>{{ caseData?.sarId ?? '—' }}</dd>
     <dt>Status</dt>
     <dd>
-      <span class="case-status case-status-{{ caseData.status | lowercase }}">{{ caseData.status }}</span>
+      <span class="case-status case-status-{{ caseData?.status | lowercase }}">{{ caseData?.status }}</span>
     </dd>
     <dt>Created</dt>
-    <dd>{{ formatDate(caseData.createdAt) }}</dd>
+    <dd>{{ formatDate(caseData?.createdAt ?? null) }}</dd>
     <dt>Referred At</dt>
-    <dd>{{ formatDate(caseData.referredAt) }}</dd>
+    <dd>{{ formatDate(caseData?.referredAt ?? null) }}</dd>
     <dt>Closed At</dt>
-    <dd>{{ formatDate(caseData.closedAt) }}</dd>
+    <dd>{{ formatDate(caseData?.closedAt ?? null) }}</dd>
     <dt>Referred To</dt>
-    <dd>{{ caseData.referredToAgency ?? '—' }}</dd>
+    <dd>{{ caseData?.referredToAgency ?? '—' }}</dd>
   </dl>
 
   <div class="case-overview__actions">
