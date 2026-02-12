@@ -1,7 +1,9 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
 import { SideNavComponent, NavItem } from '../../../shared/side-nav/side-nav.component';
 import { CaseFileResponse, CasesService } from '../../../shared/services/cases.service';
@@ -13,7 +15,7 @@ import { CaseFileResponse, CasesService } from '../../../shared/services/cases.s
   templateUrl: './case-detail.component.html',
   styleUrls: ['./case-detail.component.css'],
 })
-export class CaseDetailComponent {
+export class CaseDetailComponent implements OnDestroy {
   caseData: CaseFileResponse | null = null;
   caseId: number | null = null;
   breadcrumbItems: BreadcrumbItem[] = [];
@@ -24,6 +26,7 @@ export class CaseDetailComponent {
   createNoteFeedback: string | null = null;
   createNoteFeedbackSuccess = false;
   private createNoteFeedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+  private destroy$ = new Subject<void>();
 
   caseDetailNavItems: NavItem[] = [
     { id: 'overview', label: 'Overview' },
@@ -42,15 +45,20 @@ export class CaseDetailComponent {
     private casesService: CasesService,
     private cdr: ChangeDetectorRef,
   ) {
-    this.route.data.subscribe((data) => {
+    this.route.data.pipe(takeUntil(this.destroy$)).subscribe((data) => {
       this.caseData = data['case'] ?? null;
       this.updateBreadcrumbs();
     });
-    this.route.paramMap.subscribe((params) => {
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const id = params.get('id');
       this.caseId = id ? Number(id) : null;
       this.updateBreadcrumbs();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private updateBreadcrumbs(): void {
