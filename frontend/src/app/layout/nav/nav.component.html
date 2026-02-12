@@ -2,7 +2,7 @@
   <div class="nav-container">
     <div class="nav-links">
       <a
-        *ngFor="let item of items"
+        *ngFor="let item of items()"
         [routerLink]="item.path"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
