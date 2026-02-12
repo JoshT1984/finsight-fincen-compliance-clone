@@ -114,6 +114,7 @@ export class OfficerReviewComponent implements OnInit {
       next: (cases) => {
         const mapped: OfficerCaseRow[] = (cases ?? [])
           .map((c: any): OfficerCaseRow | null => {
+            if (c.referredToAgency !== this.profile?.organizationName) return null;
             const caseId = typeof c?.caseId === 'number' ? c.caseId : Number(c?.caseId);
             if (!Number.isFinite(caseId)) return null;
 
