@@ -2,13 +2,17 @@ package com.skillstorm.finsight.documents_cases.services;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -553,6 +557,48 @@ public class DocumentService {
 				document.getFileName(),
 				downloadUrl,
 				expiresAt);
+	}
+
+	/**
+	 * Writes all documents for the given case as a ZIP to the provided output
+	 * stream. Uses the same visibility rules as {@link #findByCaseId(Long)}.
+	 * Caller is responsible for closing the output stream.
+	 *
+	 * @param caseId Case ID
+	 * @param out    Output stream to write the ZIP to
+	 * @throws IOException if streaming or S3 read fails
+	 */
+	public void writeCaseDocumentsZip(Long caseId, OutputStream out) throws IOException {
+		List<DocumentResponse> docs = findByCaseId(caseId);
+		try (ZipOutputStream zos = new ZipOutputStream(out)) {
+			Set<String> usedNames = new HashSet<>();
+			for (DocumentResponse doc : docs) {
+				String baseName = sanitizeZipEntryName(doc.fileName());
+				String entryName = baseName;
+				if (usedNames.contains(entryName)) {
+					entryName = doc.documentId() + "_" + baseName;
+				}
+				usedNames.add(entryName);
+				ZipEntry entry = new ZipEntry(entryName);
+				zos.putNextEntry(entry);
+				try (InputStream is = s3Service.getObjectStream(doc.storagePath())) {
+					is.transferTo(zos);
+				}
+				zos.closeEntry();
+			}
+		}
+		log.info("Streamed ZIP for case {} with {} document(s)", caseId, docs.size());
+	}
+
+	private static String sanitizeZipEntryName(String fileName) {
+		if (fileName == null || fileName.isBlank()) {
+			return "document";
+		}
+		// Use only the last path segment to avoid path traversal
+		int lastSlash = fileName.lastIndexOf('/');
+		String name = lastSlash >= 0 ? fileName.substring(lastSlash + 1) : fileName;
+		// Replace any remaining path-like or control chars
+		return name.replaceAll("[\\\\\\x00-\\x1f]", "_");
 	}
 
 	/**
