@@ -1,18 +1,21 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
+import {
+  BreadcrumbsComponent,
+  BreadcrumbItem,
+} from '../../../shared/breadcrumbs/breadcrumbs.component';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ProperCasePipe } from '../../../shared/pipes/proper-case.pipe';
 import {
   OrganizationService,
   OrganizationResponse,
 } from '../../../shared/services/organization.service';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-organizations',
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbsComponent, ConfirmDialogComponent, ProperCasePipe],
+  imports: [CommonModule, BreadcrumbsComponent, ConfirmDialogComponent, ProperCasePipe, RouterModule],
   templateUrl: './organizations.component.html',
   styleUrls: ['./organizations.component.css'],
 })

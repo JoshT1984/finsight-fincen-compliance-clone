@@ -1,8 +1,11 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
+import {
+  BreadcrumbsComponent,
+  BreadcrumbItem,
+} from '../../../shared/breadcrumbs/breadcrumbs.component';
 import {
   AddressService,
   AddressResponse,
@@ -13,7 +16,7 @@ import {
 @Component({
   selector: 'app-address-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbsComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbsComponent],
   templateUrl: './address-form.component.html',
   styleUrls: ['./address-form.component.css'],
 })
