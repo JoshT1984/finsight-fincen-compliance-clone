@@ -1,9 +1,17 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { SideNavComponent, NavItem } from '../../shared/side-nav/side-nav.component';
 import { BreadcrumbsComponent, BreadcrumbItem } from '../../shared/breadcrumbs/breadcrumbs.component';
 import { CasesService, CaseFileResponse } from '../../shared/services/cases.service';
+import { RoleService } from '../../shared/services/role.service';
+
+const ALL_CASE_NAV_ITEMS: NavItem[] = [
+  { id: 'all', label: 'All Cases' },
+  { id: 'open', label: 'Open' },
+  { id: 'referred', label: 'Referred' },
+  { id: 'closed', label: 'Closed' },
+];
 
 @Component({
   selector: 'app-cases',
@@ -13,12 +21,15 @@ import { CasesService, CaseFileResponse } from '../../shared/services/cases.serv
   styleUrls: ['./cases.component.css'],
 })
 export class CasesComponent implements OnInit {
-  caseNavItems: NavItem[] = [
-    { id: 'all', label: 'All Cases' },
-    { id: 'open', label: 'Open' },
-    { id: 'referred', label: 'Referred' },
-    { id: 'closed', label: 'Closed' },
-  ];
+  private roleService = inject(RoleService);
+
+  /** Law Enforcement only sees referred/closed cases, so "Open" is hidden. */
+  get caseNavItems(): NavItem[] {
+    if (this.roleService.isLawEnforcement()) {
+      return ALL_CASE_NAV_ITEMS.filter((item) => item.id !== 'open');
+    }
+    return ALL_CASE_NAV_ITEMS;
+  }
 
   breadcrumbItems: BreadcrumbItem[] = [
     { label: 'Home', url: '/' },
