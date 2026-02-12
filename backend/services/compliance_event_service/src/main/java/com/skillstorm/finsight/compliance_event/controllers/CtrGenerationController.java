@@ -22,8 +22,7 @@ public class CtrGenerationController {
     @PostMapping("/generate")
     public int generate(
             @RequestParam LocalDate from,
-            @RequestParam LocalDate to
-    ) {
+            @RequestParam LocalDate to) {
         return service.generate(from, to);
     }
 }
