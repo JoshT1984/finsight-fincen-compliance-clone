@@ -82,20 +82,10 @@ export class CaseDetailComponent {
       return;
     }
 
-    const authorUserId = this.resolveAuthorUserId();
-    if (!authorUserId) {
-      this.createNoteError = 'Unable to identify the current user.';
-      return;
-    }
-
     this.createNoteLoading = true;
     this.createNoteError = null;
     this.casesService
-      .createCaseNote({
-        caseId: this.caseId,
-        authorUserId,
-        noteText: text,
-      })
+      .createCaseNote(this.caseId, text)
       .subscribe({
         next: () => {
           this.createNoteLoading = false;
@@ -137,20 +127,4 @@ export class CaseDetailComponent {
     });
   }
 
-  private resolveAuthorUserId(): string | null {
-    const token = localStorage.getItem('authToken');
-    if (!token) return null;
-    const payloadPart = token.split('.')[1];
-    if (!payloadPart) return null;
-
-    try {
-      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-      const payload = JSON.parse(atob(padded)) as Record<string, unknown>;
-      const candidate = payload['sub'] ?? payload['userId'] ?? payload['uid'];
-      return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null;
-    } catch {
-      return null;
-    }
-  }
 }
