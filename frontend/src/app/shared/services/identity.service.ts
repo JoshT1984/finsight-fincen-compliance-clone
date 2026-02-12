@@ -55,13 +55,13 @@ export class IdentityService {
           this.profileSubject.next(null);
           this._isLoggedIn.next(false);
           localStorage.removeItem('authToken');
-          this.router.navigate(['/']);
+          this.router.navigate(['/#about']);
         },
         error: (err) => {
           this.profileSubject.next(null);
           this._isLoggedIn.next(false);
           localStorage.removeItem('authToken');
-          this.router.navigate(['/']);
+          this.router.navigate(['/#about']);
         },
       });
   }
@@ -87,7 +87,7 @@ export class IdentityService {
           () => {
             this.clearProfile();
             this._isLoggedIn.next(false);
-            this.router.navigate(['/']);
+            this.router.navigate(['/#about']);
           },
         ),
       )
@@ -152,7 +152,7 @@ export class IdentityService {
 
   private handleInactivityLogout() {
     this.clearProfile();
-    this.router.navigate(['/']);
+    this.router.navigate(['/#about']);
     this._isLoggedIn.next(false);
     console.log('Logged out due to inactivity');
   }
