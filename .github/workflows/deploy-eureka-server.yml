@@ -1,12 +1,12 @@
-name: Deploy Identity Auth Service to ECS
+name: Deploy Eureka Server to ECS
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'backend/services/identity_auth_service/**'
-            - '.github/workflows/deploy-identity-auth.yml'
+            - 'backend/services/eureka-server/**'
+            - '.github/workflows/deploy-eureka-server.yml'
     workflow_dispatch:
 
 jobs:
@@ -14,9 +14,9 @@ jobs:
         runs-on: ubuntu-latest
         env:
             AWS_REGION: us-east-1
-            ECR_REPOSITORY: finsight/identity
+            ECR_REPOSITORY: finsight/eureka-server
             ECS_CLUSTER: finsight-dev
-            ECS_SERVICE: finsight-identity
+            ECS_SERVICE: eureka-server-dev
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -55,9 +55,9 @@ jobs:
             - name: Build Docker image
               run: |
                   set -e
-                  echo "Building image for identity_auth_service (tag: ${ECR_REPOSITORY}:latest)..."
-                  cd backend/services/identity_auth_service || { echo "ERROR: Directory backend/services/identity_auth_service not found. Check repo structure and paths."; exit 1; }
-                  docker build -t $ECR_REPOSITORY:latest . || { echo "ERROR: Docker build failed. Check Dockerfile and source in backend/services/identity_auth_service."; exit 1; }
+                  echo "Building image for eureka-server (tag: ${ECR_REPOSITORY}:latest)..."
+                  cd backend/services/eureka-server || { echo "ERROR: Directory backend/services/eureka-server not found. Check repo structure and paths."; exit 1; }
+                  docker build -t $ECR_REPOSITORY:latest . || { echo "ERROR: Docker build failed. Check Dockerfile and source in backend/services/eureka-server."; exit 1; }
                   echo "Docker image built successfully."
 
             - name: Tag Docker image
@@ -94,5 +94,5 @@ jobs:
               run: |
                   echo "=== Deploy completed successfully ==="
                   echo "Service: ${ECS_SERVICE} (cluster: ${ECS_CLUSTER})"
-                  echo "Image: finsight/identity:latest in ECR. New tasks will pull this image."
+                  echo "Image: finsight/eureka-server:latest in ECR. New tasks will pull this image."
                   echo "================================"
