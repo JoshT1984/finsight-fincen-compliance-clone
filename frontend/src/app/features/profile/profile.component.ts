@@ -44,7 +44,6 @@ export class ProfileComponent implements OnInit {
 
   saveEdit() {
     this.savingProfile = true;
-    console.log('Saving profile:', this.profile);
     this.profileError = null;
     this.identityService.saveProfileUpdates(this.profile!).subscribe({
       next: () => {

@@ -5,6 +5,8 @@ import { Router, RouterModule } from '@angular/router';
 import { ComplianceEventsService } from '../../services/compliance-events.service';
 import { CasesService } from '../../shared/services/cases.service';
 import { ComplianceEventDto } from '../../models/compliance-event-dto.interface';
+import { ProfileModel } from '../../models/profile.model';
+import { IdentityService } from '../../shared/services/identity.service';
 
 type OfficerCaseRow = {
   caseId: number;
@@ -29,6 +31,8 @@ export class OfficerReviewComponent implements OnInit {
   rows: OfficerCaseRow[] = [];
   query = '';
 
+  profile: ProfileModel | null = null;
+
   private sarIndex: Record<number, { suspicionScore: number | null; subjectLabel: string }> = {};
 
   constructor(
@@ -36,10 +40,14 @@ export class OfficerReviewComponent implements OnInit {
     private complianceEventsService: ComplianceEventsService,
     private cdr: ChangeDetectorRef,
     private router: Router,
+    private identityService: IdentityService,
   ) {}
 
   ngOnInit(): void {
     this.refresh();
+    this.identityService.profile$.subscribe((profile) => {
+      this.profile = profile;
+    });
   }
 
   // =========================
@@ -106,6 +114,7 @@ export class OfficerReviewComponent implements OnInit {
       next: (cases) => {
         const mapped: OfficerCaseRow[] = (cases ?? [])
           .map((c: any): OfficerCaseRow | null => {
+            if (c.referredToAgency !== this.profile?.organizationName) return null;
             const caseId = typeof c?.caseId === 'number' ? c.caseId : Number(c?.caseId);
             if (!Number.isFinite(caseId)) return null;
 
