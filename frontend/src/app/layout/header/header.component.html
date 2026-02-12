@@ -7,7 +7,6 @@
     <span aria-hidden="true">▾</span>
   </div>
 </div>
-
 <!-- FINCEN-like header banner -->
 <header class="siteHeader">
   <div class="siteHeader__banner">
@@ -28,6 +27,7 @@
           >
             Login
           </button>
+
           <button
             class="btn primary brand__btn"
             *ngIf="identityService.isLoggedIn$ | async"
@@ -35,6 +35,7 @@
           >
             Logout
           </button>
+
           <button
             class="btn primary brand__btn"
             *ngIf="identityService.isLoggedIn$ | async"
@@ -42,6 +43,19 @@
           >
             Profile
           </button>
+
+          <ng-container *ngIf="identityService.profile$ | async as profile">
+            <span
+              class="role-chip"
+              *ngIf="identityService.isLoggedIn$ | async"
+              [ngClass]="'role-chip--' + profile.roleId"
+              [matTooltip]="roleTooltip(profile.roleId)"
+              aria-label="{{ roleTooltip(profile.roleId) }}"
+            >
+              <mat-icon aria-hidden="true">{{ roleIcon(profile.roleId) }}</mat-icon>
+            </span>
+          </ng-container>
+
           <img src="images/fincen-logo.png" alt="FinCEN Logo" class="fincen-logo" />
         </div>
       </div>
