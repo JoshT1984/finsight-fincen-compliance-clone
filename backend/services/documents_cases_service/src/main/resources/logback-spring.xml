@@ -24,6 +24,28 @@
     </encoder>
   </appender>
 
+  <!-- Audit / Security file -->
+    <appender name="DOCUMENT_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>/var/log/audit/document_cases.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/audit/document_cases.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <!-- JSON only, no Logback metadata -->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Only your audit logger writes to file -->
+    <logger name="DOCUMENT_EVENT" level="INFO" additivity="false">
+        <appender-ref ref="DOCUMENT_FILE"/>
+    </logger>
+
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
