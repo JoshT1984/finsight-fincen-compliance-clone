@@ -61,10 +61,5 @@ management:
         include: health
 
 logging:
-<<<<<<< Updated upstream
-    level:
-        root: info
-=======
   level:
     root: info
->>>>>>> Stashed changes

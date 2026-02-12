@@ -16,8 +16,6 @@ import com.skillstorm.finsight.compliance_event.loggers.LoggingAccessDeniedHandl
 import com.skillstorm.finsight.compliance_event.loggers.LoggingAuthenticationEntryPoint;
 
 @Configuration
-// @EnableWebSecurity
-// @Profile("!dev")
 public class SecurityConfig {
 
         private final JwtConfig jwtConfig;
