@@ -108,7 +108,9 @@ public class OauthIdentityService {
     }
 
     public void revokeRefreshToken(String refreshToken) {
-        refreshTokenStore.remove(refreshToken);
+        if (refreshToken != null) {
+            refreshTokenStore.remove(refreshToken);
+        }
     }
 
     public void linkOAuthIdentity(

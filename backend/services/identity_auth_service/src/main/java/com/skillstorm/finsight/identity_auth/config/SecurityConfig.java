@@ -1,5 +1,6 @@
 package com.skillstorm.finsight.identity_auth.config;
 
+import com.skillstorm.finsight.identity_auth.aspects.SecurityAuditLogger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -16,10 +17,13 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    private final SecurityAuditLogger securityAuditLogger;
+
     private final JwtConfig jwtConfig;
 
-    public SecurityConfig(JwtConfig jwtConfig) {
+    public SecurityConfig(JwtConfig jwtConfig, SecurityAuditLogger securityAuditLogger) {
         this.jwtConfig = jwtConfig;
+        this.securityAuditLogger = securityAuditLogger;
     }
 
     @Bean
@@ -57,12 +61,13 @@ public class SecurityConfig {
     public LoginSuccessHandler loginSuccessHandler(
             org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder,
             com.skillstorm.finsight.identity_auth.services.OauthIdentityService oauthIdentityService) {
-        return new LoginSuccessHandler(jwtEncoder, oauthIdentityService);
+        return new LoginSuccessHandler(jwtEncoder, oauthIdentityService, securityAuditLogger);
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowCredentials(true);
         configuration
                 .setAllowedOrigins(java.util.List.of("http://localhost:4200", "https://d2aq49aewiq0a8.cloudfront.net"));
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

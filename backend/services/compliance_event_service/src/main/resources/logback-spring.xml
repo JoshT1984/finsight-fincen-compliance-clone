@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- Default: local dev writes under project folder -->
+  <property name="COMPLIANCE_LOG_DIR" value="logs/compliance"/>
+
+  <!-- If you want to override from env: COMPLIANCE_LOG_DIR=/var/log/audit/compliance -->
+  <springProperty scope="context"
+                  name="COMPLIANCE_LOG_DIR"
+                  source="COMPLIANCE_LOG_DIR"
+                  defaultValue="logs/compliance"/>
+
+  <appender name="COMPLIANCE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${COMPLIANCE_LOG_DIR}/compliance_event.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${COMPLIANCE_LOG_DIR}/compliance.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="COMPLIANCE_LOG" level="INFO" additivity="false">
+    <appender-ref ref="COMPLIANCE_FILE"/>
+  </logger>
+
+  <appender name="SECURITY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${COMPLIANCE_LOG_DIR}/security_compliance_event.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${COMPLIANCE_LOG_DIR}/security.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>%msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="COMPLIANCE_SECURITY" level="INFO" additivity="false">
+    <appender-ref ref="SECURITY_FILE"/>
+  </logger>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+</configuration>

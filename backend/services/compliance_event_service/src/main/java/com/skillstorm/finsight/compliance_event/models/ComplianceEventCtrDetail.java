@@ -75,6 +75,11 @@ public class ComplianceEventCtrDetail {
         return eventType;
     }
 
+    /** Set before persist so @NotNull validation passes; column is insertable=false so DB default is used on INSERT. */
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
     public ComplianceEvent getEvent() {
         return event;
     }

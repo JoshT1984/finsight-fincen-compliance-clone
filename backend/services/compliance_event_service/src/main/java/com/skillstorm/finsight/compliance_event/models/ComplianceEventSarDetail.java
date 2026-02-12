@@ -64,6 +64,10 @@ public class ComplianceEventSarDetail {
 
     @PrePersist
     void prePersist() {
+        // Satisfy Bean Validation (@NotNull) even though DB default is used
+        if (eventType == null || eventType.isBlank()) {
+            eventType = "SAR";
+        }
         if (formData == null) {
             formData = Map.of();
         }
@@ -75,6 +79,11 @@ public class ComplianceEventSarDetail {
 
     public String getEventType() {
         return eventType;
+    }
+
+    /** Set before persist so @NotNull validation passes; column is insertable=false so DB default is used on INSERT. */
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
     }
 
     public ComplianceEvent getEvent() {

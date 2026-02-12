@@ -3,84 +3,134 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environment/environment';
 
+import { ComplianceEventDto } from '../models/compliance-event-dto.interface';
+import { CtrDetailResponse } from '../models/ctr-detail.model';
+
+type PageResponse<T> = {
+  content: T[];
+  totalElements?: number;
+  totalPages?: number;
+  number?: number;
+  size?: number;
+};
+
 @Injectable({ providedIn: 'root' })
 export class ComplianceEventsService {
-  private readonly apiUrl: string;
+  private readonly apiUrl = `${environment.complianceApiBaseUrl}/api/compliance-events`;
 
-  constructor(private http: HttpClient) {
-    const base = environment.complianceApiBaseUrl || '';
-    this.apiUrl = base
-      ? `${base.replace(/\/$/, '')}/api/compliance-events`
-      : '/api/compliance-events';
+  constructor(private http: HttpClient) {}
+
+  // ====================================================
+  // Generic search
+  // ====================================================
+  search(
+    params: {
+      eventType?: 'CTR' | 'SAR';
+      suspectId?: number;
+      notLinkedToSuspectId?: number;
+      page?: number;
+      size?: number;
+    } = {},
+  ): Observable<PageResponse<ComplianceEventDto>> {
+    let httpParams = new HttpParams();
+
+    if (params.eventType) {
+      httpParams = httpParams.set('eventType', params.eventType);
+    }
+    if (params.suspectId != null) {
+      httpParams = httpParams.set('suspectId', String(params.suspectId));
+    }
+    if (params.notLinkedToSuspectId != null) {
+      httpParams = httpParams.set('notLinkedToSuspectId', String(params.notLinkedToSuspectId));
+    }
+    if (params.page != null) {
+      httpParams = httpParams.set('page', String(params.page));
+    }
+    if (params.size != null) {
+      httpParams = httpParams.set('size', String(params.size));
+    }
+
+    return this.http.get<PageResponse<ComplianceEventDto>>(this.apiUrl, {
+      params: httpParams,
+    });
   }
 
-  /**
-   * CTR list (paged)
-   * GET /api/compliance-events?eventType=CTR&page=0&size=200
-   */
-  getCtrEvents(page: number, size: number): Observable<any> {
-    const params = new HttpParams()
-      .set('eventType', 'CTR')
-      .set('page', String(page))
-      .set('size', String(size));
-
-    return this.http.get<any>(this.apiUrl, { params });
+  // ====================================================
+  // CTR Events
+  // ====================================================
+  getCtrEvents(page: number = 0, size: number = 200): Observable<PageResponse<ComplianceEventDto>> {
+    return this.search({
+      eventType: 'CTR',
+      page,
+      size,
+    });
   }
 
-  /**
-   * CTR detail
-   * GET /api/compliance-events/{eventId}/ctr-detail
-   */
-  getCtrDetail(eventId: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${eventId}/ctr-detail`);
+  // ====================================================
+  // SAR Events
+  // ====================================================
+  getSarEvents(page: number = 0, size: number = 200): Observable<PageResponse<ComplianceEventDto>> {
+    return this.search({
+      eventType: 'SAR',
+      page,
+      size,
+    });
   }
 
-  /**
-   * Events linked to a suspect (paged)
-   * Expected by suspect-detail.component.ts
-   * GET /api/compliance-events/by-suspect/{suspectId}?page=0&size=200
-   */
-  getBySuspectId(suspectId: number, page = 0, size = 200): Observable<any> {
-    const params = new HttpParams().set('page', String(page)).set('size', String(size));
-
-    return this.http.get<any>(`${this.apiUrl}/by-suspect/${suspectId}`, { params });
+  // ====================================================
+  // Events by Suspect
+  // ====================================================
+  getBySuspectId(
+    suspectId: number,
+    page: number = 0,
+    size: number = 200,
+  ): Observable<PageResponse<ComplianceEventDto>> {
+    return this.search({
+      suspectId,
+      page,
+      size,
+    });
   }
 
-  /**
-   * Linkable events (not currently linked to suspect), filtered by type (CTR/SAR)
-   * Expected by suspect-detail.component.ts
-   * GET /api/compliance-events/linkable?eventType=CTR&excludeSuspectId=123&page=0&size=200
-   */
+  // ====================================================
+  // Linkable Events
+  // ====================================================
   getLinkableByEventType(
     eventType: 'CTR' | 'SAR',
     excludeSuspectId: number,
-    page = 0,
-    size = 200,
-  ): Observable<any> {
-    const params = new HttpParams()
-      .set('eventType', eventType)
-      .set('excludeSuspectId', String(excludeSuspectId))
-      .set('page', String(page))
-      .set('size', String(size));
-
-    return this.http.get<any>(`${this.apiUrl}/linkable`, { params });
+    page: number = 0,
+    size: number = 200,
+  ): Observable<PageResponse<ComplianceEventDto>> {
+    return this.search({
+      eventType,
+      notLinkedToSuspectId: excludeSuspectId,
+      page,
+      size,
+    });
   }
 
-  /**
-   * Link event to suspect
-   * Expected by suspect-detail.component.ts
-   * POST /api/compliance-events/{eventId}/link-suspect/{suspectId}
-   */
+  // ====================================================
+  // Link / Unlink
+  // ====================================================
   linkEventToSuspect(eventId: number, suspectId: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${eventId}/link-suspect/${suspectId}`, {});
+    return this.http.put<void>(`${this.apiUrl}/${eventId}/suspect`, { suspectId });
   }
 
-  /**
-   * Unlink event from suspect
-   * Expected by suspect-detail.component.ts
-   * DELETE /api/compliance-events/{eventId}/unlink-suspect
-   */
   unlinkEventFromSuspect(eventId: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${eventId}/unlink-suspect`);
+    return this.http.delete<void>(`${this.apiUrl}/${eventId}/suspect`);
+  }
+
+  // ====================================================
+  // CTR Detail
+  // ====================================================
+  getCtrDetail(eventId: number): Observable<CtrDetailResponse> {
+    return this.http.get<CtrDetailResponse>(`${this.apiUrl}/${eventId}/ctr-detail`);
+  }
+
+  // ====================================================
+  // Manual SAR Generation
+  // ====================================================
+  generateSarFromCtr(ctrId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/ctrs/${ctrId}/generate-sar`, {});
   }
 }

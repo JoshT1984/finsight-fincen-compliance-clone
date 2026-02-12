@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +51,32 @@ public class AddressService {
         address.getCountry(),
         address.getCreatedAt()
     );
+  }
+
+  /**
+   * Finds an address by components or creates it (for CTR/SAR form sync from compliance service).
+   * Does not perform compliance-user check so it can be used by the from-form endpoint.
+   */
+  @Transactional
+  public Address findOrCreateByComponents(String line1, String line2, String city, String state, String postalCode, String country) {
+    String l2 = (line2 != null && !line2.isBlank()) ? line2.trim() : null;
+    String st = (state != null && !state.isBlank()) ? state.trim() : null;
+    String zip = (postalCode != null && !postalCode.isBlank()) ? postalCode.trim() : null;
+    return repo.findByAddressComponents(line1, l2, city, st, zip, country)
+        .orElseGet(() -> {
+          try {
+            Address a = new Address();
+            a.setLine1(line1);
+            a.setLine2(l2);
+            a.setCity(city);
+            a.setState(st);
+            a.setPostalCode(zip);
+            a.setCountry(country);
+            return repo.save(a);
+          } catch (DataIntegrityViolationException e) {
+            return repo.findByAddressComponents(line1, l2, city, st, zip, country).orElseThrow(() -> e);
+          }
+        });
   }
 
   @Transactional

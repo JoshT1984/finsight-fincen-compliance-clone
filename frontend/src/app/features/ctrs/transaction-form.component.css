@@ -1,7 +1,29 @@
 :host {
   display: block;
   width: min(900px, 96vw);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
 }
+
+/* ===== Modal Layout ===== */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 900;
+}
+
+.modalShell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 950;
+}
+
+/* ===== Existing Styles ===== */
 
 .formCard {
   background: rgba(255, 255, 255, 0.96);
@@ -51,7 +73,8 @@ label {
   color: var(--muted);
 }
 
-input {
+input,
+select {
   border-radius: 12px;
   padding: 10px 12px;
   border: 1px solid rgba(0, 38, 76, 0.16);
@@ -59,9 +82,55 @@ input {
   outline: none;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: rgba(5, 150, 215, 0.55);
   box-shadow: 0 0 0 4px rgba(5, 150, 215, 0.12);
+}
+
+.autocomplete {
+  position: relative;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--muted);
+}
+
+.errorHint {
+  color: #991b1b;
+}
+
+.suggestionList {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 1000;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 38, 76, 0.16);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow);
+  max-height: 210px;
+  overflow: auto;
+}
+
+.suggestionItem {
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+.suggestionItem:hover {
+  background: rgba(5, 150, 215, 0.08);
 }
 
 .actions {
@@ -85,19 +154,6 @@ input:focus {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-select {
-  border-radius: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(0, 38, 76, 0.16);
-  background: rgba(255, 255, 255, 0.98);
-  outline: none;
-}
-
-select:focus {
-  border-color: rgba(5, 150, 215, 0.55);
-  box-shadow: 0 0 0 4px rgba(5, 150, 215, 0.12);
 }
 
 .titleRow {
@@ -133,5 +189,9 @@ select:focus {
 @media (max-width: 720px) {
   .formGrid {
     grid-template-columns: 1fr;
+  }
+
+  .modalShell {
+    padding: 14px;
   }
 }

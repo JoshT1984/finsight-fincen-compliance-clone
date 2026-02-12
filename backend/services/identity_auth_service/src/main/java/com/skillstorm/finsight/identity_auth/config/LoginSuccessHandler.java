@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.skillstorm.finsight.identity_auth.aspects.SecurityAuditLogger;
 import com.skillstorm.finsight.identity_auth.models.AppUser;
 import com.skillstorm.finsight.identity_auth.services.OauthIdentityService;
 
@@ -29,10 +30,13 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         private final JwtEncoder jwtEncoder;
         private final OauthIdentityService oauthIdentityService;
+        private final SecurityAuditLogger securityAuditLogger;
 
-        public LoginSuccessHandler(JwtEncoder jwtEncoder, OauthIdentityService oauthIdentityService) {
+        public LoginSuccessHandler(JwtEncoder jwtEncoder, OauthIdentityService oauthIdentityService,
+                        SecurityAuditLogger securityAuditLogger) {
                 this.jwtEncoder = jwtEncoder;
                 this.oauthIdentityService = oauthIdentityService;
+                this.securityAuditLogger = securityAuditLogger;
         }
 
         @Override
@@ -55,6 +59,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
                         if (appUserId != null) {
                                 // Existing provider → login
                                 handleOAuthLogin(appUserId, response);
+                                securityAuditLogger.logLoginSuccess(appUserId, request, authentication, provider);
                         } else {
                                 // New provider → redirect to link account page
                                 // Store the OAuth token in session so /linkAccount can access it
@@ -66,6 +71,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
                 // 🔹 CASE 2: Normal username/password login
                 handleInternalLogin(authentication, response);
+                securityAuditLogger.logLoginSuccess(request, authentication, "internal");
         }
 
         /*

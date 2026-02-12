@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Console for errors only -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Audit / Security file -->
+    <appender name="IDENTITY_SECURITY_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>/var/log/audit/audit.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/audit/audit.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <!-- JSON only, no Logback metadata -->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Only your audit logger writes to file -->
+    <logger name="IDENTITY_SECURITY" level="INFO" additivity="false">
+        <appender-ref ref="IDENTITY_SECURITY_FILE"/>
+    </logger>
+
+    <!-- Everything else basically ignored -->
+    <root level="ERROR">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

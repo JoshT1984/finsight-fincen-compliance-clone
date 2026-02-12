@@ -114,4 +114,25 @@ public class SecurityContextUtils {
     public static boolean isComplianceUser() {
         return "COMPLIANCE_USER".equals(getCurrentUserRole().orElse(null));
     }
+
+    /**
+     * Returns the current JWT token value for forwarding to downstream services (e.g. compliance-event-service).
+     * Callers should only add it as a Bearer token when present.
+     */
+    public static Optional<String> getCurrentBearerToken() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return Optional.empty();
+            }
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof Jwt) {
+                return Optional.of(((Jwt) principal).getTokenValue());
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            log.debug("Could not extract bearer token from security context: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
 }

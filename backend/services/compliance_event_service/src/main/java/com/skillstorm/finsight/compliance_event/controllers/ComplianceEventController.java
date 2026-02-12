@@ -41,6 +41,8 @@ public class ComplianceEventController {
         this.service = service;
     }
 
+    // ---------- CREATE ----------
+
     @PostMapping("/sar")
     @ResponseStatus(HttpStatus.CREATED)
     public ComplianceEventResponse createSar(@Valid @RequestBody CreateSarRequest request) {
@@ -53,6 +55,8 @@ public class ComplianceEventController {
         return service.createCtr(request);
     }
 
+    // ---------- READ ----------
+
     @GetMapping("/{eventId}")
     public ComplianceEventResponse getById(@PathVariable Long eventId) {
         return service.getById(eventId);
@@ -62,6 +66,14 @@ public class ComplianceEventController {
     public CtrDetailResponse getCtrDetail(@PathVariable Long eventId) {
         return service.getCtrDetail(eventId);
     }
+
+    @PostMapping("/{ctrEventId}/generate-sar")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ComplianceEventResponse generateSarFromCtr(@PathVariable Long ctrEventId) {
+        return service.generateSarFromCtr(ctrEventId);
+    }
+
+    // ---------- SEARCH ----------
 
     @GetMapping
     public Page<ComplianceEventResponse> search(
@@ -77,11 +89,15 @@ public class ComplianceEventController {
         if (suspectId != null) {
             return service.findBySuspectId(suspectId, pageable);
         }
+
         if (notLinkedToSuspectId != null && eventType != null) {
             return service.findLinkableByEventType(eventType, notLinkedToSuspectId, pageable);
         }
+
         return service.search(eventType, status, sourceSystem, from, to, pageable);
     }
+
+    // ---------- SUSPECT LINKING ----------
 
     @PutMapping("/{eventId}/suspect")
     public ComplianceEventResponse linkEventToSuspect(
