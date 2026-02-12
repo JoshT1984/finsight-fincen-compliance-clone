@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.skillstorm.finsight.suspect_registry.dtos.request.CreateAliasRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.request.PatchAliasRequest;
 import com.skillstorm.finsight.suspect_registry.dtos.response.AliasResponse;
+import com.skillstorm.finsight.suspect_registry.emitters.SuspectRegistryEventEmitter;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceConflictException;
 import com.skillstorm.finsight.suspect_registry.exceptions.ResourceNotFoundException;
+import com.skillstorm.finsight.suspect_registry.loggers.SuspectRegistryEventLog;
 import com.skillstorm.finsight.suspect_registry.models.Alias;
 import com.skillstorm.finsight.suspect_registry.models.AliasType;
 import com.skillstorm.finsight.suspect_registry.models.Suspect;
@@ -24,16 +26,18 @@ import org.springframework.security.access.AccessDeniedException;
 
 @Service
 public class AliasService {
-  
+
   private static final Logger log = LoggerFactory.getLogger(AliasService.class);
   private static final AliasType DEFAULT_ALIAS_TYPE = AliasType.AKA;
-  
+
   private final AliasRepository repo;
   private final SuspectRepository suspectRepo;
-  
-  public AliasService(AliasRepository repo, SuspectRepository suspectRepo) {
+  private final SuspectRegistryEventEmitter eventEmitter;
+
+  public AliasService(AliasRepository repo, SuspectRepository suspectRepo, SuspectRegistryEventEmitter eventEmitter) {
     this.repo = repo;
     this.suspectRepo = suspectRepo;
+    this.eventEmitter = eventEmitter;
   }
 
   private AliasResponse toResponse(Alias alias) {
@@ -43,8 +47,7 @@ public class AliasService {
         alias.getAliasName(),
         alias.getAliasType(),
         alias.isPrimary(),
-        alias.getCreatedAt()
-    );
+        alias.getCreatedAt());
   }
 
   @Transactional
@@ -55,11 +58,12 @@ public class AliasService {
     log.debug("Creating alias for suspect ID: {}", request.suspectId());
     Suspect suspect = suspectRepo.findById(request.suspectId())
         .orElseThrow(() -> new ResourceNotFoundException("Suspect with ID " + request.suspectId() + " not found"));
-    
+
     if (repo.findBySuspectIdAndAliasName(request.suspectId(), request.aliasName()).isPresent()) {
-      throw new ResourceConflictException("Alias with name " + request.aliasName() + " already exists for this suspect");
+      throw new ResourceConflictException(
+          "Alias with name " + request.aliasName() + " already exists for this suspect");
     }
-    
+
     Alias alias = new Alias();
     alias.setSuspect(suspect);
     alias.setAliasName(request.aliasName());
@@ -67,6 +71,16 @@ public class AliasService {
     alias.setPrimary(request.isPrimary() != null && request.isPrimary());
     Alias saved = repo.save(alias);
     log.info("Created alias with ID: {} for suspect ID: {}", saved.getId(), request.suspectId());
+    eventEmitter.emit(
+        SuspectRegistryEventLog.aliasCreated(
+            String.valueOf(saved.getId()),
+            "USER",
+            java.util.Map.of(
+                "aliasName", saved.getAliasName(),
+                "aliasType", saved.getAliasType(),
+                "suspectId", saved.getSuspect() != null ? saved.getSuspect().getId() : null,
+                "isPrimary", saved.isPrimary(),
+                "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
     return toResponse(saved);
   }
 
@@ -79,10 +93,10 @@ public class AliasService {
 
   public AliasResponse findById(Long aliasId) {
     log.debug("Retrieving alias with ID: {}", aliasId);
-    
+
     Alias alias = repo.findById(aliasId)
         .orElseThrow(() -> new ResourceNotFoundException("Alias with ID " + aliasId + " not found"));
-    
+
     return toResponse(alias);
   }
 
@@ -110,18 +124,27 @@ public class AliasService {
       alias.setSuspect(suspect);
       updated = true;
     }
-    if (request.aliasName() != null) { alias.setAliasName(request.aliasName()); updated = true; }
-    if (request.aliasType() != null) { alias.setAliasType(request.aliasType()); updated = true; }
-    if (request.isPrimary() != null) { alias.setPrimary(request.isPrimary()); updated = true; }
+    if (request.aliasName() != null) {
+      alias.setAliasName(request.aliasName());
+      updated = true;
+    }
+    if (request.aliasType() != null) {
+      alias.setAliasType(request.aliasType());
+      updated = true;
+    }
+    if (request.isPrimary() != null) {
+      alias.setPrimary(request.isPrimary());
+      updated = true;
+    }
     if (!updated) {
       log.warn("No fields to update for alias with ID: {}", aliasId);
       return toResponse(alias);
     }
-    
+
     // Check for uniqueness if suspectId or aliasName is being updated
     Long checkSuspectId = alias.getSuspect() != null ? alias.getSuspect().getId() : null;
     String checkAliasName = alias.getAliasName();
-    
+
     if (checkSuspectId != null && checkAliasName != null) {
       repo.findBySuspectIdAndAliasName(checkSuspectId, checkAliasName).ifPresent(existing -> {
         if (existing.getId() != aliasId) {
@@ -129,9 +152,19 @@ public class AliasService {
         }
       });
     }
-    
+
     Alias saved = repo.save(alias);
     log.info("Updated alias with ID: {}", saved.getId());
+    eventEmitter.emit(
+        SuspectRegistryEventLog.aliasUpdated(
+            String.valueOf(saved.getId()),
+            "USER",
+            java.util.Map.of(
+                "aliasName", saved.getAliasName(),
+                "aliasType", saved.getAliasType(),
+                "suspectId", saved.getSuspect() != null ? saved.getSuspect().getId() : null,
+                "isPrimary", saved.isPrimary(),
+                "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
     return toResponse(saved);
   }
 
@@ -144,7 +177,20 @@ public class AliasService {
     if (!repo.existsById(aliasId)) {
       throw new ResourceNotFoundException("Alias with ID " + aliasId + " not found");
     }
+    Alias alias = repo.findById(aliasId).orElse(null);
     repo.deleteById(aliasId);
     log.info("Deleted alias with ID: {}", aliasId);
+    if (alias != null) {
+      eventEmitter.emit(
+          SuspectRegistryEventLog.aliasDeleted(
+              String.valueOf(aliasId),
+              "USER",
+              java.util.Map.of(
+                  "aliasName", alias.getAliasName(),
+                  "aliasType", alias.getAliasType(),
+                  "suspectId", alias.getSuspect() != null ? alias.getSuspect().getId() : null,
+                  "isPrimary", alias.isPrimary(),
+                  "actorUserId", SecurityContextUtils.getCurrentUserId().orElse(null))));
+    }
   }
 }
