@@ -19,6 +19,7 @@ export class CaseDetailNotesComponent implements OnInit {
   notes: CaseNoteResponse[] = [];
   loading = false;
   error: string | null = null;
+  private lastRefreshToken: string | null = null;
 
   /** Cache of author userId -> display name (e.g. "Jane Doe") */
   authorDisplayMap: Record<string, string> = {};
@@ -44,6 +45,13 @@ export class CaseDetailNotesComponent implements OnInit {
     const id = this.route.parent?.snapshot.paramMap.get('id');
     this.caseId = id ? Number(id) : 0;
     if (this.caseId) this.loadNotes();
+
+    this.route.queryParamMap.subscribe((params) => {
+      const refreshToken = params.get('noteRefresh');
+      if (!refreshToken || refreshToken === this.lastRefreshToken) return;
+      this.lastRefreshToken = refreshToken;
+      if (this.caseId) this.loadNotes();
+    });
   }
 
   loadNotes(): void {
