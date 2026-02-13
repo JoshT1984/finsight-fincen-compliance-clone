@@ -1,48 +1,42 @@
 package com.skillstorm.finsight.compliance_event.models;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.domain.Persistable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrePersist;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "compliance_event_ctr_detail", schema = "compliance_event")
-public class ComplianceEventCtrDetail {
+public class ComplianceEventCtrDetail implements Persistable<Long> {
 
     @Id
-    @Column(name = "event_id", nullable = false)
+    @Column(name = "event_id", nullable = false, updatable = false)
     private Long eventId;
 
-    /**
-     * Discriminator used by the schema to enforce CTR-only attachment via
-     * composite FK (event_id, event_type). DB default is 'CTR'.
-     * Marked insertable=false so the database default is used.
-     */
- 
-    @Column(name = "event_type", nullable = false, length = 16, insertable = false, updatable = false)
-    private String eventType;
-
-    @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
-    @JoinColumn(name = "event_id", nullable = false, updatable = false)
+    @JoinColumn(name = "event_id", nullable = false)
+    @JsonIgnore
     private ComplianceEvent event;
 
-    @NotBlank
+    @NotNull
     @Column(name = "customer_name", nullable = false, length = 128)
     private String customerName;
 
@@ -50,34 +44,48 @@ public class ComplianceEventCtrDetail {
     @Column(name = "transaction_time", nullable = false)
     private Instant transactionTime;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "ctr_form_data", columnDefinition = "json", nullable = false)
+    @NotNull
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "ctr_form_data", nullable = false, columnDefinition = "json")
     private Map<String, Object> ctrFormData;
 
-    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
+    // present in table, but DB-managed default; no need to set manually
+    @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    public ComplianceEventCtrDetail() {
-    }
+    // present in table, default 'CTR'
+    @Column(name = "event_type", insertable = false, updatable = false, length = 16)
+    private String eventType;
 
-    @PrePersist
-    void prePersist() {
-        if (ctrFormData == null) {
-            ctrFormData = new HashMap<>();
-        }
-    }
+    // ---- Persistable support (forces INSERT vs MERGE for shared PK entities)
+    @Transient
+    private boolean isNew = true;
 
-    public Long getEventId() {
+    @Override
+    @Nullable
+    public Long getId() {
         return eventId;
     }
 
-    public String getEventType() {
-        return eventType;
+    @Override
+    public boolean isNew() {
+        return isNew;
     }
 
-    /** Set before persist so @NotNull validation passes; column is insertable=false so DB default is used on INSERT. */
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
+    @PostLoad
+    void markNotNewOnLoad() {
+        this.isNew = false;
+    }
+
+    @PostPersist
+    void markNotNewOnPersist() {
+        this.isNew = false;
+    }
+
+    // ---- getters / setters
+
+    public Long getEventId() {
+        return eventId;
     }
 
     public ComplianceEvent getEvent() {
@@ -86,6 +94,9 @@ public class ComplianceEventCtrDetail {
 
     public void setEvent(ComplianceEvent event) {
         this.event = event;
+        if (event != null) {
+            this.eventId = event.getEventId();
+        }
     }
 
     public String getCustomerName() {
@@ -116,28 +127,7 @@ public class ComplianceEventCtrDetail {
         return createdAt;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (!(o instanceof ComplianceEventCtrDetail))
-            return false;
-        ComplianceEventCtrDetail that = (ComplianceEventCtrDetail) o;
-        return eventId != null && eventId.equals(that.eventId);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "ComplianceEventCtrDetail{" +
-                "eventId=" + eventId +
-                ", eventType=" + eventType +
-                ", transactionTime=" + transactionTime +
-                ", createdAt=" + createdAt +
-                '}';
+    public String getEventType() {
+        return eventType;
     }
 }

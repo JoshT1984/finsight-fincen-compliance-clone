@@ -7,14 +7,35 @@ server:
 
 eureka:
   instance:
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:eureka-server}
-    instance-id: ${EUREKA_INSTANCE_ID:${eureka.instance.hostname}:${server.port}}
-    prefer-ip-address: true
+    # In ECS behind an internal ALB, this should be the ALB DNS name.
+    # Set in task definition:
+    # EUREKA_INSTANCE_HOSTNAME=internal-fincen-alb-1804125781.us-east-1.elb.amazonaws.com
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+    # Keep instance-id stable across restarts, and readable in the UI.
+    instance-id: ${EUREKA_INSTANCE_ID:${spring.application.name}:${server.port}}
+
+    # For the Eureka SERVER behind an ALB, do NOT prefer IP.
+    prefer-ip-address: false
+
+    # Reasonable production-ish lease timings (adjust if you want less churn)
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
+
   client:
+    # Eureka server should not register itself or fetch registry
     register-with-eureka: false
     fetch-registry: false
+
+    # Not strictly required for a standalone server, but keeps URLs consistent
+    # and helps if you later add peer replication.
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://${eureka.instance.hostname}:${server.port}/eureka/}
+
+  server:
+    # Safer defaults for prod; avoids mass eviction during transient network issues.
+    enable-self-preservation: true
+    eviction-interval-timer-in-ms: 60000
 
 management:
   endpoints:
@@ -31,3 +52,9 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
