@@ -50,6 +50,7 @@ public class SarPromotionService {
             ObjectMapper objectMapper,
             ComplianceEventEmitter complianceEventEmitter,
             DocumentsCasesClient documentsCasesClient) {
+
         this.eventRepo = eventRepo;
         this.sarDetailRepo = sarDetailRepo;
         this.linkRepo = linkRepo;
@@ -61,7 +62,6 @@ public class SarPromotionService {
 
     @Transactional
     public Optional<ComplianceEvent> promoteFromCtr(ComplianceEvent ctr, CtrSuspicionScoring.ScoreResult score) {
-
         if (ctr == null || score == null) {
             return Optional.empty();
         }
@@ -109,17 +109,24 @@ public class SarPromotionService {
 
         ComplianceEvent savedSar = eventRepo.save(sar);
 
-        try {
-            documentsCasesClient.ensureCaseForSar(savedSar.getEventId());
-        } catch (Exception e) {
-            log.warn("SAR created but case creation failed -> sarEventId={} reason={}",
-                    savedSar.getEventId(), e.toString());
-        }
+        // Create case AFTER COMMIT to avoid orphan cases if this transaction rolls
+        // back.
+        runAfterCommit(() -> {
+            try {
+                if (documentsCasesClient != null) {
+                    documentsCasesClient.ensureCaseForSar(savedSar.getEventId());
+                }
+            } catch (Exception e) {
+                log.warn("SAR created but case creation failed -> sarEventId={} reason={}",
+                        savedSar.getEventId(), e.toString());
+            }
+        });
 
-        runAfterCommit(() -> documentsCasesClient.ensureCaseForSar(savedSar.getEventId()));
+        // ------------------------
+        // SAR DETAIL
+        // ------------------------
 
         ComplianceEventSarDetail detail = new ComplianceEventSarDetail();
-
         detail.setEvent(savedSar);
 
         Instant activityStart = ctr.getEventTime() != null ? ctr.getEventTime() : Instant.now();
@@ -136,7 +143,6 @@ public class SarPromotionService {
         form.put("suspicionDrivers", score.drivers());
 
         detail.setFormData(form);
-
         sarDetailRepo.save(detail);
 
         // ------------------------
@@ -202,6 +208,7 @@ public class SarPromotionService {
 
         a.setIdempotencyKey(idem);
         auditRepo.save(a);
+
         Map<String, Object> metadata = Map.of(
                 "suspicionScore", score.score(),
                 "suspicionBand", score.band(),
@@ -217,8 +224,15 @@ public class SarPromotionService {
                 "CTR:" + ctr.getEventId() + ":FLAGGED",
                 metadata));
 
-        runAfterCommit(() -> documentsCasesClient.ensureCaseForCtrAnalystReview(ctr.getEventId()));
-
+        runAfterCommit(() -> {
+            try {
+                if (documentsCasesClient != null) {
+                    documentsCasesClient.ensureCaseForCtrAnalystReview(ctr.getEventId());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to ensure analyst review case for CTR {}: {}", ctr.getEventId(), e.toString());
+            }
+        });
     }
 
     private AuditAction audit(ComplianceEvent event, String action, Map<String, Object> metadata) {
