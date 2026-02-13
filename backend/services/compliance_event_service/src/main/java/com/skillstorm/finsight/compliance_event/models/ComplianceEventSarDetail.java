@@ -5,7 +5,11 @@ import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.domain.Persistable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,16 +17,19 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "compliance_event_sar_detail", schema = "compliance_event")
-public class ComplianceEventSarDetail {
+public class ComplianceEventSarDetail implements Persistable<Long> {
 
     @Id
-    @Column(name = "event_id", nullable = false)
+    @Column(name = "event_id", nullable = false, updatable = false)
     private Long eventId;
 
     /**
@@ -38,6 +45,7 @@ public class ComplianceEventSarDetail {
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId
     @JoinColumn(name = "event_id", nullable = false, updatable = false)
+    @JsonIgnore
     private ComplianceEvent event;
 
     @Column(name = "narrative", columnDefinition = "text")
@@ -59,8 +67,44 @@ public class ComplianceEventSarDetail {
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
+    // ----------------------------------------------------
+    // Persistable Support (CRITICAL FOR SHARED PK ENTITIES)
+    // ----------------------------------------------------
+
+    @Transient
+    private boolean isNew = true;
+
+    @Override
+    @Nullable
+    public Long getId() {
+        return eventId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @PostLoad
+    void markNotNewOnLoad() {
+        this.isNew = false;
+    }
+
+    @PostPersist
+    void markNotNewOnPersist() {
+        this.isNew = false;
+    }
+
+    // ----------------------------------------------------
+    // Constructors
+    // ----------------------------------------------------
+
     public ComplianceEventSarDetail() {
     }
+
+    // ----------------------------------------------------
+    // Lifecycle
+    // ----------------------------------------------------
 
     @PrePersist
     void prePersist() {
@@ -72,6 +116,10 @@ public class ComplianceEventSarDetail {
             formData = Map.of();
         }
     }
+
+    // ----------------------------------------------------
+    // Getters / Setters
+    // ----------------------------------------------------
 
     public Long getEventId() {
         return eventId;
@@ -92,6 +140,9 @@ public class ComplianceEventSarDetail {
 
     public void setEvent(ComplianceEvent event) {
         this.event = event;
+        if (event != null) {
+            this.eventId = event.getEventId();
+        }
     }
 
     public String getNarrative() {
@@ -137,6 +188,10 @@ public class ComplianceEventSarDetail {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    // ----------------------------------------------------
+    // Equality
+    // ----------------------------------------------------
 
     @Override
     public boolean equals(Object o) {
