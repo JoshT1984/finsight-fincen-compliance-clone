@@ -1,6 +1,7 @@
 package com.skillstorm.finsight.compliance_event.services;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,135 +13,122 @@ public final class CtrSuspicionScoring {
     private CtrSuspicionScoring() {
     }
 
-    public record ScoreResult(int score, String band, List<String> drivers) {
+    // Tunables
+    private static final BigDecimal TEN_K = new BigDecimal("10000.00");
+    private static final BigDecimal TWELVE_K = new BigDecimal("12000.00");
+    private static final BigDecimal FIFTY_K = new BigDecimal("50000.00");
+
+    public enum Driver {
+        CASH_DEPOSIT_OVER_10K,
+        CASH_DEPOSIT_OVER_12K,
+        STRUCTURING_PATTERN,
+        MULTIPLE_SAME_DAY_BRANCH_USAGE,
+        HIGH_FREQUENCY_72H,
+        UNUSUAL_VS_BASELINE
     }
 
-    /**
-     * Optional context signals that may come from other services (customer profile,
-     * KYC, device graph, etc.).
-     *
-     * In the current MVP these are passed in as booleans so the scoring "triggers"
-     * are already in place,
-     * even if upstream data sources are not yet wired.
-     */
     public record ExternalSignals(
-            boolean addressMismatch,
-            boolean linkedAccounts,
-            boolean highRiskGeography,
-            java.math.BigDecimal baselineAvgDailyCashTotal) {
-        public static ExternalSignals empty() {
-            return new ExternalSignals(false, false, false, null);
-        }
+            boolean watchlistHit,
+            boolean priorSars,
+            boolean priorCases,
+            BigDecimal baselineAvgDailyCashTotal) {
+    }
+
+    public record ScoreResult(int score, String band, List<String> drivers) {
     }
 
     public static ScoreResult score(
             CtrAggregationRow agg,
-            CtrRiskSignalsRow signals,
+            CtrRiskSignalsRow daySignals,
             CtrRiskSignalsRow windowSignals,
             ExternalSignals external) {
         int score = 0;
         List<String> drivers = new ArrayList<>();
 
-        if (external == null) {
-            external = ExternalSignals.empty();
+        BigDecimal cashIn = nz(agg.getTotalCashIn());
+        BigDecimal cashTotal = nz(agg.getTotalCashAmount());
+        int txnCount = toInt(agg.getTxnCount());
+        int distinctLocations = (daySignals != null) ? toInt(daySignals.getDistinctLocationCount()) : 0;
+
+        // 1) Cash deposit amount weighting:
+        // Make >= 12k punch much harder (this is what you asked for).
+        if (cashIn.compareTo(TWELVE_K) >= 0) {
+            score += 45;
+            drivers.add(Driver.CASH_DEPOSIT_OVER_12K.name());
+        } else if (cashIn.compareTo(TEN_K) >= 0) {
+            score += 35;
+            drivers.add(Driver.CASH_DEPOSIT_OVER_10K.name());
         }
 
-        BigDecimal totalIn = nz(agg.getTotalCashIn());
-        BigDecimal totalOut = nz(agg.getTotalCashOut());
-
-        // 1) Cash deposit over $10,000 (+20)
-        if (totalIn.compareTo(new BigDecimal("10000.00")) > 0) {
-            score += 20;
-            drivers.add("CASH_DEPOSIT_OVER_10K");
-        }
-
-        // Optional symmetry: cash out > $10K
-        if (totalOut.compareTo(new BigDecimal("10000.00")) > 0) {
-            score += 20;
-            drivers.add("CASH_OUT_OVER_10K");
-        }
-
-        // 2) Structuring pattern detected (+30)
-        // Heuristic: 2+ deposits "just under" threshold in a day.
-        if (signals != null) {
-            BigDecimal maxIn = nz(signals.getMaxCashIn());
-            Long txnCountBoxed = signals.getTxnCount();
-            long txnCount = txnCountBoxed != null ? txnCountBoxed.longValue() : 0L;
-
-            Long nearThreshBoxed = signals.getCashInNearThresholdCount();
-            long nearThresh = nearThreshBoxed != null ? nearThreshBoxed.longValue() : 0L;
-
-            if (nearThresh >= 2 || (totalIn.compareTo(new BigDecimal("10000.00")) > 0 && txnCount >= 2
-                    && maxIn.compareTo(new BigDecimal("10000.00")) < 0)) {
-                score += 30;
-                drivers.add("STRUCTURING_PATTERN");
-            }
-
-            // 3) Multiple same-day branch usage (+20)
-            Long locsBoxed = signals.getDistinctLocationCount();
-            long locs = locsBoxed != null ? locsBoxed.longValue() : 0L;
-            if (locs > 1) {
-                score += 20;
-                drivers.add("MULTIPLE_SAME_DAY_BRANCH_USAGE");
-            }
-        }
-
-        // 4) Unregistered or mismatched address (+25)
-        if (external.addressMismatch()) {
+        // 2) Structuring: make easier to trigger
+        // Old logic required txnCount>=3; now >=2 AND "any sub-10k indicator" from
+        // daySignals when present.
+        // If you don't have that signal, we still treat txnCount>=2 with cashIn>=12k as
+        // suspicious enough to add points.
+        boolean anyUnder10k = (daySignals != null && nzLong(daySignals.getCashInUnder10kCount()) > 0);
+        if ((txnCount >= 2 && anyUnder10k) || (txnCount >= 2 && cashIn.compareTo(TWELVE_K) >= 0)) {
             score += 25;
-            drivers.add("UNREGISTERED_OR_MISMATCHED_ADDRESS");
+            drivers.add(Driver.STRUCTURING_PATTERN.name());
         }
 
-        // 5) Velocity spike (+15)
-        // Rule: cash activity exceeds 3x customer baseline.
-        if (external.baselineAvgDailyCashTotal != null
-                && external.baselineAvgDailyCashTotal.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal todayTotal = nz(agg.getTotalCashAmount());
-            BigDecimal threshold = external.baselineAvgDailyCashTotal.multiply(new BigDecimal("3.0"));
-            if (todayTotal.compareTo(threshold) > 0) {
-                score += 15;
-                drivers.add("VELOCITY_SPIKE");
-            }
-        }
-
-        // 6) Linked accounts detected (+20)
-        if (external.linkedAccounts()) {
+        // 3) Multiple branch usage same day
+        if (distinctLocations >= 2) {
             score += 20;
-            drivers.add("LINKED_ACCOUNTS_DETECTED");
+            drivers.add(Driver.MULTIPLE_SAME_DAY_BRANCH_USAGE.name());
         }
 
-        // 7) High-risk geography involvement (+25)
-        if (external.highRiskGeography()) {
-            score += 25;
-            drivers.add("HIGH_RISK_GEOGRAPHY_INVOLVEMENT");
+        // 4) Very high absolute cash total
+        if (cashTotal.compareTo(FIFTY_K) >= 0) {
+            score += 15;
         }
 
-        // Additional (supporting) signal: 72-hour high frequency cash activity
-        if (windowSignals != null) {
-            Long windowTxnCountBoxed = windowSignals.getTxnCount();
-            long windowTxnCount = windowTxnCountBoxed != null ? windowTxnCountBoxed.longValue() : 0L;
-            if (windowTxnCount >= 10) {
+        // 5) 72-hour high-frequency window (if your repo provides this)
+        if (windowSignals != null && nzLong(windowSignals.getTxnCount()) >= 6) {
+            score += 15;
+            drivers.add(Driver.HIGH_FREQUENCY_72H.name());
+        }
+
+        // 6) Unusual vs baseline (optional, but helpful)
+        BigDecimal baseline = external != null ? nz(external.baselineAvgDailyCashTotal()) : BigDecimal.ZERO;
+        if (baseline.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal ratio = cashTotal.divide(baseline, 2, RoundingMode.HALF_UP);
+            if (ratio.compareTo(new BigDecimal("3.00")) >= 0) {
                 score += 15;
-                drivers.add("HIGH_FREQUENCY_CASH_ACTIVITY_72H");
+                drivers.add(Driver.UNUSUAL_VS_BASELINE.name());
             }
         }
 
+        // Clamp 0..100
+        if (score < 0)
+            score = 0;
         if (score > 100)
             score = 100;
 
-        String band = bandFor(score);
-        return new ScoreResult(score, band, drivers);
-    }
+        String band = score >= 70 ? "HIGH" : score >= 40 ? "MEDIUM" : "LOW";
 
-    public static String bandFor(int score) {
-        if (score >= 60)
-            return "HIGH";
-        if (score >= 40)
-            return "REVIEW";
-        return "LOW";
+        return new ScoreResult(score, band, drivers);
     }
 
     private static BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
     }
+
+    private static int nz(Integer v) {
+        return v == null ? 0 : v;
+    }
+
+    private static long nzLong(Long v) {
+        return v == null ? 0L : v;
+    }
+
+    private static int toInt(Long v) {
+        if (v == null)
+            return 0;
+        if (v > Integer.MAX_VALUE)
+            return Integer.MAX_VALUE;
+        if (v < Integer.MIN_VALUE)
+            return Integer.MIN_VALUE;
+        return v.intValue();
+    }
+
 }
