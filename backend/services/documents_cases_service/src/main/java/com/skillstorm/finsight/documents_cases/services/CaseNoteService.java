@@ -9,8 +9,10 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.skillstorm.finsight.documents_cases.dtos.request.CreateCaseNoteRequest;
 import com.skillstorm.finsight.documents_cases.dtos.request.UpdateCaseNoteRequest;
@@ -56,10 +58,13 @@ public class CaseNoteService {
 	@Transactional
 	public CaseNoteResponse create(CreateCaseNoteRequest dto) {
 		log.debug("Creating case note for case ID: {}", dto.caseId());
+		UUID currentUserId = SecurityContextUtils.getCurrentUserId()
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+						"User must be authenticated to create a case note"));
 		enforceCaseNoteAccess(dto.caseId());
 		CaseNote caseNote = new CaseNote();
 		caseNote.setCaseId(dto.caseId());
-		caseNote.setAuthorUserId(dto.authorUserId());
+		caseNote.setAuthorUserId(currentUserId.toString());
 		caseNote.setNoteText(dto.noteText());
 		caseNote.setCreatedAt(Instant.now());
 
@@ -73,7 +78,7 @@ public class CaseNoteService {
 		eventEmitter.emit(
 				DocumentEventLog.caseNoteCreated(
 						saved.getNoteId().toString(),
-						SecurityContextUtils.getCurrentUserId().orElse(null).toString(),
+						currentUserId.toString(),
 						Map.of(
 								"caseId", saved.getCaseId(),
 								"authorUserId", saved.getAuthorUserId(),
