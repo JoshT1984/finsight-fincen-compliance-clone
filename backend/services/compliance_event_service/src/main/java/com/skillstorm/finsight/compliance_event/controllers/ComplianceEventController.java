@@ -73,6 +73,12 @@ public class ComplianceEventController {
         return service.generateSarFromCtr(ctrEventId);
     }
 
+    @PostMapping("/ctrs/{ctrEventId}/generate-sar")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ComplianceEventResponse generateSarFromCtrAlias(@PathVariable Long ctrEventId) {
+        return service.generateSarFromCtr(ctrEventId);
+    }
+
     // ---------- SEARCH ----------
 
     @GetMapping
