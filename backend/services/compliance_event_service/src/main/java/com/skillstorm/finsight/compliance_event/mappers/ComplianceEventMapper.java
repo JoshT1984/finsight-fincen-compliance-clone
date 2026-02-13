@@ -49,7 +49,7 @@ public class ComplianceEventMapper {
         String subjectType = e.getSourceSubjectType() != null ? e.getSourceSubjectType().name() : null;
 
         if (e.getEventType() == EventType.CTR) {
-            Optional<ComplianceEventCtrDetail> ctrDetailOpt = ctrDetailRepository.findByEventId(e.getEventId());
+            Optional<ComplianceEventCtrDetail> ctrDetailOpt = ctrDetailRepository.findById(e.getEventId());
             if (ctrDetailOpt.isPresent()) {
                 ComplianceEventCtrDetail ctrDetail = ctrDetailOpt.get();
                 customerName = ctrDetail.getCustomerName();

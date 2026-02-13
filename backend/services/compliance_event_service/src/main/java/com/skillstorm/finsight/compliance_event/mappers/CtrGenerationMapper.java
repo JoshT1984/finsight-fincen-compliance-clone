@@ -1,18 +1,16 @@
 package com.skillstorm.finsight.compliance_event.mappers;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEvent;
 import com.skillstorm.finsight.compliance_event.models.ComplianceEventCtrDetail;
-import com.skillstorm.finsight.compliance_event.models.EventStatus;
 import com.skillstorm.finsight.compliance_event.models.EventType;
 import com.skillstorm.finsight.compliance_event.models.SubjectType;
 import com.skillstorm.finsight.compliance_event.repositories.CtrAggregationRow;
@@ -20,113 +18,94 @@ import com.skillstorm.finsight.compliance_event.repositories.CtrAggregationRow;
 @Component
 public class CtrGenerationMapper {
 
-    private final ObjectMapper objectMapper;
+    public static final String SOURCE_SYSTEM = "AUTO_FROM_TXNS_AGGREGATION";
 
-    public CtrGenerationMapper(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public String ctrIdempotencyKey(String subjectKey, LocalDate dayUtc) {
+        return "CTR:" + subjectKey + ":" + dayUtc;
     }
 
-    public ComplianceEvent toCtrEvent(
-            String subjectKey,
-            String sourceSubjectType,
-            LocalDate day,
-            BigDecimal totalAmount,
-            Integer suspicionScore,
-            String idempotencyKey) {
+    public ComplianceEvent toCtrEvent(CtrAggregationRow row) {
+        LocalDate dayUtc = row.getTxnDay();
+        String idempotencyKey = ctrIdempotencyKey(row.getSubjectKey(), dayUtc);
 
-        ComplianceEvent e = new ComplianceEvent();
-        e.setEventType(EventType.CTR);
-        e.setSourceSystem("AUTO_FROM_TXNS");
-        e.setSourceEntityId("AGGREGATION");
-        e.setExternalSubjectKey(subjectKey);
-        e.setEventTime(day.atStartOfDay(ZoneOffset.UTC).toInstant());
-        e.setTotalAmount(nullSafe(totalAmount));
-        e.setStatus(EventStatus.CREATED);
-        e.setSeverityScore(suspicionScore);
-        e.setIdempotencyKey(idempotencyKey);
+        ComplianceEvent ev = new ComplianceEvent();
 
-        // ✅ Persist subject type on the event itself (used by list views)
-        if (sourceSubjectType != null && !sourceSubjectType.isBlank()) {
-            try {
-                e.setSourceSubjectType(SubjectType.valueOf(sourceSubjectType));
-            } catch (IllegalArgumentException ignored) {
-                // Leave null if unexpected value
-            }
-        }
+        // Enums (matches your ComplianceEvent entity)
+        ev.setEventType(EventType.CTR);
+        // status will default in @PrePersist (CREATED for CTR), so we can omit
+        // setStatus
 
-        return e;
+        // deterministic eventTime: end-of-day UTC
+        Instant eventTime = dayUtc.plusDays(1)
+                .atStartOfDay()
+                .toInstant(ZoneOffset.UTC)
+                .minusSeconds(1);
+        ev.setEventTime(eventTime);
+
+        // uniqueness / idempotency
+        ev.setSourceSystem(SOURCE_SYSTEM);
+        ev.setSourceEntityId(idempotencyKey);
+        ev.setIdempotencyKey(idempotencyKey);
+
+        // subject linkage
+        ev.setExternalSubjectKey(row.getSubjectKey());
+        ev.setSourceSubjectId(row.getSubjectKey());
+        ev.setSourceSubjectType(parseSubjectType(row.getSourceSubjectType()));
+
+        // amounts / scoring
+        ev.setTotalAmount(row.getTotalCashAmount());
+        ev.setSeverityScore(calcScore(row.getTotalCashAmount()));
+
+        return ev;
     }
 
-    public ComplianceEventCtrDetail toCtrDetail(
-            ComplianceEvent event,
-            CtrAggregationRow row,
-            List<Long> txnIds,
-            Integer suspicionScore,
-            String suspicionBand,
-            List<String> suspicionDrivers) {
-
-        ObjectNode formData = objectMapper.createObjectNode();
-        formData.put("source", "AUTO_FROM_TXNS");
-        formData.put("subjectKey", row.getSubjectKey());
-        formData.put("txnDay", row.getTxnDay().toString());
-        formData.put("totalCashIn", row.getTotalCashIn().toPlainString());
-        formData.put("totalCashOut", row.getTotalCashOut().toPlainString());
-        formData.put("totalCashAmount", row.getTotalCashAmount().toPlainString());
-        formData.put("txnCount", row.getTxnCount());
-
-        if (suspicionScore != null) {
-            formData.put("suspicionScore", suspicionScore);
-        }
-        if (suspicionBand != null) {
-            formData.put("suspicionBand", suspicionBand);
-        }
-        if (suspicionDrivers != null) {
-            var dArr = formData.putArray("suspicionDrivers");
-            suspicionDrivers.forEach(dArr::add);
-        }
-
-        var arr = formData.putArray("contributingTxnIds");
-        txnIds.forEach(arr::add);
-
+    public ComplianceEventCtrDetail toCtrDetail(ComplianceEvent savedCtrEvent, CtrAggregationRow row) {
         ComplianceEventCtrDetail d = new ComplianceEventCtrDetail();
+        d.setEvent(savedCtrEvent);
 
-        // @MapsId relationship
-        d.setEvent(event);
+        d.setCustomerName(row.getSubjectName());
+        d.setTransactionTime(savedCtrEvent.getEventTime());
 
-        // Subject name handling
-        String subjectName = row.getSubjectName();
-        String resolvedName = (subjectName == null || subjectName.isBlank())
-                ? deriveCustomerName(row.getSubjectKey())
-                : subjectName;
+        Map<String, Object> form = new HashMap<>();
+        form.put("subjectKey", row.getSubjectKey());
+        form.put("subjectName", row.getSubjectName());
+        form.put("sourceSubjectType", row.getSourceSubjectType());
+        form.put("txnDay", row.getTxnDay() != null ? row.getTxnDay().toString() : null);
+        form.put("totalCashIn", row.getTotalCashIn());
+        form.put("totalCashOut", row.getTotalCashOut());
+        form.put("totalCashAmount", row.getTotalCashAmount());
+        form.put("txnCount", row.getTxnCount());
+        form.put("score", savedCtrEvent.getSeverityScore());
 
-        d.setCustomerName(resolvedName);
-        d.setTransactionTime(row.getTxnDay().atStartOfDay(ZoneOffset.UTC).toInstant());
-
-        // Persist subject metadata into form data (audit + fallback)
-        formData.put("subjectName", resolvedName);
-
-        if (row.getSourceSubjectType() != null && !row.getSourceSubjectType().isBlank()) {
-            formData.put("sourceSubjectType", row.getSourceSubjectType());
-        }
-
-        // ctr_form_data is Map<String,Object>
-        @SuppressWarnings("unchecked")
-        Map<String, Object> map = objectMapper.convertValue(formData, Map.class);
-        d.setCtrFormData(map);
-
+        d.setCtrFormData(form);
         return d;
     }
 
-    private String deriveCustomerName(String subjectKey) {
-        if (subjectKey == null || subjectKey.isBlank()) {
-            return "UNKNOWN";
+    private SubjectType parseSubjectType(String raw) {
+        if (raw == null || raw.isBlank())
+            return null;
+        try {
+            return SubjectType.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null; // don’t blow up CTR generation because of unknown type
         }
-        return subjectKey.length() > 128
-                ? subjectKey.substring(0, 128)
-                : subjectKey;
     }
 
-    private BigDecimal nullSafe(BigDecimal v) {
-        return v == null ? BigDecimal.ZERO : v;
+    private int calcScore(BigDecimal totalCashAmount) {
+        if (totalCashAmount == null)
+            return 0;
+
+        BigDecimal amt = totalCashAmount.abs();
+        if (amt.compareTo(new BigDecimal("250000")) >= 0)
+            return 100;
+        if (amt.compareTo(new BigDecimal("100000")) >= 0)
+            return 80;
+        if (amt.compareTo(new BigDecimal("50000")) >= 0)
+            return 60;
+        if (amt.compareTo(new BigDecimal("25000")) >= 0)
+            return 40;
+        if (amt.compareTo(new BigDecimal("10000")) >= 0)
+            return 20;
+        return 0;
     }
 }
