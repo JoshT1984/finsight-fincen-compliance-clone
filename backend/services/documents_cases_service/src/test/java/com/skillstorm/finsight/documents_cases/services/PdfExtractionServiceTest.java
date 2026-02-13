@@ -37,6 +37,8 @@ class PdfExtractionServiceTest {
             String name = (String) formData.get("_parsedCustomerName");
             assertTrue(name != null && !name.isBlank(),
                 "Expected non-blank customer name, got: " + name);
+            assertTrue(!"St Main".equals(name),
+                "Customer name must not be misparsed as address (e.g. 'St Main'); got: " + name);
 
             assertTrue(formData.containsKey("_parsedTransactionDate"),
                 "Expected _parsedTransactionDate in form data.");
@@ -78,6 +80,31 @@ class PdfExtractionServiceTest {
             assertNotNull(payload.totalAmount(), "SAR total amount should be set");
             assertTrue(payload.totalAmount().compareTo(new BigDecimal("10000")) == 0,
                 "test-sar-10000.pdf should yield totalAmount 10000 for DB compliance_event.total_amount; got " + payload.totalAmount());
+        }
+    }
+
+    /** SAR: subject name and narrative should be extracted; narrative should not be the name+address block. */
+    @Test
+    void testSarPdfExtractsNameAndNarrative() throws Exception {
+        PdfExtractionService service = new PdfExtractionService();
+        try (InputStream is = getClass().getResourceAsStream("/sample-forms/test-sar-10000.pdf")) {
+            Assumptions.assumeTrue(is != null, "test-sar-10000.pdf not on classpath");
+            CreateSarRequestPayload payload = (CreateSarRequestPayload) service.extractAndParse(is, DocumentType.SAR);
+            Map<String, Object> formData = payload.formData();
+            assertNotNull(formData);
+            if (formData.containsKey("_parsedCustomerName")) {
+                String name = (String) formData.get("_parsedCustomerName");
+                assertTrue(name != null && !name.isBlank(), "SAR subject name should be non-blank when present");
+                assertTrue(!"St Main".equals(name) && !"Slate St".equals(name),
+                    "SAR name must not be misparsed as address; got: " + name);
+            }
+            String narrative = payload.narrative();
+            assertNotNull(narrative);
+            assertTrue(!narrative.isBlank() && !"(No text extracted from PDF)".equals(narrative),
+                "SAR narrative should be extracted");
+            // Narrative should not be the subject name+address block (e.g. "Johnson Sarah 453 Slate St Hartford CT 06119")
+            assertTrue(!narrative.matches(".*\\b[0-9]{5}\\b.*") || narrative.length() > 100,
+                "Narrative should not be just the address block (contains 5-digit ZIP and is short); got length " + narrative.length());
         }
     }
 }
