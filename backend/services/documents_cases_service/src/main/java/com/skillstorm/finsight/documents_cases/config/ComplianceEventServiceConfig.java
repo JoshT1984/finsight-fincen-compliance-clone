@@ -23,7 +23,8 @@ public class ComplianceEventServiceConfig {
      */
     private static final ClientHttpRequestInterceptor BEARER_PROPAGATION = (HttpRequest request, byte[] body,
             ClientHttpRequestExecution execution) -> {
-        SecurityContextUtils.getCurrentBearerToken().ifPresent(token -> request.getHeaders().set("Authorization", "Bearer " + token));
+        SecurityContextUtils.getCurrentBearerToken()
+                .ifPresent(token -> request.getHeaders().set("Authorization", "Bearer " + token));
         return execution.execute(request, body);
     };
 
