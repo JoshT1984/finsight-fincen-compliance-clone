@@ -26,6 +26,14 @@ local/ # Local dev configs (docker compose, local scripts)
 ecs/ # ECS task/service/ALB templates (if used)
 docs/ # Optional: diagrams, screenshots, writeups
 
+<img src="https://github.com/JoshT1984/finsight-fincen-compliance-clone/blob/main/skillstorm-project3/frontend/public/landing-page.png?raw=true" alt="Login Page" width="600">
+
+<img src="https://github.com/JoshT1984/finsight-fincen-compliance-clone/blob/main/skillstorm-project3/frontend/public/Suspicion_Score.png?raw=true" alt="Dashboard" width="600">
+
+<img src="https://github.com/JoshT1984/finsight-fincen-compliance-clone/blob/main/skillstorm-project3/frontend/public/cases.png?raw=true" alt="Case Details" width="600">
+
+<img src="https://github.com/JoshT1984/finsight-fincen-compliance-clone/blob/main/skillstorm-project3/frontend/public/doc_upload.png?raw=true" alt="Document Upload" width="600">
+
 
 ### Why this structure?
 - **frontend/** is isolated from backend runtime dependencies
