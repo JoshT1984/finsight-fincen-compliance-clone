@@ -26,14 +26,35 @@ local/ # Local dev configs (docker compose, local scripts)
 ecs/ # ECS task/service/ALB templates (if used)
 docs/ # Optional: diagrams, screenshots, writeups
 
-<img src="https://raw.githubusercontent.com/JoshT1984/finsight-fincen-compliance-clone/main/skillstorm-project3/frontend/public/images/landing-page.png" alt="Login Page" width="600">
+## Landing Page
 
-<img src="https://raw.githubusercontent.com/JoshT1984/finsight-fincen-compliance-clone/main/skillstorm-project3/frontend/public/images/Suspicion_Score.png" alt="Dashboard" width="600">
+<p align="left">
+<img src="frontend/public/images/landing-page.png" width="950">
+</p>
 
-<img src="https://raw.githubusercontent.com/JoshT1984/finsight-fincen-compliance-clone/main/skillstorm-project3/frontend/public/images/cases.png" alt="Case Details" width="600">
+---
 
-<img src="https://raw.githubusercontent.com/JoshT1984/finsight-fincen-compliance-clone/main/skillstorm-project3/frontend/public/images/doc_upload.png" alt="Document Upload" width="600">
+## Suspicion Score
 
+<p align="left">
+<img src="frontend/public/images/Suspicion_Score.png" width="950">
+</p>
+
+---
+
+## Case Management
+
+<p align="left">
+<img src="frontend/public/images/cases.png" width="950">
+</p>
+
+---
+
+## Document Upload
+
+<p align="left">
+<img src="frontend/public/images/doc_upload.png" width="950">
+</p>
 
 ### Why this structure?
 - **frontend/** is isolated from backend runtime dependencies
