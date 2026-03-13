@@ -69,6 +69,13 @@ export class DocumentsService {
     return this.http.get<{ downloadUrl: string }>(`${this.apiUrl}/${documentId}/download-url`);
   }
 
+  /** Download all documents for a case as a single ZIP file */
+  downloadCaseDocumentsZip(caseId: number): Observable<Blob> {
+    return this.http.get(`${this.casesUrl}/${caseId}/documents/zip`, {
+      responseType: 'blob',
+    });
+  }
+
   /** Upload a document */
   upload(
     file: File,

@@ -19,10 +19,15 @@ public class CtrGenerationController {
         this.service = service;
     }
 
+    /**
+     * Example:
+     * POST /api/ctrs/generate?subjectKey=CUST-545571&dayUtc=2026-02-12
+     */
     @PostMapping("/generate")
     public int generate(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to) {
-        return service.generate(from, to);
+            @RequestParam String subjectKey,
+            @RequestParam LocalDate dayUtc) {
+
+        return service.generateForSubjectDay(subjectKey, dayUtc);
     }
 }

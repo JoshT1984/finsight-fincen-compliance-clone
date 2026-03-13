@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
 import { SideNavComponent, NavItem } from '../../../shared/side-nav/side-nav.component';
 import { CaseFileResponse } from '../../../shared/services/cases.service';
@@ -12,10 +14,11 @@ import { CaseFileResponse } from '../../../shared/services/cases.service';
   templateUrl: './case-detail.component.html',
   styleUrls: ['./case-detail.component.css'],
 })
-export class CaseDetailComponent {
+export class CaseDetailComponent implements OnDestroy {
   caseData: CaseFileResponse | null = null;
   caseId: number | null = null;
   breadcrumbItems: BreadcrumbItem[] = [];
+  private destroy$ = new Subject<void>();
 
   caseDetailNavItems: NavItem[] = [
     { id: 'overview', label: 'Overview' },
@@ -29,15 +32,20 @@ export class CaseDetailComponent {
   }
 
   constructor(private route: ActivatedRoute) {
-    this.route.data.subscribe((data) => {
+    this.route.data.pipe(takeUntil(this.destroy$)).subscribe((data) => {
       this.caseData = data['case'] ?? null;
       this.updateBreadcrumbs();
     });
-    this.route.paramMap.subscribe((params) => {
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const id = params.get('id');
       this.caseId = id ? Number(id) : null;
       this.updateBreadcrumbs();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private updateBreadcrumbs(): void {

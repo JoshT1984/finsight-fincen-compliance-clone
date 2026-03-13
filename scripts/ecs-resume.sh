@@ -35,8 +35,25 @@ done
 
 command -v aws &>/dev/null || { echo "Error: AWS CLI not found." >&2; exit 1; }
 
-echo "Starting Aurora cluster $DB_CLUSTER..."
-aws rds start-db-cluster --db-cluster-identifier "$DB_CLUSTER" --no-cli-pager --output text --query 'DBCluster.DBClusterIdentifier'
+DB_STATUS=$(aws rds describe-db-clusters \
+  --db-cluster-identifier "$DB_CLUSTER" \
+  --no-cli-pager \
+  --output text \
+  --query 'DBClusters[0].Status')
+
+case "$DB_STATUS" in
+  available)
+    echo "Aurora cluster $DB_CLUSTER is already running."
+    ;;
+  starting)
+    echo "Aurora cluster $DB_CLUSTER is already starting."
+    ;;
+  *)
+    echo "Starting Aurora cluster $DB_CLUSTER (current status: $DB_STATUS)..."
+    aws rds start-db-cluster --db-cluster-identifier "$DB_CLUSTER" --no-cli-pager --output text --query 'DBCluster.DBClusterIdentifier'
+    ;;
+esac
+
 echo "Scaling ECS services to 1..."
 for SVC_ARN in $(aws ecs list-services --cluster "$CLUSTER" --output text --query 'serviceArns[]' | tr '\t' '\n'); do
   [ -z "$SVC_ARN" ] && continue

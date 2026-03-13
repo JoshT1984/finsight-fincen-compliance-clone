@@ -1,16 +1,11 @@
 /* Align header actions with .hero container width */
 .siteHeader__banner .container {
-  margin: 0 auto !important;
-  max-width: 100%;
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 0;
-  padding-right: 0;
+  margin: 0 auto;
+  max-width: 80%;
   display: flex;
   align-items: center;
   justify-content: space-evenly;
 }
-
 .brand__left {
   display: flex;
   align-items: center;
@@ -21,9 +16,8 @@
   display: flex;
   align-items: center;
   margin-left: 22em;
-  gap: 1rem;
-}
-/* Align login button and logo with .hero container */
+  gap: .25rem;
+} /* Align login button and logo with .hero container */
 .brand__btn {
   background: #093c6f;
   margin-left: 22px;
@@ -36,11 +30,48 @@
   object-fit: contain;
   vertical-align: middle;
   display: inline-block;
-}
-/* FinCEN logo image in header */
+} /* FinCEN logo image in header */
 .fincen-logo {
   height: 5rem;
   object-fit: contain;
   vertical-align: middle;
   display: inline-block;
 }
+
+/* Professional role icon chip */
+.role-chip {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* “official” polish */
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 0 0 2px rgba(0, 0, 0, 0.12) inset;
+
+  /* match your spacing rhythm (same as buttons/logo) */
+  margin-left: 22px;
+}
+
+.role-chip mat-icon {
+  color: #fff;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+}
+
+/* roleId/app_user colors */
+.role-chip--1 {
+  background-color: #093c6f;
+} /* blue */
+.role-chip--2 {
+  background-color: #ff8f00;
+} /* amber */
+.role-chip--3 {
+  background-color: #2e7d32;
+} /* green */

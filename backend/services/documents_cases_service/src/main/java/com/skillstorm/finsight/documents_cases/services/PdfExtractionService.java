@@ -30,6 +30,7 @@ import com.skillstorm.finsight.documents_cases.models.DocumentType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Extracts text from FinCEN Form 104 (CTR) and Form 109 (SAR) PDFs and builds
@@ -119,15 +120,35 @@ public class PdfExtractionService {
             PDAcroForm acroForm = document.getDocumentCatalog().getAcroForm();
             if (acroForm != null) {
                 combined.append(" \u200BFORM_VALUES "); // sentinel so parsing can restrict name/amount search to filled values
+                StringBuilder fieldBlock = new StringBuilder();
+                Pattern itemNumberInName = Pattern.compile("\\b(\\d{1,2})\\b");
                 for (PDField field : acroForm.getFieldTree()) {
                     try {
                         String value = field.getValueAsString();
                         if (value != null && !value.isBlank()) {
                             combined.append(" ").append(value.trim());
                         }
+                        // Build FIELD_N=value block for fixed-form mapping (skip "Off" so only real values get keys)
+                        String name = field.getFullyQualifiedName();
+                        if (name != null && value != null && !value.isBlank() && !"Off".equalsIgnoreCase(value.trim())) {
+                            Matcher numMatcher = itemNumberInName.matcher(name);
+                            if (numMatcher.find()) {
+                                int itemNum = Integer.parseInt(numMatcher.group(1));
+                                if (itemNum >= 1 && itemNum <= 50) {
+                                    // Do not put date-like or numeric values into name fields (2,3,4 CTR; 4,5,6 SAR)
+                                    if (isNameFieldItem(itemNum) && looksLikeDateOrNumber(value.trim())) {
+                                        continue;
+                                    }
+                                    fieldBlock.append("\u200BFIELD_").append(itemNum).append("=").append(value.trim()).append("\u200B");
+                                }
+                            }
+                        }
                     } catch (Exception e) {
                         log.trace("Could not read form field {}: {}", field.getFullyQualifiedName(), e.getMessage());
                     }
+                }
+                if (fieldBlock.length() > 0) {
+                    combined.append(" \u200BFIELD_VALUES ").append(fieldBlock);
                 }
             }
             return combined.toString();
@@ -190,6 +211,10 @@ public class PdfExtractionService {
      */
     private static void parseCtrAddress(String rawText, Map<String, Object> ctrFormData) {
         if (rawText == null || rawText.isBlank() || ctrFormData == null) return;
+        // Skip if already set from FIELD_VALUES (fixed template)
+        if (ctrFormData.containsKey("_parsedAddressLine1") && ctrFormData.containsKey("_parsedAddressCity")) {
+            return;
+        }
         // Item 8: Permanent address (Number and Street)
         Pattern streetPattern = Pattern.compile(
             "(?:8\\s+)?(?:permanent\\s+address|number\\s+and\\s+street|street\\s+address)\\s*:?\\s*([A-Za-z0-9\\s.,#'-]{5,120}?)(?=\\s*[\\r\\n]|\\s*9\\s|\\s*$)",
@@ -259,6 +284,22 @@ public class PdfExtractionService {
      */
     private static void parseSarAddress(String rawText, Map<String, Object> formData) {
         if (rawText == null || rawText.isBlank() || formData == null) return;
+        // Prefer address from FORM_VALUES (fixed template) so we don't match instruction text
+        int formValuesIdx = rawText.indexOf("FORM_VALUES");
+        if (formValuesIdx >= 0 && formValuesIdx < rawText.length() - 20) {
+            String formSection = rawText.substring(formValuesIdx);
+            Pattern addrInForm = Pattern.compile(
+                "\\b(\\d+\\s+[A-Za-z0-9][A-Za-z0-9\\s.,#'-]{4,80}?)\\s+([A-Za-z][A-Za-z\\s.'-]{2,48}?)\\s+([A-Z]{2})\\s+([0-9]{5}(?:-[0-9]{4})?)\\b");
+            Matcher am = addrInForm.matcher(formSection);
+            if (am.find()) {
+                formData.put("_parsedAddressLine1", am.group(1).trim());
+                formData.put("_parsedAddressCity", am.group(2).trim());
+                formData.put("_parsedAddressState", am.group(3).trim().toUpperCase());
+                formData.put("_parsedAddressPostalCode", am.group(4).trim());
+                formData.put("_parsedAddressCountry", "USA");
+                return;
+            }
+        }
         // SAR forms often have "Address", "Street", "Subject address" or similar
         Pattern streetPattern = Pattern.compile(
             "(?:address|street\\s+address|number\\s+and\\s+street|subject'?s?\\s+address)\\s*:?\\s*([A-Za-z0-9\\s.,#'-]{5,120}?)(?=\\s*[\\r\\n]|\\s*(?:city|state|zip|country)|\\s*$)",
@@ -326,9 +367,31 @@ public class PdfExtractionService {
         return i >= 1900 && i <= 2099;
     }
 
-    /** Rejects captured "names" that are form boilerplate (e.g. "in Item", "Section", "Report", "OMB"). */
+    /** Common street suffixes so we don't use "St", "Ave", etc. as first/last name. */
+    private static boolean isStreetSuffix(String word) {
+        if (word == null || word.isBlank()) return false;
+        String t = word.trim().toLowerCase();
+        return t.equals("st") || t.equals("street") || t.equals("ave") || t.equals("avenue")
+                || t.equals("blvd") || t.equals("boulevard") || t.equals("rd") || t.equals("road")
+                || t.equals("ln") || t.equals("lane") || t.equals("dr") || t.equals("drive");
+    }
+
+    /** US state/territory 2-letter codes so we don't use "CT", "NY", etc. as first/last name. */
+    private static final Set<String> STATE_ABBREVIATIONS = Set.of(
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA",
+            "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+            "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT",
+            "VA", "WA", "WV", "WI", "WY", "DC");
+
+    private static boolean isStateAbbreviation(String word) {
+        if (word == null || word.length() != 2) return false;
+        return STATE_ABBREVIATIONS.contains(word.trim().toUpperCase());
+    }
+
+    /** Rejects captured "names" that are form boilerplate, street suffixes, or state abbreviations. */
     private static boolean isValidName(String s) {
         if (s == null || s.trim().isEmpty() || s.length() > 128) return false;
+        if (isStreetSuffix(s) || isStateAbbreviation(s)) return false;
         String t = s.trim().toLowerCase();
         if (t.contains("item") || t.contains("section") || t.contains("transaction") || t.contains("person(")
                 || t.contains("complete") || t.contains("check") || t.contains("instructions")
@@ -445,10 +508,24 @@ public class PdfExtractionService {
     }
 
     /**
+     * True if segment looks like subject name + address (e.g. "Johnson Sarah 453 Slate St Hartford CT 06119"),
+     * not narrative prose. Such segments should be excluded when picking the narrative.
+     */
+    private static boolean looksLikeNameAndAddress(String segment) {
+        if (segment == null || segment.length() < 15) return false;
+        // Has 5-digit ZIP and street suffix (e.g. " St ") or 2-letter state + ZIP
+        boolean hasZip = segment.matches(".*\\b[0-9]{5}(?:-[0-9]{4})?\\b.*");
+        boolean hasStreetSuffix = segment.matches(".*\\s+St\\s+.*") || segment.matches(".*\\s+Street\\s+.*")
+                || segment.matches(".*\\s+Ave\\s+.*") || segment.matches(".*\\s+Blvd\\s+.*");
+        boolean hasStateAndZip = segment.matches(".*\\s+[A-Z]{2}\\s+[0-9]{5}\\b.*");
+        return hasZip && (hasStreetSuffix || hasStateAndZip);
+    }
+
+    /**
      * From the FORM_VALUES section (concatenated form field values), extract the segment that
      * best represents the narrative. Fillable SAR often has many "Off" checkbox values and one
      * narrative field (e.g. "Suspicious activity test text"). We take the longest run that looks
-     * like prose (not just "Off", not a date, not a single number).
+     * like prose (not name+address, not a date, not a single number).
      */
     private static String extractNarrativeFromFormValues(String formValuesSection) {
         if (formValuesSection == null || formValuesSection.isBlank()) return null;
@@ -463,6 +540,7 @@ public class PdfExtractionService {
             if (s.isEmpty() || s.length() < 10) continue;
             if (dateOnly.matcher(s).matches() || numberOnly.matcher(s).matches()) continue;
             if ("Off".equalsIgnoreCase(s)) continue;
+            if (looksLikeNameAndAddress(s)) continue; // skip subject name + address block
             if (s.length() > bestLen && s.length() <= 50000) {
                 bestLen = s.length();
                 best = s;
@@ -521,6 +599,109 @@ public class PdfExtractionService {
         return null;
     }
 
+    /** Form 104 name items 2,3,4; Form 109 name items 4,5,6. */
+    private static boolean isNameFieldItem(int itemNum) {
+        return itemNum == 2 || itemNum == 3 || itemNum == 4 || itemNum == 5 || itemNum == 6;
+    }
+
+    /** True if value looks like a date (MM/DD/YYYY) or is mostly digits (e.g. SSN, amount). */
+    private static boolean looksLikeDateOrNumber(String value) {
+        if (value == null || value.isBlank()) return false;
+        String v = value.trim();
+        if (v.matches("\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}")) return true; // date
+        if (v.matches("[\\d,.]+")) return true; // number only
+        if (v.length() <= 4 && v.matches("\\d+")) return true; // short number
+        return false;
+    }
+
+    /** From FIELD_VALUES block (e.g. \u200BFIELD_2=Johnson\u200BFIELD_3=Sarah\u200B), return value for given item number or null. */
+    private static String getFieldValueFromBlock(String rawText, int fieldNum) {
+        return getFieldValueFromBlock(rawText, fieldNum, false);
+    }
+
+    /**
+     * From FIELD_VALUES block, return a value for the given field number.
+     * When skipDateLike is true, returns the first value that does not look like a date/number
+     * (so when FIELD_1 appears as both "Johnson" and "01/01/1970", we pick "Johnson" for name).
+     */
+    private static String getFieldValueFromBlock(String rawText, int fieldNum, boolean skipDateLike) {
+        if (rawText == null || rawText.isEmpty()) return null;
+        int start = rawText.indexOf("FIELD_VALUES");
+        if (start < 0) return null;
+        String block = rawText.substring(start);
+        String prefix = "\u200BFIELD_" + fieldNum + "=";
+        int idx = 0;
+        while (true) {
+            idx = block.indexOf(prefix, idx);
+            if (idx < 0) return null;
+            int valueStart = idx + prefix.length();
+            int valueEnd = block.indexOf("\u200B", valueStart);
+            String value = valueEnd < 0 ? block.substring(valueStart).trim() : block.substring(valueStart, valueEnd).trim();
+            if (!skipDateLike || !looksLikeDateOrNumber(value)) {
+                return value;
+            }
+            idx = valueEnd < 0 ? block.length() : valueEnd + 1;
+        }
+    }
+
+    /** Build "First [Middle] Last" from form items (first name, middle, last name). */
+    private static String buildDisplayName(String first, String middle, String last) {
+        if (first != null && !first.isBlank() && last != null && !last.isBlank()) {
+            return first + (middle != null && !middle.isBlank() ? " " + middle : "") + " " + last;
+        }
+        if (first != null && !first.isBlank()) return first;
+        if (last != null && !last.isBlank()) return last;
+        return null;
+    }
+
+    /**
+     * SAR fallback: parse subject name from FORM_VALUES using first two valid title-case words
+     * (Form 109 order: Item 4 last, Item 5 first). Skips street suffixes and state abbreviations.
+     */
+    private static void parseSarSubjectNameFromFormValues(String rawText, Map<String, Object> formData) {
+        if (rawText == null || formData == null) return;
+        int formValues = rawText.indexOf("FORM_VALUES");
+        if (formValues < 0) return;
+        String nameSearchArea = rawText.substring(formValues);
+        Pattern twoNames = Pattern.compile("\\b([A-Z][a-zA-Z]{1,24})\\s+([A-Z][a-zA-Z]{1,24})\\b");
+        Matcher m = twoNames.matcher(nameSearchArea);
+        while (m.find()) {
+            String firstWord = m.group(1);
+            String secondWord = m.group(2);
+            if (isStreetSuffix(secondWord) || isStateAbbreviation(firstWord) || isStateAbbreviation(secondWord)) {
+                continue;
+            }
+            if (isValidName(firstWord) && isValidName(secondWord) && !firstWord.equalsIgnoreCase(secondWord)) {
+                String customerName = secondWord + " " + firstWord; // Form 109: firstWord=last, secondWord=first
+                if (customerName.length() <= 128) {
+                    formData.put("_parsedCustomerName", customerName);
+                }
+                return;
+            }
+        }
+        // Strategy 6 style: first 2–3 valid words in FORM_VALUES
+        Pattern word = Pattern.compile("\\b([A-Z][a-zA-Z]{1,24})\\b");
+        Matcher wm = word.matcher(nameSearchArea);
+        String firstCandidate = null;
+        String secondCandidate = null;
+        while (wm.find()) {
+            String token = wm.group(1);
+            if (!isValidName(token)) continue;
+            if (firstCandidate == null) {
+                firstCandidate = token;
+            } else if (secondCandidate == null && !token.equalsIgnoreCase(firstCandidate)) {
+                secondCandidate = token;
+                break;
+            }
+        }
+        if (firstCandidate != null && secondCandidate != null) {
+            String customerName = secondCandidate + " " + firstCandidate;
+            if (customerName.length() <= 128) {
+                formData.put("_parsedCustomerName", customerName);
+            }
+        }
+    }
+
     private CreateCtrRequestPayload parseForm104(String rawText, String sourceEntityId, Instant fallbackTime) {
         // Normalize Unicode apostrophes/quotes so "Individual's" matches (e.g. \u2019 -> ')
         if (rawText != null && !rawText.isEmpty()) {
@@ -534,8 +715,11 @@ public class PdfExtractionService {
         String customerName = "(Extracted from PDF)";
         Instant transactionTime = fallbackTime;
 
-        // Form 104 Item 28: Date of transaction — try multiple patterns to match varied PDF text layout
-        String dateStr = parseCtrTransactionDate(rawText);
+        // Prefer FIELD_VALUES block (fixed template) for date, then fall back to heuristics
+        String dateStr = getFieldValueFromBlock(rawText, 28);
+        if (dateStr == null || dateStr.isBlank()) {
+            dateStr = parseCtrTransactionDate(rawText);
+        }
         if (dateStr != null) {
             try {
                 String normalized = dateStr.replace('-', '/').trim();
@@ -553,9 +737,21 @@ public class PdfExtractionService {
             }
         }
 
-        // Form 104 Item 26 = Total cash IN, Item 27 = Total cash OUT. Keep direction separate so we don't mix them.
+        // Form 104 Item 26 = Total cash IN, Item 27 = Total cash OUT. Prefer FIELD_VALUES then heuristics.
         BigDecimal cashIn = BigDecimal.ZERO;
         BigDecimal cashOut = BigDecimal.ZERO;
+        String field26 = getFieldValueFromBlock(rawText, 26);
+        String field27 = getFieldValueFromBlock(rawText, 27);
+        if (field26 != null && !field26.isBlank()) {
+            try {
+                cashIn = new BigDecimal(field26.replace(",", ""));
+            } catch (NumberFormatException ignored) { }
+        }
+        if (field27 != null && !field27.isBlank()) {
+            try {
+                cashOut = new BigDecimal(field27.replace(",", ""));
+            } catch (NumberFormatException ignored) { }
+        }
         Pattern cashInPattern = Pattern.compile(
             "(?:26\\s+)?(?:total\\s+cash\\s+in|total\\s+currency\\s+received|total\\s+amount\\s+in)\\s*\\$?\\s*([\\d,]+(?:\\.\\d{2})?)",
             Pattern.CASE_INSENSITIVE);
@@ -701,10 +897,28 @@ public class PdfExtractionService {
         }
 
         // Form 104 Items 2–4: Item 2 = last name (or organization), Item 3 = first name, Item 4 = middle initial/name.
-        // Display order: First Name Middle Name Last Name.
-        String lastOrEntity = null;
-        String first = null;
-        String middle = null;
+        // Prefer FIELD_VALUES block (fixed template). Some PDFs use 1-based field numbers (1=last, 2=first, 3=date).
+        String lastOrEntity = getFieldValueFromBlock(rawText, 2);
+        String first = getFieldValueFromBlock(rawText, 3);
+        String middle = getFieldValueFromBlock(rawText, 4);
+        if (middle != null && middle.isEmpty()) middle = null;
+        // If we got a date as "first" or "last", or we have only one name part, the PDF may use 1-based fields (1=last, 2=first).
+        // FIELD_1 can appear twice (e.g. Johnson and 01/01/1970); prefer the value that looks like a name.
+        boolean tryAlt = looksLikeDateOrNumber(first) || looksLikeDateOrNumber(lastOrEntity)
+                || (first == null && lastOrEntity != null) || (first != null && lastOrEntity == null);
+        if (tryAlt) {
+            String altLast = getFieldValueFromBlock(rawText, 1, true);  // skip date-like so we get "Johnson" not "01/01/1970"
+            String altFirst = getFieldValueFromBlock(rawText, 2);
+            if (!looksLikeDateOrNumber(altFirst) && !looksLikeDateOrNumber(altLast)
+                    && (altLast != null && !altLast.isBlank() || altFirst != null && !altFirst.isBlank())) {
+                if (altLast != null && !altLast.isBlank()) lastOrEntity = altLast;
+                if (altFirst != null && !altFirst.isBlank()) first = altFirst;
+            } else if (looksLikeDateOrNumber(first) || looksLikeDateOrNumber(lastOrEntity)) {
+                // Discard date so heuristics can fill from FORM_VALUES
+                if (looksLikeDateOrNumber(first)) first = null;
+                if (looksLikeDateOrNumber(lastOrEntity)) lastOrEntity = null;
+            }
+        }
 
         // Strategy 1: Value on same line after "2 ... name", "3 First name", or "4 Middle initial" (capture must not be boilerplate)
         Pattern nameAfterLabel = Pattern.compile(
@@ -718,9 +932,9 @@ public class PdfExtractionService {
             String last = m1.group(1);
             String firstCap = m1.group(2);
             String mid = m1.group(3);
-            if (isValidName(last)) lastOrEntity = last.trim();
-            if (isValidName(firstCap)) first = firstCap.trim();
-            if (mid != null && !mid.trim().isEmpty() && isValidName(mid.trim())) middle = mid.trim();
+            if (lastOrEntity == null && isValidName(last)) lastOrEntity = last.trim();
+            if (first == null && isValidName(firstCap)) first = firstCap != null ? firstCap.trim() : null;
+            if (middle == null && mid != null && !mid.trim().isEmpty() && isValidName(mid.trim())) middle = mid.trim();
         }
 
         // Strategy 2: Value on next line after label (common in PDFs)
@@ -765,6 +979,32 @@ public class PdfExtractionService {
             if (first == null && isValidName(g2)) first = g2 != null ? g2.trim() : null;
         }
 
+        // When we have only first or only last (e.g. FIELD_1 had no name value), fill the missing part from FORM_VALUES "Last First" text.
+        if (rawText != null && (lastOrEntity == null || first == null)) {
+            int fv = rawText.indexOf("FORM_VALUES");
+            if (fv >= 0) {
+                String formSection = rawText.substring(fv);
+                Pattern twoNames = Pattern.compile("\\b([A-Z][a-zA-Z]{1,24})\\s+([A-Z][a-zA-Z]{1,24})\\b");
+                Matcher m = twoNames.matcher(formSection);
+                while (m.find()) {
+                    String w1 = m.group(1);
+                    String w2 = m.group(2);
+                    if (isStreetSuffix(w2) || isStateAbbreviation(w1) || isStateAbbreviation(w2) || !isValidName(w1) || !isValidName(w2) || w1.equalsIgnoreCase(w2)) {
+                        continue;
+                    }
+                    // Form order in values is typically last then first: "Johnson Sarah"
+                    if (lastOrEntity == null && first != null && first.equalsIgnoreCase(w2)) {
+                        lastOrEntity = w1;
+                        break;
+                    }
+                    if (first == null && lastOrEntity != null && lastOrEntity.equalsIgnoreCase(w1)) {
+                        first = w2;
+                        break;
+                    }
+                }
+            }
+        }
+
         // Strategy 5: Two consecutive title-case words (e.g. "Sarah Johnson") — prefer form field values to avoid template text
         if (lastOrEntity == null && first == null) {
             String nameSearchArea = rawText;
@@ -782,6 +1022,10 @@ public class PdfExtractionService {
             while (m5.find()) {
                 String firstWord = m5.group(1);
                 String secondWord = m5.group(2);
+                // Skip address-like pairs: second word is street suffix (e.g. "Main St") or either is state abbrev (e.g. "Vernon CT")
+                if (isStreetSuffix(secondWord) || isStateAbbreviation(firstWord) || isStateAbbreviation(secondWord)) {
+                    continue;
+                }
                 if (isValidName(firstWord) && isValidName(secondWord) && !firstWord.equalsIgnoreCase(secondWord)) {
                     // Form order is typically Item 2 (last) then Item 3 (first), so firstWord=last, secondWord=first
                     first = secondWord;
@@ -844,7 +1088,15 @@ public class PdfExtractionService {
             externalSubjectKey = SSN_SUBJECT_PREFIX + parsedSsn;
         }
 
-        // Form 104 Items 8–10: Permanent address (street, city/state/ZIP, country) for subject enrichment
+        // Form 104 Items 7–11: Permanent address. Prefer FIELD_VALUES then parseCtrAddress heuristics.
+        String field7 = getFieldValueFromBlock(rawText, 7);
+        String field9 = getFieldValueFromBlock(rawText, 9);
+        String field10 = getFieldValueFromBlock(rawText, 10);
+        String field11 = getFieldValueFromBlock(rawText, 11);
+        if (field7 != null && !field7.isBlank()) ctrFormData.put("_parsedAddressLine1", field7.trim());
+        if (field9 != null && !field9.isBlank()) ctrFormData.put("_parsedAddressCity", field9.trim());
+        if (field10 != null && !field10.isBlank()) ctrFormData.put("_parsedAddressState", field10.trim().toUpperCase());
+        if (field11 != null && !field11.isBlank()) ctrFormData.put("_parsedAddressPostalCode", field11.trim());
         parseCtrAddress(rawText, ctrFormData);
 
         return new CreateCtrRequestPayload(
@@ -870,6 +1122,20 @@ public class PdfExtractionService {
         String rawForStorage = rawText == null ? "" : (rawText.length() <= MAX_RAW_TEXT_LENGTH ? rawText : rawText.substring(0, MAX_RAW_TEXT_LENGTH));
         rawForStorage = rawForStorage.replace("\u200BFORM_VALUES ", " ");
         formData.put("_rawText", rawForStorage);
+
+        // Form 109 Items 4, 5, 6: Subject name (last, first, middle). Prefer FIELD_VALUES block, then fallback heuristics.
+        String sarLast = getFieldValueFromBlock(rawText, 4);
+        String sarFirst = getFieldValueFromBlock(rawText, 5);
+        String sarMiddle = getFieldValueFromBlock(rawText, 6);
+        if ((sarLast != null && !sarLast.isBlank()) || (sarFirst != null && !sarFirst.isBlank())) {
+            String customerName = buildDisplayName(sarFirst, sarMiddle, sarLast);
+            if (customerName != null && customerName.length() <= 128) {
+                formData.put("_parsedCustomerName", customerName);
+            }
+        }
+        if (!formData.containsKey("_parsedCustomerName")) {
+            parseSarSubjectNameFromFormValues(rawText != null ? rawText : "", formData);
+        }
 
         String narrative = null;
         if (rawText != null && !rawText.isBlank()) {

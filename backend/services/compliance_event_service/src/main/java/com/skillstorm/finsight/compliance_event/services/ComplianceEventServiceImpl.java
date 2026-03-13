@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -329,51 +328,97 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
 
         assertNoDuplicateSource(sourceSystem, sourceEntityId);
 
+        Map<String, Object> ctrFormData = ctrDetail.getCtrFormData() == null ? Map.of() : ctrDetail.getCtrFormData();
+
+        // ---------- Normalize key fields from CTR form JSON ----------
+        String subjectKey = String.valueOf(ctrFormData.getOrDefault("subjectKey", ctrEvent.getExternalSubjectKey()));
+
+        // Always inherit the final computed CTR score
+        Integer baseScore = ctrEvent.getSeverityScore();
+
+        Integer txnCount = coerceInt(
+                ctrFormData.get("txnCount"),
+                ctrFormData.get("transactionCount"),
+                null);
+
+        Double totalCashIn = coerceDouble(
+                ctrFormData.get("totalCashIn"),
+                ctrFormData.get("totalCashAmount"),
+                null);
+
+        // Drivers may already exist in CTR form data
+        @SuppressWarnings("unchecked")
+        List<Object> rawDrivers = (ctrFormData.get("suspicionDrivers") instanceof List<?> list)
+                ? (List<Object>) list
+                : List.of();
+
+        List<String> driversList = rawDrivers.stream().map(String::valueOf).toList();
+
+        // ---------- "Make 12k+ same-day deposits break threshold easier" ----------
+        int score = baseScore == null ? 0 : baseScore;
+
+        // Clamp to 0..100
+        if (score < 0)
+            score = 0;
+        if (score > 100)
+            score = 100;
+
+        // Band (simple)
+        String band = (score >= 70) ? "HIGH" : (score >= 40) ? "MEDIUM" : "LOW";
+
+        // Narrative drivers string
+        String driversText = driversList.isEmpty() ? "" : String.join(", ", driversList);
+
+        // ---------- Create SAR Event ----------
         ComplianceEvent sarEvent = new ComplianceEvent();
         sarEvent.setEventType(EventType.SAR);
         sarEvent.setSourceSystem(sourceSystem);
         sarEvent.setSourceEntityId(sourceEntityId);
         sarEvent.setExternalSubjectKey(ctrEvent.getExternalSubjectKey());
+
+        // Use the CTR event time (consistent with your existing data model)
         sarEvent.setEventTime(Instant.now());
         sarEvent.setTotalAmount(ctrEvent.getTotalAmount());
-        sarEvent.setSeverityScore(ctrEvent.getSeverityScore());
+
+        // IMPORTANT: set severityScore from computed score so downstream logic sees it
+        sarEvent.setSeverityScore(score);
         sarEvent.setStatus(EventStatus.DRAFT);
 
         sarEvent = complianceEventRepository.save(sarEvent);
 
-        Map<String, Object> ctrFormData = ctrDetail.getCtrFormData() == null ? Map.of() : ctrDetail.getCtrFormData();
-
-        String subjectKey = String.valueOf(ctrFormData.getOrDefault("subjectKey", ctrEvent.getExternalSubjectKey()));
-
-        Object driversObj = ctrFormData.get("suspicionDrivers");
-        String drivers = "";
-        if (driversObj instanceof List<?> list && !list.isEmpty()) {
-            drivers = list.stream().map(String::valueOf).reduce((a, b) -> a + ", " + b).orElse("");
-        }
-
         String narrative = "Auto-generated SAR draft from CTR " + ctrEventId +
                 " for subject " + subjectKey +
-                ". Suspicion score: " + (ctrEvent.getSeverityScore() == null ? "—" : ctrEvent.getSeverityScore()) +
-                (drivers.isBlank() ? "" : ". Drivers: " + drivers) +
+                ". Suspicion score: " + score +
+                " (Band=" + band + ")" +
+                (driversText.isBlank() ? "" : ". Drivers: " + driversText) +
                 ". Please review and edit before submission.";
 
+        // ---------- Create SAR Detail ----------
         ComplianceEventSarDetail sarDetail = new ComplianceEventSarDetail();
         sarDetail.setEvent(sarEvent);
         sarDetail.setNarrative(narrative);
+
         // Use CTR day as activity window by default
         sarDetail.setActivityStart(ctrEvent.getEventTime());
         sarDetail.setActivityEnd(ctrEvent.getEventTime());
 
-        // Seed SAR formData with CTR-derived info
+        // Seed SAR formData with CTR-derived info (normalized keys)
         Map<String, Object> seed = new java.util.HashMap<>();
         seed.put("fromCtrEventId", ctrEventId);
         seed.put("subjectKey", subjectKey);
-        seed.put("totalCashAmount", ctrFormData.getOrDefault("totalCashAmount", null));
+
+        // normalize amounts/count/day fields
         seed.put("txnDay", ctrFormData.getOrDefault("txnDay", null));
-        seed.put("suspicionScore", ctrFormData.getOrDefault("suspicionScore", ctrEvent.getSeverityScore()));
-        seed.put("suspicionBand", ctrFormData.getOrDefault("suspicionBand", null));
+        seed.put("txnCount", txnCount);
+        seed.put("totalCashIn", totalCashIn);
+        seed.put("totalCashAmount", ctrFormData.getOrDefault("totalCashAmount", totalCashIn));
+
+        // normalize suspicion fields so your SAR queries are consistent
+        seed.put("suspicionScore", score);
+        seed.put("suspicionBand", ctrFormData.getOrDefault("suspicionBand", band));
         seed.put("suspicionDrivers", ctrFormData.getOrDefault("suspicionDrivers", List.of()));
         seed.put("contributingTxnIds", ctrFormData.getOrDefault("contributingTxnIds", List.of()));
+
         sarDetail.setFormData(seed);
 
         ComplianceEventSarDetail saved = sarDetailRepository.save(sarDetail);
@@ -406,40 +451,116 @@ public class ComplianceEventServiceImpl implements ComplianceEventService {
         return mapper.toResponse(sarEvent);
     }
 
-    @SuppressWarnings("unchecked")
-    private List<Long> extractTxnIds(Map<String, Object> ctrFormData) {
-        Object raw = ctrFormData.get("contributingTxnIds");
-        if (raw == null)
-            return List.of();
-        if (raw instanceof List<?> list) {
-            return list.stream()
-                    .map(v -> {
-                        if (v instanceof Number n)
-                            return n.longValue();
-                        try {
-                            return Long.parseLong(String.valueOf(v));
-                        } catch (Exception e) {
-                            return null;
-                        }
-                    })
-                    .filter(v -> v != null)
-                    .toList();
+    // ---------- helpers (paste inside the class, near the bottom) ----------
+    private Integer coerceInt(Object a, Object b, Object c) {
+        for (Object v : new Object[] { a, b, c }) {
+            Integer x = toInt(v);
+            if (x != null)
+                return x;
         }
-        return List.of();
+        return null;
+    }
+
+    private Integer toInt(Object v) {
+        if (v == null)
+            return null;
+        if (v instanceof Number n)
+            return n.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(v));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Double coerceDouble(Object a, Object b, Object c) {
+        for (Object v : new Object[] { a, b, c }) {
+            Double x = toDouble(v);
+            if (x != null)
+                return x;
+        }
+        return null;
+    }
+
+    private Double toDouble(Object v) {
+        if (v == null)
+            return null;
+        if (v instanceof Number n)
+            return n.doubleValue();
+        try {
+            return Double.parseDouble(String.valueOf(v));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private java.util.List<Long> extractTxnIds(java.util.Map<String, Object> formData) {
+        if (formData == null || formData.isEmpty()) {
+            return java.util.List.of();
+        }
+        Object raw = null;
+        if (formData.containsKey("contributingTxnIds"))
+            raw = formData.get("contributingTxnIds");
+        else if (formData.containsKey("txnIds"))
+            raw = formData.get("txnIds");
+        else if (formData.containsKey("transactionIds"))
+            raw = formData.get("transactionIds");
+
+        if (raw == null) {
+            return java.util.List.of();
+        }
+
+        java.util.List<Long> out = new java.util.ArrayList<>();
+
+        if (raw instanceof java.util.Collection<?> col) {
+            for (Object v : col) {
+                Long id = toLong(v);
+                if (id != null)
+                    out.add(id);
+            }
+            return out;
+        }
+
+        // Sometimes stored as a comma-separated string
+        String s = String.valueOf(raw).trim();
+        if (s.isEmpty())
+            return java.util.List.of();
+        for (String part : s.split(",")) {
+            Long id = toLong(part);
+            if (id != null)
+                out.add(id);
+        }
+        return out;
+    }
+
+    private Long toLong(Object v) {
+        if (v == null)
+            return null;
+        if (v instanceof Number n)
+            return n.longValue();
+        try {
+            return Long.parseLong(String.valueOf(v).trim());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void assertNoDuplicateSource(String sourceSystem, String sourceEntityId) {
-        if (sourceSystem == null || sourceEntityId == null)
+        if (sourceSystem == null || sourceEntityId == null) {
             return;
-
-        var page = complianceEventRepository.findBySourceSystemAndSourceEntityId(
-                sourceSystem,
-                sourceEntityId,
-                PageRequest.of(0, 1));
+        }
+        org.springframework.data.domain.Page<ComplianceEvent> page = complianceEventRepository
+                .findBySourceSystemAndSourceEntityId(
+                        sourceSystem,
+                        sourceEntityId,
+                        org.springframework.data.domain.PageRequest.of(0, 1));
 
         if (page != null && page.hasContent()) {
-            throw new ResourceConflictException("Compliance event already exists for sourceSystem + sourceEntityId");
+            ComplianceEvent existing = page.getContent().get(0);
+            throw new ResourceConflictException(
+                    "Duplicate source detected for SAR auto-generation. sourceSystem=" + sourceSystem
+                            + ", sourceEntityId=" + sourceEntityId
+                            + ", existingEventId=" + existing.getEventId());
         }
     }
-
 }

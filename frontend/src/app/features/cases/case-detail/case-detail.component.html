@@ -3,7 +3,7 @@
 
   @if (caseData == null && caseId != null) {
     <p class="error">Case not found.</p>
-  } @else if (caseId != null) {
+  } @else if (caseId != null && caseData != null) {
     <div id="cases-header">
       <h1>Case #{{ caseId }}</h1>
     </div>

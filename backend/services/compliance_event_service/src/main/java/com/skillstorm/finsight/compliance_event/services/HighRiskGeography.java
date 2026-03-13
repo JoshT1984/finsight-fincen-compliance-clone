@@ -7,13 +7,16 @@ import java.util.Set;
  * Lightweight high-risk geography heuristic.
  *
  * MVP notes:
- * - Locations currently come from cash_transaction.location (often a branch code or free-text).
+ * - Locations currently come from cash_transaction.location (often a branch
+ * code or free-text).
  * - We treat this as a keyword match to keep the scoring trigger in place.
- * - Replace/extend with a proper risk rating service or geo enrichment when available.
+ * - Replace/extend with a proper risk rating service or geo enrichment when
+ * available.
  */
 public final class HighRiskGeography {
 
-    private HighRiskGeography() {}
+    private HighRiskGeography() {
+    }
 
     // Keep this small and obvious. This is *not* a sanctions list.
     private static final Set<String> KEYWORDS = Set.of(
@@ -26,8 +29,7 @@ public final class HighRiskGeography {
             "dubai",
             "uae",
             "cyprus",
-            "malta"
-    );
+            "malta");
 
     public static boolean isHighRisk(List<String> locations) {
         if (locations == null || locations.isEmpty()) {

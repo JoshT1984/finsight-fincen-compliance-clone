@@ -2,7 +2,9 @@ package com.skillstorm.finsight.documents_cases.controllers;
 
 import java.util.List;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,21 +14,25 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import com.skillstorm.finsight.documents_cases.dtos.request.CreateCaseFileRequest;
 import com.skillstorm.finsight.documents_cases.dtos.request.ReferCaseRequest;
 import com.skillstorm.finsight.documents_cases.dtos.request.UpdateCaseFileRequest;
 import com.skillstorm.finsight.documents_cases.dtos.response.CaseFileResponse;
 import com.skillstorm.finsight.documents_cases.services.CaseFileService;
+import com.skillstorm.finsight.documents_cases.services.DocumentService;
 
 @RestController
 @RequestMapping("/api/cases")
 public class CaseFileController {
-	
+
 	private final CaseFileService service;
-	
-	public CaseFileController(CaseFileService service) {
+	private final DocumentService documentService;
+
+	public CaseFileController(CaseFileService service, DocumentService documentService) {
 		this.service = service;
+		this.documentService = documentService;
 	}
 	
 	@PostMapping
@@ -70,5 +76,15 @@ public class CaseFileController {
 	public ResponseEntity<CaseFileResponse> close(@PathVariable Long id) {
 		CaseFileResponse response = service.closeById(id);
 		return ResponseEntity.ok(response);
+	}
+
+	@GetMapping("/{id}/documents/zip")
+	public ResponseEntity<StreamingResponseBody> downloadDocumentsZip(@PathVariable Long id) {
+		String filename = "case-" + id + "-documents.zip";
+		StreamingResponseBody stream = out -> documentService.writeCaseDocumentsZip(id, out);
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType("application/zip"))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+				.body(stream);
 	}
 }

@@ -1,10 +1,7 @@
-<div class="container form-container">
+<div class="container">
   <app-breadcrumbs [items]="breadcrumbItems"></app-breadcrumbs>
   <div class="form-header">
     <h1>{{ isEditMode ? 'Edit suspect' : 'New suspect' }}</h1>
-    <a [routerLink]="isEditMode ? ['/registry/suspects', suspectId] : ['/registry/suspects']" class="back-link">
-      Cancel
-    </a>
   </div>
 
   @if (loading) {

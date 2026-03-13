@@ -2,7 +2,10 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { BreadcrumbsComponent, BreadcrumbItem } from '../../../shared/breadcrumbs/breadcrumbs.component';
+import {
+  BreadcrumbsComponent,
+  BreadcrumbItem,
+} from '../../../shared/breadcrumbs/breadcrumbs.component';
 import { ProperCasePipe } from '../../../shared/pipes/proper-case.pipe';
 import {
   SuspectService,
@@ -15,7 +18,7 @@ const RISK_LEVELS = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH'];
 @Component({
   selector: 'app-suspect-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbsComponent, ProperCasePipe],
+  imports: [CommonModule, FormsModule, BreadcrumbsComponent, ProperCasePipe],
   templateUrl: './suspect-form.component.html',
   styleUrls: ['./suspect-form.component.css'],
 })

@@ -1,5 +1,6 @@
 package com.skillstorm.finsight.documents_cases.models;
 
+import com.skillstorm.finsight.documents_cases.converters.UuidStringConverter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -16,7 +17,8 @@ public class AuditEvent {
     @Column(name = "audit_id")
     private Long auditId;
 
-    @Column(name = "actor_user_id")
+    @Column(name = "actor_user_id", length = 36)
+    @Convert(converter = UuidStringConverter.class)
     private UUID actorUserId;
 
     @Column(name = "action", nullable = false, length = 64)

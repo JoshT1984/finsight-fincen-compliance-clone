@@ -7,7 +7,6 @@
     <span aria-hidden="true">▾</span>
   </div>
 </div>
-
 <!-- FINCEN-like header banner -->
 <header class="siteHeader">
   <div class="siteHeader__banner">
@@ -21,27 +20,44 @@
           </div>
         </div>
         <div class="brand__right">
-          <button
-            class="btn primary brand__btn"
-            *ngIf="!(identityService.isLoggedIn$ | async)"
-            (click)="login()"
-          >
-            Login
-          </button>
-          <button
-            class="btn primary brand__btn"
-            *ngIf="identityService.isLoggedIn$ | async"
-            (click)="logout()"
-          >
-            Logout
-          </button>
-          <button
-            class="btn primary brand__btn"
-            *ngIf="identityService.isLoggedIn$ | async"
-            (click)="openProfile()"
-          >
-            Profile
-          </button>
+          <ng-container *ngIf="{ isLoggedIn: identityService.isLoggedIn$ | async } as state">
+            <button
+              class="btn primary brand__btn"
+              *ngIf="!state.isLoggedIn"
+              (click)="login()"
+            >
+              Login
+            </button>
+
+            <button
+              class="btn primary brand__btn"
+              *ngIf="state.isLoggedIn"
+              (click)="logout()"
+            >
+              Logout
+            </button>
+
+            <button
+              class="btn primary brand__btn"
+              *ngIf="state.isLoggedIn"
+              (click)="openProfile()"
+            >
+              Profile
+            </button>
+
+            <ng-container *ngIf="identityService.profile$ | async as profile">
+              <span
+                class="role-chip"
+                *ngIf="state.isLoggedIn"
+                [ngClass]="'role-chip--' + profile.roleId"
+                [matTooltip]="roleTooltip(profile.roleId)"
+                aria-label="{{ roleTooltip(profile.roleId) }}"
+              >
+                <mat-icon aria-hidden="true">{{ roleIcon(profile.roleId) }}</mat-icon>
+              </span>
+            </ng-container>
+          </ng-container>
+
           <img src="images/fincen-logo.png" alt="FinCEN Logo" class="fincen-logo" />
         </div>
       </div>
